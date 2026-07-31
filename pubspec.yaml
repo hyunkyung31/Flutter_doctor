@@ -1,0 +1,87 @@
+name: doctor_app
+description: "A new Flutter project."
+
+publish_to: 'none' 
+
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.12.2
+
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+
+  # ----------------------------
+  # State Management
+  # ----------------------------
+  provider: ^6.1.5
+
+  # ----------------------------
+  # Networking
+  # ----------------------------
+  dio: ^5.9.0
+
+  # ----------------------------
+  # Routing
+  # ----------------------------
+  go_router: ^16.1.0
+
+  # ----------------------------
+  # Local Storage
+  # ----------------------------
+  flutter_secure_storage: ^9.2.4
+  shared_preferences: ^2.5.3
+
+  # ----------------------------
+  # Authentication
+  # ----------------------------
+  local_auth: ^2.3.0
+
+  # ----------------------------
+  # Firebase
+  # ----------------------------
+  firebase_core: ^4.0.0
+  firebase_messaging: ^16.0.0
+
+  # ----------------------------
+  # PDF
+  # ----------------------------
+  pdf: ^3.11.3
+  printing: ^5.14.2
+
+  # ----------------------------
+  # Utilities
+  # ----------------------------
+  intl: ^0.20.2
+
+  # ----------------------------
+  # UI
+  # ----------------------------
+  flutter_svg: ^2.2.0
+
+  cached_network_image: ^3.4.1
+
+  shimmer: ^3.0.0
+
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+
+  flutter_lints: ^6.0.0
+
+
+flutter:
+
+
+  uses-material-design: true
+
+  assets:
+    - assets/
