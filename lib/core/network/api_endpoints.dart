@@ -7,5 +7,5 @@ abstract final class ApiEndpoints {
 
   // 의료진 로그인 API 상대 경로
   // 이후 DIO BASE URL과 결합
-  static const String login = '/api/login';
+  static const String login = '/api/login/';
 }
