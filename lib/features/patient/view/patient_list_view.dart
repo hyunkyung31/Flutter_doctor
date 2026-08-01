@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../auth/view_model/auth_view_model.dart';
 import '../model/patient.dart';
-import '../veiw_model/patient_list_view_model.dart';
+import '../view_model/patient_list_view_model.dart';
 
 final class PatientListView extends StatefulWidget {
   const PatientListView({super.key});
