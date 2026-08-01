@@ -1,14 +1,14 @@
 import 'package:go_router/go_router.dart';
 import '../features/auth/view/login_screen.dart';
 import 'route_names.dart';
-
+import '../features/home/home_routes.dart';
 import '../features/patient/view/patient_list_view.dart';
 
 class AppRouter {
   AppRouter._();
 
   static final GoRouter router = GoRouter(
-    initialLocation: '/',  //  - splash화면 연결 전까지 main 초기 경로 이걸로 유지
+    initialLocation: '/home',  //  - splash화면 연결 전까지 main 초기 경로 이걸로 유지
     routes: [
       // GoRoute(
       //   path: '/',
@@ -20,6 +20,8 @@ class AppRouter {
       //     );
       //   },
       // ),
+
+      ...homeRoutes,
 
       GoRoute(
         path: '/patient',
