@@ -8,8 +8,19 @@ class AppRouter {
   AppRouter._();
 
   static final GoRouter router = GoRouter(
-    initialLocation: '/patient',  //  - splash화면 연결 전까지 main 초기 경로 이걸로 유지
+    initialLocation: '/',  //  - splash화면 연결 전까지 main 초기 경로 이걸로 유지
     routes: [
+      // GoRoute(
+      //   path: '/',
+      //   builder: (context, state) {
+      //     return const Scaffold(
+      //       body: Center([]
+      //         child: Text('화면 연결 전'),
+      //       ),
+      //     );
+      //   },
+      // ),
+
       GoRoute(
         path: '/patient',
         builder: (context, state) {

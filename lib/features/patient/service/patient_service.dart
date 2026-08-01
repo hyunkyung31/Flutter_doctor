@@ -1,92 +1,143 @@
-import 'dart:convert';
+import 'package:dio/dio.dart';
 
-import 'package:http/http.dart' as http;
-
+import '../../../core/network/api_client.dart';
+import '../../../core/network/api_endpoints.dart';
 import '../model/patient.dart';
 
-class PatientService {
-  PatientService({
-    http.Client? client,
-  }) : _client = client ?? http.Client();
+final class PatientService {
+  PatientService(this._apiClient);
 
-  // Django 서버 기본 주소
-  static const String baseUrl = 'http://34.80.83.7:8000';
-
-  final http.Client _client;
+  final ApiClient _apiClient;
 
   Future<List<Patient>> fetchPatients({
-    String? search,
-    String? gender,
-    int? minAge,
-    int? maxAge,
+    required String accessToken,
   }) async {
-    final queryParameters = <String, String>{};
+    try {
+      final response =
+          await _apiClient.dio.get<dynamic>(
+        ApiEndpoints.patients,
+        options: Options(
+          headers: {
+            'Authorization':
+                'Bearer $accessToken',
+          },
+        ),
+      );
 
-    if (search != null && search.trim().isNotEmpty) {
-      queryParameters['search'] = search.trim();
-    }
+      print(
+        '환자 목록 상태 코드: ${response.statusCode}',
+      );
 
-    if (gender != null && gender.isNotEmpty) {
-      queryParameters['gender'] = gender;
-    }
+      print(
+        '환자 목록 응답 데이터: ${response.data}',
+      );
 
-    if (minAge != null) {
-      queryParameters['min_age'] = minAge.toString();
-    }
+      final responseData = response.data;
 
-    if (maxAge != null) {
-      queryParameters['max_age'] = maxAge.toString();
-    }
+      if (responseData is! Map) {
+        throw const PatientServiceException(
+          '환자 목록 응답 형식이 올바르지 않습니다.',
+        );
+      }
 
-    final uri = Uri.parse('$baseUrl/api/patients/').replace(
-      queryParameters: queryParameters,
-    );
+      final responseMap =
+          Map<String, dynamic>.from(
+        responseData,
+      );
 
-    final response = await _client.get(
-      uri,
-      headers: {
-        'Accept': 'application/json',
-      },
-    );
+      final results = responseMap['results'];
 
-    if (response.statusCode != 200) {
-      throw Exception(
-        '환자 목록 조회 실패 (${response.statusCode})',
+      if (results is! List) {
+        throw const PatientServiceException(
+          '환자 목록 응답에 results가 없습니다.',
+        );
+      }
+
+      return results
+          .whereType<Map>()
+          .map(
+            (json) => Patient.fromJson(
+              Map<String, dynamic>.from(json),
+            ),
+          )
+          .toList();
+    } on DioException catch (error) {
+      print(
+        '환자 API 오류 상태: '
+        '${error.response?.statusCode}',
+      );
+
+      print(
+        '환자 API 오류 응답: '
+        '${error.response?.data}',
+      );
+
+      throw PatientServiceException(
+        _messageFromDioException(error),
+      );
+    } on PatientServiceException {
+      rethrow;
+    } on TypeError {
+      throw const PatientServiceException(
+        '환자 데이터 형식이 올바르지 않습니다.',
+      );
+    } on Exception catch (error) {
+      print('환자 목록 알 수 없는 오류: $error');
+
+      throw const PatientServiceException(
+        '환자 목록을 불러오는 중 오류가 발생했습니다.',
       );
     }
+  }
 
-    final dynamic decodedData = jsonDecode(
-      utf8.decode(response.bodyBytes),
-    );
+String _messageFromDioException(
+  DioException error,
+  ) {
+  switch (error.type) {
+    case DioExceptionType.connectionTimeout:
+    case DioExceptionType.sendTimeout:
+    case DioExceptionType.receiveTimeout:
+    case DioExceptionType.transformTimeout:
+      return '서버 응답 시간이 초과되었습니다.';
 
-    List<dynamic> patientJsonList;
+    case DioExceptionType.connectionError:
+      return '서버에 연결할 수 없습니다.';
 
-    // 응답이 배열 형태인 경우
-    if (decodedData is List) {
-      patientJsonList = decodedData;
+    case DioExceptionType.badResponse:
+      final statusCode = error.response?.statusCode;
 
-      // 응답이 {"results": [...]} 형태인 경우
-    } else if (decodedData is Map<String, dynamic> &&
-        decodedData['results'] is List) {
-      patientJsonList = decodedData['results'] as List;
+      if (statusCode == 401 || statusCode == 403) {
+        return '로그인 정보가 만료되었습니다. 다시 로그인해 주세요.';
+      }
 
-      // 응답이 {"patients": [...]} 형태인 경우
-    } else if (decodedData is Map<String, dynamic> &&
-        decodedData['patients'] is List) {
-      patientJsonList = decodedData['patients'] as List;
-    } else {
-      throw const FormatException(
-        '환자 목록 응답 형식이 올바르지 않습니다.',
-      );
+      if (statusCode == 404) {
+        return '환자 목록 API 주소를 찾을 수 없습니다.';
+      }
+
+      if (statusCode == 500) {
+        return '서버 내부 오류가 발생했습니다.';
+      }
+
+      return '환자 목록을 불러오지 못했습니다.';
+
+    case DioExceptionType.cancel:
+      return '환자 목록 요청이 취소되었습니다.';
+
+    case DioExceptionType.badCertificate:
+      return '서버 인증서를 확인할 수 없습니다.';
+
+    case DioExceptionType.unknown:
+      return '네트워크 오류가 발생했습니다.';
     }
-
-    return patientJsonList
-        .whereType<Map<String, dynamic>>()
-        .map(Patient.fromJson)
-        .toList();
   }
+}
 
-  void dispose() {
-    _client.close();
-  }
+final class PatientServiceException
+    implements Exception {
+  const PatientServiceException(this.message);
+
+  final String message;
+
+  @override
+  String toString() => message;
 }
