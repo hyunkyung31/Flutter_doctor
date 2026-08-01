@@ -6,27 +6,77 @@ import 'core/network/api_client.dart';
 import 'features/auth/repository/auth_repository.dart';
 import 'features/auth/service/auth_service.dart';
 import 'features/auth/view_model/auth_view_model.dart';
-// 앱 전체에서 공통으로 사용하는 Provider  등록
-// MaterialApp과  GoRouter를 연결하는 역할
+
+import 'features/patient/repository/patient_repository.dart';
+import 'features/patient/service/patient_service.dart';
+import 'features/patient/veiw_model/patient_list_view_model.dart';
+
+// 앱 전체에서 공통으로 사용하는 Provider 등록
+// MaterialApp과 GoRouter를 연결하는 역할
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
-      providers: [ // Django REST API와 통신을 위한 Dio 클라이언트
-        Provider<ApiClient>(create: (_) => ApiClient(),),
-        Provider<SecureStorage>(create: (_) => SecureStorage(),),      // access, refresh Token 기기 보안 저장소에 저장,조회
-        Provider<AuthService>(create: (context) => AuthService(        // 로그인 API 요청 수행
-          context.read<ApiClient>(),),),
-        Provider<AuthRepository>(create: (context) => AuthRepository(  // 인증서비스와 보안 저장소 연결
-          context.read<AuthService>(),
-          context.read<SecureStorage>(),),),
-        ChangeNotifierProvider<AuthViewModel>(create: (context) => AuthViewModel(   // 인증 상태 관리
-          context.read<AuthRepository>(),
-        ),),
+      providers: [
+        // Django REST API와 통신을 위한 Dio 클라이언트
+        Provider<ApiClient>(
+          create: (_) => ApiClient(),
+        ),
+
+        // access, refresh Token 기기 보안 저장소에 저장, 조회
+        Provider<SecureStorage>(
+          create: (_) => SecureStorage(),
+        ),
+
+        // 로그인 API 요청 수행
+        Provider<AuthService>(
+          create: (context) => AuthService(
+            context.read<ApiClient>(),
+          ),
+        ),
+
+        // 인증서비스와 보안 저장소 연결
+        Provider<AuthRepository>(
+          create: (context) => AuthRepository(
+            context.read<AuthService>(),
+            context.read<SecureStorage>(),
+          ),
+        ),
+
+        // 인증 상태 관리
+        ChangeNotifierProvider<AuthViewModel>(
+          create: (context) => AuthViewModel(
+            context.read<AuthRepository>(),
+          ),
+        ),
+
+        // 추가: 환자 목록 API 요청 수행
+        Provider<PatientService>(
+          create: (context) => PatientService(
+            context.read<ApiClient>(),
+          ),
+        ),
+
+        // 추가: 환자 서비스와 보안 저장소 연결
+        Provider<PatientRepository>(
+          create: (context) => PatientRepository(
+            context.read<PatientService>(),
+            context.read<SecureStorage>(),
+          ),
+        ),
+
+        // 추가: 환자 목록 상태 관리
+        ChangeNotifierProvider<PatientListViewModel>(
+          create: (context) => PatientListViewModel(
+            context.read<PatientRepository>(),
+          ),
+        ),
       ],
-      child: MaterialApp.router( //  기존 코드 유지 부분
+
+      child: MaterialApp.router(
+        // 기존 코드 유지 부분
         debugShowCheckedModeBanner: false,
         title: 'Doctor App',
         routerConfig: AppRouter.router,

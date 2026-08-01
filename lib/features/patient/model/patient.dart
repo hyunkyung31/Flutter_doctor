@@ -1,57 +1,63 @@
-class Patient {
-  final int patientId;
-  final int? primaryDoctorId;
-
-  final String? datasetPatientId;
-  final String patientName;
-  final String gender;
-  final int age;
-
-  final int? historyScore;
-  final String? ecgResult;
-  final int? riskFactorsCount;
-  final double? troponinTLevel;
-  final String? underlyingDiseases;
-  final String? chiefComplaint;
-
-  final DateTime? createdAt;
-
+final class Patient {
   const Patient({
     required this.patientId,
-    this.primaryDoctorId,
-    this.datasetPatientId,
     required this.patientName,
     required this.gender,
     required this.age,
-    this.historyScore,
-    this.ecgResult,
-    this.riskFactorsCount,
-    this.troponinTLevel,
-    this.underlyingDiseases,
+    this.primaryDoctorId,
     this.chiefComplaint,
-    this.createdAt,
+    this.ecgResult,
+    this.ecgImageUrl,
+    this.troponinTLevel,
+    this.historyScore,
+    this.riskFactorsCount,
+    this.latestSeverityClass,
+    this.hasLesion,
   });
 
-  factory Patient.fromJson(Map<String, dynamic> json) {
-    return Patient(
-      patientId: _toInt(json['patient_id']) ?? 0,
-      primaryDoctorId: _toInt(json['primary_doctor_id']),
+  final String patientId;
+  final String patientName;
+  final String gender;
+  final int age;
+  final String? primaryDoctorId;
+  final String? chiefComplaint;
+  final String? ecgResult;
+  final String? ecgImageUrl;
+  final double? troponinTLevel;
+  final int? historyScore;
+  final int? riskFactorsCount;
+  final String? latestSeverityClass;
+  final dynamic hasLesion;
 
-      datasetPatientId: json['dataset_patient_id']?.toString(),
-      patientName: json['patient_name']?.toString() ?? '',
+  factory Patient.fromJson(
+    Map<String, dynamic> json,
+  ) {
+    return Patient(
+      patientId:
+          json['patient_id']?.toString() ?? '',
+      patientName:
+          json['patient_name']?.toString() ??
+              '이름 없음',
       gender: json['gender']?.toString() ?? '',
       age: _toInt(json['age']) ?? 0,
-
-      historyScore: _toInt(json['history_score']),
-      ecgResult: json['ecg_result']?.toString(),
-      riskFactorsCount: _toInt(json['risk_factors_count']),
-      troponinTLevel: _toDouble(json['troponin_t_level']),
-      underlyingDiseases: json['underlying_diseases']?.toString(),
-      chiefComplaint: json['chief_complaint']?.toString(),
-
-      createdAt: json['created_at'] == null
-          ? null
-          : DateTime.tryParse(json['created_at'].toString()),
+      primaryDoctorId:
+          json['primary_doctor_id']?.toString(),
+      chiefComplaint:
+          json['chief_complaint']?.toString(),
+      ecgResult:
+          json['ecg_result']?.toString(),
+      ecgImageUrl:
+          json['ecg_image_url']?.toString(),
+      troponinTLevel:
+          _toDouble(json['troponin_t_level']),
+      historyScore:
+          _toInt(json['history_score']),
+      riskFactorsCount:
+          _toInt(json['risk_factors_count']),
+      latestSeverityClass:
+          json['latest_severity_class']
+              ?.toString(),
+      hasLesion: json['has_lesion'],
     );
   }
 
@@ -64,6 +70,10 @@ class Patient {
       return value;
     }
 
+    if (value is double) {
+      return value.toInt();
+    }
+
     return int.tryParse(value.toString());
   }
 
@@ -72,11 +82,7 @@ class Patient {
       return null;
     }
 
-    if (value is double) {
-      return value;
-    }
-
-    if (value is int) {
+    if (value is num) {
       return value.toDouble();
     }
 
@@ -84,19 +90,20 @@ class Patient {
   }
 
   String get genderText {
-    switch (gender.toUpperCase()) {
-      case 'M':
-      case 'MALE':
-      case '남성':
-        return '남성';
+    final value = gender.toUpperCase();
 
-      case 'F':
-      case 'FEMALE':
-      case '여성':
-        return '여성';
-
-      default:
-        return gender;
+    if (value == 'M' ||
+        value == 'MALE' ||
+        gender == '남성') {
+      return '남성';
     }
+
+    if (value == 'F' ||
+        value == 'FEMALE' ||
+        gender == '여성') {
+      return '여성';
+    }
+
+    return gender.isEmpty ? '미등록' : gender;
   }
 }
