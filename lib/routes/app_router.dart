@@ -1,22 +1,19 @@
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../features/auth/view/login_screen.dart';
 import 'route_names.dart';
+
+import '../features/patient/view/patient_list_view.dart';
 
 class AppRouter {
   AppRouter._();
 
   static final GoRouter router = GoRouter(
-    initialLocation: '/',  // RouteNames.splashPath 경로 상수로 변경 가능 !! - splash화면 연결, 변경 시 공유할 것
+    initialLocation: '/patient',  //  - splash화면 연결 전까지 main 초기 경로 이걸로 유지
     routes: [
       GoRoute(
-        path: '/',
+        path: '/patient',
         builder: (context, state) {
-          return const Scaffold(
-            body: Center(
-              child: Text('화면 연결 전'),
-            ),
-          );
+          return const PatientListView();
         },
       ),
       GoRoute( // 로그인 화면
