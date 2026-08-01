@@ -46,7 +46,7 @@ final class _LoginScreenState extends State<LoginScreen> {
     if (!mounted) { return;}
 
     // 로그인 성공한 후 연결 화면 (현재 임시 화면 --> 홈 화면 구현 후 경로 교체!!)//////////////////////
-    if (isSuccess) {context.go('/');}
+    if (isSuccess) {context.go('/home');}
 
     await authViewModel.login(
       username: _usernameController.text,
