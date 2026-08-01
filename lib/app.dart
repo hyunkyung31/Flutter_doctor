@@ -9,7 +9,7 @@ import 'features/auth/view_model/auth_view_model.dart';
 
 import 'features/patient/repository/patient_repository.dart';
 import 'features/patient/service/patient_service.dart';
-import 'features/patient/veiw_model/patient_list_view_model.dart';
+import 'features/patient/view_model/patient_list_view_model.dart';
 
 // 앱 전체에서 공통으로 사용하는 Provider 등록
 // MaterialApp과 GoRouter를 연결하는 역할
