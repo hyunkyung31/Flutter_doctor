@@ -13,7 +13,7 @@ final class SecureStorage {
 
   final FlutterSecureStorage _storage;
 
-  // 로그인 성공 후 토큰 저장
+  // 로그인 성공 후 토큰 저장 (access , refresh 토큰 함께 저장)
   Future<void> saveTokens({
     required String accessToken,
     required String refreshToken,
@@ -22,6 +22,13 @@ final class SecureStorage {
       _storage.write(key: StorageKeys.accessToken, value: accessToken),
       _storage.write(key: StorageKeys.refreshToken, value: refreshToken),
     ]);
+  }
+
+  // refresh Token 재발급 성공 후 새 access Token만 교체 저장
+  Future<void> saveAccessToken(String accessToken) {
+    return _storage.write(
+      key: StorageKeys.accessToken,
+      value: accessToken,);
   }
 
   // 토큰 읽기
