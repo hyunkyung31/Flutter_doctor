@@ -235,8 +235,8 @@ final class _PatientListViewState extends State<PatientListView> {
                               setModalState(() {
                                 tempDateFilter =
                                     tempDateFilter == '최근 7일'
-                                    ? null
-                                    : '최근 7일';
+                                        ? null
+                                        : '최근 7일';
                               });
                             },
                           ),
@@ -247,8 +247,8 @@ final class _PatientListViewState extends State<PatientListView> {
                               setModalState(() {
                                 tempDateFilter =
                                     tempDateFilter == '최근 30일'
-                                    ? null
-                                    : '최근 30일';
+                                        ? null
+                                        : '최근 30일';
                               });
                             },
                           ),
@@ -310,6 +310,17 @@ final class _PatientListViewState extends State<PatientListView> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          tooltip: '뒤로가기',
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/home');
+            }
+          },
+        ),
         title: const Text('환자 목록'),
         actions: [
           IconButton(
@@ -429,8 +440,8 @@ final class _PatientListViewState extends State<PatientListView> {
                 Text(
                   '총 ${filteredPatients.length}명',
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                        fontWeight: FontWeight.bold,
+                      ),
                 ),
 
                 const SizedBox(height: 12),
