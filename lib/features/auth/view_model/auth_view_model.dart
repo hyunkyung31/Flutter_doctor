@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import '../repository/auth_repository.dart';
 import '../service/auth_service.dart';
+import '../service/biometric_auth_service.dart';
 
 // 로그인 화면에서 사용할 인증 상태
 enum AuthStatus {
@@ -21,9 +22,12 @@ enum AuthStatus {
 // 화면의 입력값을 AuthRepository에 전달
 // 로딩 상태, 오류 메시지, 로그인한 의료진 정보를 관리
 final class AuthViewModel extends ChangeNotifier {
-  AuthViewModel(this._authRepository);
+  AuthViewModel(
+    this._authRepository,
+    this._biometricAuthService,);
 
   final AuthRepository _authRepository;
+  final BiometricAuthService _biometricAuthService;
 
   AuthStatus _status = AuthStatus.initial;
   String? _errorMessage;
@@ -47,6 +51,101 @@ final class AuthViewModel extends ChangeNotifier {
 
   // 로그인한 의료진의 이름
   String? get doctorName => _doctorName;
+
+  // 자동 로그인에 사용할 refresh Token이 저장되어 있는지 확인
+  Future<bool> hasSavedSession() {
+    return _authRepository.hasRefreshToken();
+  }
+
+  // 저장된 세션이 있으면 생체인식 후 자동로그인 수행
+  Future<bool> authenticateAndRestoreSession() async {
+    if (_status == AuthStatus.loading) {
+      return false;
+    }
+
+    try {
+      final hasSession = await hasSavedSession();
+
+      // refresh 토큰이 없으면 일반 로그인으로 진행
+      if (!hasSession) {
+        _doctorId = null;
+        _doctorName = null;
+        _status = AuthStatus.unauthenticated;
+        _errorMessage = null;
+        notifyListeners();
+
+        return false;
+      }
+
+      final biometricResult = await _biometricAuthService.authenticate();
+
+      // 실패, 취소, 미지원, 미등록, 잠금상태
+      if (biometricResult != BiometricAuthResult.authenticated) {
+        // 생체인식 실패만드로 저장된 토큰을 삭제하지 않음
+        _doctorId = null;
+        _doctorName = null;
+        _status = AuthStatus.unauthenticated;
+        _errorMessage = null;
+        notifyListeners();
+
+        return false;
+      }
+
+      // 생체 인식에 성공한 경우에만 서버 세션 복원
+      return restoreSession();
+    } on Exception {
+      _setFailure(
+        "저장된 로그인 정보를 확인하지 못했습니다.",
+      );
+
+      return false;
+    }
+  }
+
+  // 저장된 Refresh Token으로 로그인 세션과 의료진 정보를 복원
+  Future<bool> restoreSession() async {
+    if (_status == AuthStatus.loading) {
+      return false;
+    }
+
+    _status = AuthStatus.loading;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final currentDoctor = await _authRepository.restoreSession();
+
+      // 저장된 Refresh Token이 없는 경우
+      if (currentDoctor == null) {
+        _doctorId = null;
+        _doctorName = null;
+        _status = AuthStatus.unauthenticated;
+        _errorMessage = null;
+        notifyListeners();
+
+        return false;
+      }
+
+      _doctorId = currentDoctor.doctorId;
+      _doctorName = currentDoctor.doctorName;
+      _status = AuthStatus.authenticated;
+      _errorMessage = null;
+      notifyListeners();
+
+      return true;
+    } on AuthServiceException catch (error) {
+      _setFailure(error.message);
+      return false;
+    } on AuthRepositoryException catch (error) {
+      _setFailure(error.message);
+      return false;
+    } on Exception {
+      _setFailure(
+        '로그인 세션 복원 중 예상하지 못한 오류가 발생했습니다.',
+      );
+      return false;
+    }
+  }
 
 
   // 로그인과 토큰 저장이 모두 성공하면 true를 반환

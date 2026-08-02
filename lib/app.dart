@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'core/network/api_client.dart';
 import 'features/auth/repository/auth_repository.dart';
 import 'features/auth/service/auth_service.dart';
+import 'features/auth/service/biometric_auth_service.dart';
 import 'features/auth/view_model/auth_view_model.dart';
 
 import 'features/patient/repository/patient_repository.dart';
@@ -45,10 +46,15 @@ class MyApp extends StatelessWidget {
           ),
         ),
 
-        // 인증 상태 관리
+        // 기기 생체인식 요청 수행
+        Provider<BiometricAuthService>(
+          create: (_) => BiometricAuthService(),),
+
+        // 인증 상태, 생체인식 및 자동로그인 흐름 관리
         ChangeNotifierProvider<AuthViewModel>(
           create: (context) => AuthViewModel(
             context.read<AuthRepository>(),
+            context.read<BiometricAuthService>(),
           ),
         ),
 

@@ -2,6 +2,7 @@ import '../../../core/storage/secure_storage.dart';
 import '../model/login_request.dart';
 import '../model/login_response.dart';
 import '../service/auth_service.dart';
+import '../model/current_doctor_response.dart';
 
 // 로그인 API 호출과 인증 토큰 저장을 연결하는 저장소
 // AuthService - 서버 통신을 담당하고,
@@ -44,6 +45,43 @@ final class AuthRepository {
     return response;
   }
 
+  // 저장된 Refresh Token으로 로그인 세션과 의료진 정보를 복원
+  Future<CurrentDoctorResponse?> restoreSession() async {
+    final refreshToken = await _secureStorage.readRefreshToken();
+    final normalizedRefreshToken = refreshToken?.trim();
+
+    // 저장된 Refresh Token이 없으면 자동 로그인 대상이 아님
+    if (normalizedRefreshToken == null || normalizedRefreshToken.isEmpty) {
+      return null;
+    }
+
+    // Refresh Token으로 새 Access Token 발급
+    final tokenResponse = await _authService.refreshAccessToken(
+      normalizedRefreshToken,
+    );
+
+    // 발급된 Access Token으로 현재 의료진 정보 확인
+    final currentDoctor = await _authService.getCurrentDoctor(
+      tokenResponse.accessToken,
+    );
+
+    // 의료진 정보 조회까지 성공한 경우 새 Access Token 저장
+    try {
+      await _secureStorage.saveAccessToken(
+        tokenResponse.accessToken,
+      );
+    } on Exception {
+      await _clearTokensSafely();
+
+      throw const AuthRepositoryException(
+        '갱신된 로그인 정보를 안전하게 저장하지 못했습니다.',
+      );
+    }
+
+    return currentDoctor;
+  }
+
+
   // 로그아웃할 때 저장된 인증 토큰을 모두 삭제
   Future<void> logout() {
     return _secureStorage.clearTokens();
@@ -67,6 +105,14 @@ final class AuthRepository {
 
     return accessToken != null && accessToken.trim().isNotEmpty;
   }
+
+  // 자동 로그인에 사용할 수 있는 Refresh Token이 저장되어 있는지 확인
+  Future<bool> hasRefreshToken() async {
+    final refreshToken = await _secureStorage.readRefreshToken();
+
+    return refreshToken != null && refreshToken.trim().isNotEmpty;
+  }
+
 
   // 토큰 저장 중 일부만 저장되는 상황을 방지하기 위해 저장 실패 시 남아 있을 수 있는 토큰을 정리
   Future<void> _clearTokensSafely() async {
