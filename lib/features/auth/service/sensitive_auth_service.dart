@@ -9,11 +9,12 @@ enum SensitiveAuthResult {
 }
 
 final class SensitiveAuthService {
-  SensitiveAuthService({
-    required this._biometricAuthService,
-    this._authenticationValidity = const Duration(minutes: 5),
-    DateTime Function()? currentTime,
-  }) : _currentTime = currentTime ?? DateTime.now;
+  SensitiveAuthService(
+    this._biometricAuthService, {
+      Duration validity = const Duration(minutes: 5),
+      DateTime Function()? currentTime,
+  }) : _authenticationValidity = validity,
+      _currentTime = currentTime ?? DateTime.now;
 
   final BiometricAuthService _biometricAuthService;
   final Duration _authenticationValidity;

@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import '../repository/auth_repository.dart';
 import '../service/auth_service.dart';
 import '../service/biometric_auth_service.dart';
+import '../service/sensitive_auth_service.dart';
 
 // 로그인 화면에서 사용할 인증 상태
 enum AuthStatus {
@@ -24,10 +25,12 @@ enum AuthStatus {
 final class AuthViewModel extends ChangeNotifier {
   AuthViewModel(
     this._authRepository,
-    this._biometricAuthService,);
+    this._biometricAuthService,
+    this._sensitiveAuthService,);
 
   final AuthRepository _authRepository;
   final BiometricAuthService _biometricAuthService;
+  final SensitiveAuthService _sensitiveAuthService;
 
   AuthStatus _status = AuthStatus.initial;
   String? _errorMessage;
@@ -175,6 +178,8 @@ final class AuthViewModel extends ChangeNotifier {
         password: password,
       );
 
+      _sensitiveAuthService.invalidate(); // 다른 의료진 계정으로 변경 시 재인증 초기화
+
       _doctorId = response.doctorId;
       _doctorName = response.doctorName;
       _status = AuthStatus.authenticated;
@@ -198,6 +203,8 @@ final class AuthViewModel extends ChangeNotifier {
   Future<bool> logout() async {
     try {
       await _authRepository.logout();
+
+      _sensitiveAuthService.invalidate();  // 로그아웃 후 민감정보재인증 시간 초기화
 
       _doctorId = null;
       _doctorName = null;
@@ -226,6 +233,8 @@ final class AuthViewModel extends ChangeNotifier {
 
   // 로그인 실패 상태와 오류 메시지 저장
   void _setFailure(String message) {
+    _sensitiveAuthService.invalidate();   // 민감정보 접근 권한도 함께 무효화
+
     _status = AuthStatus.unauthenticated;
     _errorMessage = message;
     notifyListeners();
