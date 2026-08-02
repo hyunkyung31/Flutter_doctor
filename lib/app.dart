@@ -1,8 +1,11 @@
 import 'package:doctor_app/core/storage/secure_storage.dart';
 import 'package:flutter/material.dart';
-import 'routes/app_router.dart';
 import 'package:provider/provider.dart';
+
+import 'routes/app_router.dart';
 import 'core/network/api_client.dart';
+import 'core/theme/app_theme.dart';
+
 import 'features/auth/repository/auth_repository.dart';
 import 'features/auth/service/auth_service.dart';
 import 'features/auth/service/biometric_auth_service.dart';
@@ -11,6 +14,8 @@ import 'features/auth/view_model/auth_view_model.dart';
 import 'features/patient/repository/patient_repository.dart';
 import 'features/patient/service/patient_service.dart';
 import 'features/patient/view_model/patient_list_view_model.dart';
+
+import 'features/settings/view_model/settings_view_model.dart';
 
 // 앱 전체에서 공통으로 사용하는 Provider 등록
 // MaterialApp과 GoRouter를 연결하는 역할
@@ -48,7 +53,8 @@ class MyApp extends StatelessWidget {
 
         // 기기 생체인식 요청 수행
         Provider<BiometricAuthService>(
-          create: (_) => BiometricAuthService(),),
+          create: (_) => BiometricAuthService(),
+        ),
 
         // 인증 상태, 생체인식 및 자동로그인 흐름 관리
         ChangeNotifierProvider<AuthViewModel>(
@@ -79,13 +85,27 @@ class MyApp extends StatelessWidget {
             context.read<PatientRepository>(),
           ),
         ),
+
+        // 라이트 모드 및 다크 모드 상태 관리
+        ChangeNotifierProvider<SettingsViewModel>(
+          create: (_) => SettingsViewModel(),
+        ),
       ],
 
-      child: MaterialApp.router(
-        // 기존 코드 유지 부분
-        debugShowCheckedModeBanner: false,
-        title: 'Doctor App',
-        routerConfig: AppRouter.router,
+      child: Builder(
+        builder: (context) {
+          return MaterialApp.router(
+            // 기존 코드 유지 부분
+            debugShowCheckedModeBanner: false,
+            title: 'Doctor App',
+
+            theme: AppTheme.lightTheme,
+            darkTheme: AppTheme.darkTheme,
+            themeMode: context.watch<SettingsViewModel>().themeMode,
+
+            routerConfig: AppRouter.router,
+          );
+        },
       ),
     );
   }
