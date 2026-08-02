@@ -1,14 +1,12 @@
 name: doctor_app
 description: "A new Flutter project."
 
-publish_to: 'none' 
-
+publish_to: 'none'
 
 version: 1.0.0+1
 
 environment:
   sdk: ^3.12.2
-
 
 dependencies:
   flutter:
@@ -25,11 +23,13 @@ dependencies:
   # Networking
   # ----------------------------
   dio: ^5.9.0
+  http: ^1.6.0
 
   # ----------------------------
   # Routing
   # ----------------------------
   go_router: ^17.3.0
+  url_launcher: ^6.3.1
 
   # ----------------------------
   # Local Storage
@@ -49,6 +49,11 @@ dependencies:
   firebase_messaging: ^16.0.0
 
   # ----------------------------
+  # Media
+  # ----------------------------
+  video_player: ^2.9.5
+
+  # ----------------------------
   # PDF
   # ----------------------------
   pdf: ^3.11.3
@@ -63,23 +68,16 @@ dependencies:
   # UI
   # ----------------------------
   flutter_svg: ^2.2.0
-
   cached_network_image: ^3.4.1
-
   shimmer: ^3.0.0
-  http: ^1.6.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
 
-
   flutter_lints: ^6.0.0
 
-
 flutter:
-
-
   uses-material-design: true
 
   assets:

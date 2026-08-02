@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'routes/app_router.dart';
+
 import 'core/network/api_client.dart';
 import 'core/theme/app_theme.dart';
 
@@ -17,8 +18,6 @@ import 'features/patient/view_model/patient_list_view_model.dart';
 
 import 'features/settings/view_model/settings_view_model.dart';
 
-// 앱 전체에서 공통으로 사용하는 Provider 등록
-// MaterialApp과 GoRouter를 연결하는 역할
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -26,24 +25,20 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        // Django REST API와 통신을 위한 Dio 클라이언트
         Provider<ApiClient>(
           create: (_) => ApiClient(),
         ),
 
-        // access, refresh Token 기기 보안 저장소에 저장, 조회
         Provider<SecureStorage>(
           create: (_) => SecureStorage(),
         ),
 
-        // 로그인 API 요청 수행
         Provider<AuthService>(
           create: (context) => AuthService(
             context.read<ApiClient>(),
           ),
         ),
 
-        // 인증서비스와 보안 저장소 연결
         Provider<AuthRepository>(
           create: (context) => AuthRepository(
             context.read<AuthService>(),
@@ -51,59 +46,69 @@ class MyApp extends StatelessWidget {
           ),
         ),
 
-        // 기기 생체인식 요청 수행
         Provider<BiometricAuthService>(
-          create: (_) => BiometricAuthService(),
+          create: (_) =>
+              BiometricAuthService(),
         ),
 
-        // 인증 상태, 생체인식 및 자동로그인 흐름 관리
         ChangeNotifierProvider<AuthViewModel>(
           create: (context) => AuthViewModel(
             context.read<AuthRepository>(),
-            context.read<BiometricAuthService>(),
+            context.read<
+                BiometricAuthService>(),
           ),
         ),
 
-        // 추가: 환자 목록 API 요청 수행
         Provider<PatientService>(
-          create: (context) => PatientService(
+          create: (context) =>
+              PatientService(
             context.read<ApiClient>(),
           ),
         ),
 
-        // 추가: 환자 서비스와 보안 저장소 연결
         Provider<PatientRepository>(
-          create: (context) => PatientRepository(
-            context.read<PatientService>(),
-            context.read<SecureStorage>(),
+          create: (context) =>
+              PatientRepository(
+            patientService:
+                context.read<
+                    PatientService>(),
+            secureStorage:
+                context.read<
+                    SecureStorage>(),
           ),
         ),
 
-        // 추가: 환자 목록 상태 관리
-        ChangeNotifierProvider<PatientListViewModel>(
-          create: (context) => PatientListViewModel(
-            context.read<PatientRepository>(),
+        ChangeNotifierProvider<
+            PatientListViewModel>(
+          create: (context) =>
+              PatientListViewModel(
+            patientRepository:
+                context.read<
+                    PatientRepository>(),
           ),
         ),
 
-        // 라이트 모드 및 다크 모드 상태 관리
-        ChangeNotifierProvider<SettingsViewModel>(
-          create: (_) => SettingsViewModel(),
+        ChangeNotifierProvider<
+            SettingsViewModel>(
+          create: (_) =>
+              SettingsViewModel(),
         ),
       ],
-
       child: Builder(
         builder: (context) {
           return MaterialApp.router(
-            // 기존 코드 유지 부분
-            debugShowCheckedModeBanner: false,
+            debugShowCheckedModeBanner:
+                false,
             title: 'Doctor App',
-
             theme: AppTheme.lightTheme,
-            darkTheme: AppTheme.darkTheme,
-            themeMode: context.watch<SettingsViewModel>().themeMode,
-
-            routerConfig: AppRouter.router,
+            darkTheme:
+                AppTheme.darkTheme,
+            themeMode: context
+                .watch<
+                    SettingsViewModel>()
+                .themeMode,
+            routerConfig:
+                AppRouter.router,
           );
         },
       ),
