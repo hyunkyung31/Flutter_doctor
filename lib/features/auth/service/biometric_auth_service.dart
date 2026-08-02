@@ -28,7 +28,9 @@ final class BiometricAuthService {
   }
 
   // 저장된 로그인 세션 복원 전에 생체인식 수행
-  Future<BiometricAuthResult> authenticate() async {
+  Future<BiometricAuthResult> authenticate({
+    String localizedReason = "저장된 의료진 정보를 사용하려면 생체인증이 필요합니다.",
+  }) async {
     try {
       final canCheckBiometrics =
           await _localAuthentication.canCheckBiometrics;
@@ -39,8 +41,7 @@ final class BiometricAuthService {
 
       final authenticated =
           await _localAuthentication.authenticate(
-            localizedReason:
-                '저장된 의료진 로그인 정보를 사용하려면 생체인증이 필요합니다.',
+            localizedReason: localizedReason,
             options: const AuthenticationOptions(
               biometricOnly: true,
               stickyAuth: true,
