@@ -10,6 +10,7 @@ import 'core/theme/app_theme.dart';
 import 'features/auth/repository/auth_repository.dart';
 import 'features/auth/service/auth_service.dart';
 import 'features/auth/service/biometric_auth_service.dart';
+import 'features/auth/service/sensitive_auth_service.dart';
 import 'features/auth/view_model/auth_view_model.dart';
 
 import 'features/patient/repository/patient_repository.dart';
@@ -51,11 +52,18 @@ class MyApp extends StatelessWidget {
               BiometricAuthService(),
         ),
 
+        Provider<SensitiveAuthService>(
+          create: (context) => SensitiveAuthService(
+            context.read<BiometricAuthService>(),
+          ),),
+
+
         ChangeNotifierProvider<AuthViewModel>(
           create: (context) => AuthViewModel(
             context.read<AuthRepository>(),
             context.read<
                 BiometricAuthService>(),
+            context.read<SensitiveAuthService>(),
           ),
         ),
 
