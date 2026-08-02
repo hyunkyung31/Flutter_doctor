@@ -19,8 +19,7 @@ final class PatientDetailView extends StatefulWidget {
   }
 }
 
-final class _PatientDetailViewState
-    extends State<PatientDetailView> {
+final class _PatientDetailViewState extends State<PatientDetailView> {
   @override
   void initState() {
     super.initState();
@@ -30,9 +29,7 @@ final class _PatientDetailViewState
         return;
       }
 
-      context
-          .read<PatientDetailViewModel>()
-          .loadPatientDetail(
+      context.read<PatientDetailViewModel>().loadPatientDetail(
             widget.patientId,
           );
     });
@@ -46,8 +43,7 @@ final class _PatientDetailViewState
         viewModel,
         child,
       ) {
-        if (viewModel.isLoading &&
-            viewModel.patientDetail == null) {
+        if (viewModel.isLoading && viewModel.patientDetail == null) {
           return const Scaffold(
             appBar: _PatientDetailAppBar(),
             body: Center(
@@ -95,8 +91,7 @@ final class _PatientDetailViewState
             child: _PatientDetailBody(
               detail: detail,
               mediaHeaders: viewModel.mediaHeaders,
-              resolveMediaUrl:
-                  viewModel.resolveMediaUrl,
+              resolveMediaUrl: viewModel.resolveMediaUrl,
             ),
           ),
         );
@@ -105,8 +100,7 @@ final class _PatientDetailViewState
   }
 }
 
-final class _PatientDetailAppBar
-    extends StatelessWidget
+final class _PatientDetailAppBar extends StatelessWidget
     implements PreferredSizeWidget {
   const _PatientDetailAppBar();
 
@@ -130,8 +124,7 @@ final class _PatientDetailAppBar
   }
 }
 
-final class _PatientDetailBody
-    extends StatelessWidget {
+final class _PatientDetailBody extends StatelessWidget {
   const _PatientDetailBody({
     required this.detail,
     required this.mediaHeaders,
@@ -147,8 +140,7 @@ final class _PatientDetailBody
     final patient = detail.patient;
 
     return ListView(
-      physics:
-          const AlwaysScrollableScrollPhysics(),
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(
         16,
         16,
@@ -161,17 +153,12 @@ final class _PatientDetailBody
           patientId: patient.patientId,
           gender: patient.genderText,
           age: patient.age,
-          primaryDoctorId:
-              patient.primaryDoctorId,
-          chiefComplaint:
-              patient.chiefComplaint,
+          primaryDoctorId: patient.primaryDoctorId,
+          chiefComplaint: patient.chiefComplaint,
           ecgResult: patient.ecgResult,
-          troponinTText:
-              patient.troponinTText,
-          historyScoreText:
-              patient.historyScoreText,
-          riskFactorsCountText:
-              patient.riskFactorsCountText,
+          troponinTText: patient.troponinTText,
+          historyScoreText: patient.historyScoreText,
+          riskFactorsCountText: patient.riskFactorsCountText,
         ),
 
         const SizedBox(height: 24),
@@ -202,23 +189,24 @@ final class _PatientDetailBody
 
         if (detail.examinations.isEmpty)
           const _EmptySectionCard(
-            icon:
-                Icons.image_not_supported_outlined,
-            message:
-                '등록된 촬영 이미지가 없습니다.',
+            icon: Icons.image_not_supported_outlined,
+            message: '등록된 촬영 이미지가 없습니다.',
           )
         else
-          ...detail.examinations.map(
-            (examination) {
+          ...detail.examinations.asMap().entries.map(
+            (entry) {
+              final index = entry.key;
+              final examination = entry.value;
+
               return Padding(
                 padding: const EdgeInsets.only(
                   bottom: 12,
                 ),
                 child: _ExaminationExpansionCard(
                   examination: examination,
+                  examinationIndex: index,
                   mediaHeaders: mediaHeaders,
-                  resolveMediaUrl:
-                      resolveMediaUrl,
+                  resolveMediaUrl: resolveMediaUrl,
                 ),
               );
             },
@@ -228,8 +216,7 @@ final class _PatientDetailBody
   }
 }
 
-final class _PatientProfileCard
-    extends StatelessWidget {
+final class _PatientProfileCard extends StatelessWidget {
   const _PatientProfileCard({
     required this.patientName,
     required this.patientId,
@@ -259,15 +246,13 @@ final class _PatientProfileCard
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    final displayName =
-        patientName.trim().isEmpty
-            ? '이름 미등록'
-            : patientName.trim();
+    final displayName = patientName.trim().isEmpty
+        ? '이름 미등록'
+        : patientName.trim();
 
-    final firstLetter =
-        displayName == '이름 미등록'
-            ? '?'
-            : displayName.substring(0, 1);
+    final firstLetter = displayName == '이름 미등록'
+        ? '?'
+        : displayName.substring(0, 1);
 
     return Card(
       margin: EdgeInsets.zero,
@@ -279,16 +264,13 @@ final class _PatientProfileCard
               children: [
                 CircleAvatar(
                   radius: 34,
-                  backgroundColor:
-                      colorScheme.primaryContainer,
-                  foregroundColor:
-                      colorScheme.onPrimaryContainer,
+                  backgroundColor: colorScheme.primaryContainer,
+                  foregroundColor: colorScheme.onPrimaryContainer,
                   child: Text(
                     firstLetter,
                     style: const TextStyle(
                       fontSize: 24,
-                      fontWeight:
-                          FontWeight.bold,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
@@ -297,17 +279,12 @@ final class _PatientProfileCard
 
                 Expanded(
                   child: Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         displayName,
-                        style: theme
-                            .textTheme
-                            .titleLarge
-                            ?.copyWith(
-                          fontWeight:
-                              FontWeight.bold,
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
 
@@ -315,12 +292,8 @@ final class _PatientProfileCard
 
                       Text(
                         '$gender · $age세',
-                        style: theme
-                            .textTheme
-                            .bodyMedium
-                            ?.copyWith(
-                          color: colorScheme
-                              .onSurfaceVariant,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
                         ),
                       ),
 
@@ -328,12 +301,8 @@ final class _PatientProfileCard
 
                       Text(
                         '환자 ID  $patientId',
-                        style: theme
-                            .textTheme
-                            .bodySmall
-                            ?.copyWith(
-                          color: colorScheme
-                              .onSurfaceVariant,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
                         ),
                       ),
                     ],
@@ -391,8 +360,7 @@ final class _PatientProfileCard
   }
 }
 
-final class _ProfileInformationRow
-    extends StatelessWidget {
+final class _ProfileInformationRow extends StatelessWidget {
   const _ProfileInformationRow({
     required this.title,
     required this.value,
@@ -410,8 +378,7 @@ final class _ProfileInformationRow
         bottom: showBottomPadding ? 12 : 0,
       ),
       child: Row(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
             width: 95,
@@ -437,8 +404,7 @@ final class _ProfileInformationRow
   }
 }
 
-final class _SectionHeader
-    extends StatelessWidget {
+final class _SectionHeader extends StatelessWidget {
   const _SectionHeader({
     required this.title,
     required this.icon,
@@ -467,8 +433,7 @@ final class _SectionHeader
         Expanded(
           child: Text(
             title,
-            style: theme.textTheme.titleMedium
-                ?.copyWith(
+            style: theme.textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -481,16 +446,13 @@ final class _SectionHeader
               vertical: 4,
             ),
             decoration: BoxDecoration(
-              color:
-                  colorScheme.primaryContainer,
-              borderRadius:
-                  BorderRadius.circular(20),
+              color: colorScheme.primaryContainer,
+              borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
               '$count건',
               style: TextStyle(
-                color: colorScheme
-                    .onPrimaryContainer,
+                color: colorScheme.onPrimaryContainer,
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
               ),
@@ -501,8 +463,7 @@ final class _SectionHeader
   }
 }
 
-final class _EcgImageExpansionCard
-    extends StatelessWidget {
+final class _EcgImageExpansionCard extends StatelessWidget {
   const _EcgImageExpansionCard({
     required this.ecgResult,
     required this.ecgImageUrl,
@@ -517,8 +478,13 @@ final class _EcgImageExpansionCard
 
   @override
   Widget build(BuildContext context) {
-    final hasImage =
-        ecgImageUrl.trim().isNotEmpty;
+    final hasImage = ecgImageUrl.trim().isNotEmpty;
+
+    final resolvedImageUrl = hasImage
+        ? resolveMediaUrl(
+            ecgImageUrl,
+          )
+        : '';
 
     return Card(
       margin: EdgeInsets.zero,
@@ -538,8 +504,7 @@ final class _EcgImageExpansionCard
         subtitle: Text(
           _nullableText(ecgResult),
         ),
-        childrenPadding:
-            const EdgeInsets.fromLTRB(
+        childrenPadding: const EdgeInsets.fromLTRB(
           16,
           0,
           16,
@@ -552,15 +517,14 @@ final class _EcgImageExpansionCard
 
           if (!hasImage)
             const _NoImageView(
-              message:
-                  '등록된 ECG 이미지가 없습니다.',
+              message: '등록된 ECG 이미지가 없습니다.',
             )
           else
             _NetworkImageViewer(
-              imageUrl: resolveMediaUrl(
-                ecgImageUrl,
-              ),
+              imageUrl: resolvedImageUrl,
               headers: mediaHeaders,
+              title: 'ECG 이미지',
+              heroTag: 'ecg-image-$resolvedImageUrl',
             ),
         ],
       ),
@@ -568,23 +532,23 @@ final class _EcgImageExpansionCard
   }
 }
 
-final class _ExaminationExpansionCard
-    extends StatelessWidget {
+final class _ExaminationExpansionCard extends StatelessWidget {
   const _ExaminationExpansionCard({
     required this.examination,
+    required this.examinationIndex,
     required this.mediaHeaders,
     required this.resolveMediaUrl,
   });
 
   final Map<String, dynamic> examination;
+  final int examinationIndex;
   final Map<String, String> mediaHeaders;
   final String Function(String?) resolveMediaUrl;
 
   @override
   Widget build(BuildContext context) {
     final examId = _displayValue(
-      examination['exam_id'] ??
-          examination['id'],
+      examination['exam_id'] ?? examination['id'],
     );
 
     final title = _findExaminationTitle(
@@ -601,8 +565,13 @@ final class _ExaminationExpansionCard
       ],
     );
 
-    final examinationInformation =
-        examination.entries.where(
+    final resolvedImageUrl = imageUrl == null
+        ? null
+        : resolveMediaUrl(
+            imageUrl,
+          );
+
+    final examinationInformation = examination.entries.where(
       (entry) {
         return !_isHiddenExaminationField(
           entry.key.toLowerCase(),
@@ -632,8 +601,7 @@ final class _ExaminationExpansionCard
             : Text(
                 '검사 번호 $examId',
               ),
-        childrenPadding:
-            const EdgeInsets.fromLTRB(
+        childrenPadding: const EdgeInsets.fromLTRB(
           16,
           0,
           16,
@@ -642,8 +610,7 @@ final class _ExaminationExpansionCard
         children: [
           const Divider(height: 1),
 
-          if (examinationInformation
-              .isNotEmpty) ...[
+          if (examinationInformation.isNotEmpty) ...[
             const SizedBox(height: 16),
 
             ...examinationInformation.map(
@@ -662,17 +629,18 @@ final class _ExaminationExpansionCard
 
           const SizedBox(height: 12),
 
-          if (imageUrl == null)
+          if (resolvedImageUrl == null ||
+              resolvedImageUrl.trim().isEmpty)
             const _NoImageView(
-              message:
-                  '등록된 Key Frame 이미지가 없습니다.',
+              message: '등록된 Key Frame 이미지가 없습니다.',
             )
           else
             _NetworkImageViewer(
-              imageUrl: resolveMediaUrl(
-                imageUrl,
-              ),
+              imageUrl: resolvedImageUrl,
               headers: mediaHeaders,
+              title: title,
+              heroTag:
+                  'examination-$examinationIndex-$examId-$resolvedImageUrl',
             ),
         ],
       ),
@@ -680,325 +648,7 @@ final class _ExaminationExpansionCard
   }
 }
 
-final class _AiResultExpansionCard
-    extends StatelessWidget {
-  const _AiResultExpansionCard({
-    required this.aiResult,
-    required this.mediaHeaders,
-    required this.resolveMediaUrl,
-  });
-
-  final Map<String, dynamic> aiResult;
-  final Map<String, String> mediaHeaders;
-  final String Function(String?) resolveMediaUrl;
-
-  @override
-  Widget build(BuildContext context) {
-    final examId = _displayValue(
-      aiResult['exam_id'],
-    );
-
-    final hasLesion = _toBoolean(
-      aiResult['has_lesion'],
-    );
-
-    final severity = _displayValue(
-      aiResult['severity_class'],
-    );
-
-    final confidence =
-        _formatPercentageFromDecimal(
-      aiResult['confidence_score'],
-    );
-
-    final gradcamUrl = _findImageUrl(
-      aiResult,
-      const [
-        'gradcam_url',
-        'xai_url',
-        'heatmap_url',
-      ],
-    );
-
-    return Card(
-      margin: EdgeInsets.zero,
-      clipBehavior: Clip.antiAlias,
-      child: ExpansionTile(
-        leading: CircleAvatar(
-          child: Icon(
-            hasLesion
-                ? Icons.warning_amber_rounded
-                : Icons.check_circle_outline,
-          ),
-        ),
-        title: const Text(
-          'AI 분석 결과',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        subtitle: Text(
-          examId == '-'
-              ? '결과 상세보기'
-              : '검사 번호 $examId',
-        ),
-        childrenPadding:
-            const EdgeInsets.fromLTRB(
-          16,
-          0,
-          16,
-          18,
-        ),
-        children: [
-          const Divider(height: 1),
-
-          const SizedBox(height: 16),
-
-          _AiSummaryCard(
-            hasLesion: hasLesion,
-            severity: severity,
-            confidence: confidence,
-          ),
-
-          const SizedBox(height: 16),
-
-          _InformationRow(
-            title: '심장 점수',
-            value: _displayValue(
-              aiResult['heart_score'],
-            ),
-          ),
-
-          _InformationRow(
-            title: 'MACE 위험도',
-            value: _formatPercentage(
-              aiResult[
-                  'mace_risk_percent'],
-            ),
-          ),
-
-          _InformationRow(
-            title: '담당 의료진',
-            value: _displayValue(
-              aiResult[
-                  'confirming_doctor_id'],
-            ),
-          ),
-
-          _InformationRow(
-            title: '확정 여부',
-            value: _confirmationLabel(
-              aiResult['is_confirmed'],
-            ),
-          ),
-
-          if (_hasValue(
-            aiResult['doctor_opinion'],
-          )) ...[
-            const SizedBox(height: 6),
-
-            _OpinionCard(
-              opinion: aiResult[
-                      'doctor_opinion']
-                  .toString(),
-            ),
-          ],
-
-          const SizedBox(height: 18),
-
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              'Grad-CAM 분석 이미지',
-              style: Theme.of(context)
-                  .textTheme
-                  .titleSmall
-                  ?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 10),
-
-          if (gradcamUrl == null)
-            const _NoImageView(
-              message:
-                  '등록된 Grad-CAM 이미지가 없습니다.',
-            )
-          else
-            _NetworkImageViewer(
-              imageUrl: resolveMediaUrl(
-                gradcamUrl,
-              ),
-              headers: mediaHeaders,
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-final class _AiSummaryCard
-    extends StatelessWidget {
-  const _AiSummaryCard({
-    required this.hasLesion,
-    required this.severity,
-    required this.confidence,
-  });
-
-  final bool hasLesion;
-  final String severity;
-  final String confidence;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme =
-        Theme.of(context).colorScheme;
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: hasLesion
-            ? colorScheme.errorContainer
-                .withOpacity(0.45)
-            : colorScheme.primaryContainer
-                .withOpacity(0.45),
-        borderRadius:
-            BorderRadius.circular(14),
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Icon(
-                hasLesion
-                    ? Icons.warning_amber_rounded
-                    : Icons.check_circle_outline,
-              ),
-
-              const SizedBox(width: 10),
-
-              Expanded(
-                child: Text(
-                  hasLesion
-                      ? '병변이 감지되었습니다.'
-                      : '감지된 병변이 없습니다.',
-                  style: const TextStyle(
-                    fontWeight:
-                        FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 16),
-
-          _SummaryValueRow(
-            title: '협착 등급',
-            value: severity,
-          ),
-
-          const SizedBox(height: 9),
-
-          _SummaryValueRow(
-            title: 'AI 신뢰도',
-            value: confidence,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-final class _SummaryValueRow
-    extends StatelessWidget {
-  const _SummaryValueRow({
-    required this.title,
-    required this.value,
-  });
-
-  final String title;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: Text(title),
-        ),
-
-        Text(
-          value,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-final class _OpinionCard
-    extends StatelessWidget {
-  const _OpinionCard({
-    required this.opinion,
-  });
-
-  final String opinion;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme =
-        Theme.of(context).colorScheme;
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: colorScheme
-            .surfaceContainerHighest,
-        borderRadius:
-            BorderRadius.circular(14),
-      ),
-      child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
-        children: [
-          const Row(
-            children: [
-              Icon(
-                Icons
-                    .medical_information_outlined,
-                size: 20,
-              ),
-
-              SizedBox(width: 8),
-
-              Text(
-                '의료진 소견',
-                style: TextStyle(
-                  fontWeight:
-                      FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 10),
-
-          Text(opinion),
-        ],
-      ),
-    );
-  }
-}
-
-final class _InformationRow
-    extends StatelessWidget {
+final class _InformationRow extends StatelessWidget {
   const _InformationRow({
     required this.title,
     required this.value,
@@ -1014,8 +664,7 @@ final class _InformationRow
         bottom: 11,
       ),
       child: Row(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
             width: 115,
@@ -1041,94 +690,423 @@ final class _InformationRow
   }
 }
 
-final class _NetworkImageViewer
-    extends StatelessWidget {
+final class _NetworkImageViewer extends StatelessWidget {
   const _NetworkImageViewer({
     required this.imageUrl,
     required this.headers,
+    required this.title,
+    required this.heroTag,
   });
 
   final String imageUrl;
   final Map<String, String> headers;
+  final String title;
+  final String heroTag;
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius:
-          BorderRadius.circular(14),
-      child: Container(
-        width: double.infinity,
-        constraints: const BoxConstraints(
-          minHeight: 220,
-          maxHeight: 480,
-        ),
-        color: Colors.black,
-        child: CachedNetworkImage(
-          imageUrl: imageUrl,
-          httpHeaders: headers,
-          fit: BoxFit.contain,
-          fadeInDuration:
-              const Duration(milliseconds: 200),
-          placeholder: (
-            context,
-            url,
-          ) {
-            return const SizedBox(
-              height: 260,
-              child: Center(
-                child:
-                    CircularProgressIndicator(),
-              ),
-            );
-          },
-          errorWidget: (
-            context,
-            url,
-            error,
-          ) {
-            debugPrint(
-              '이미지 요청 URL: $url',
-            );
-
-            debugPrint(
-              '이미지 로드 오류: $error',
-            );
-
-            return const SizedBox(
-              height: 240,
-              child: Center(
-                child: Column(
-                  mainAxisSize:
-                      MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons
-                          .broken_image_outlined,
-                      size: 52,
-                      color: Colors.white70,
+    return Semantics(
+      button: true,
+      label: '$title 전체 화면으로 보기',
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) {
+                return _FullScreenImageView(
+                  imageUrl: imageUrl,
+                  headers: headers,
+                  title: title,
+                  heroTag: heroTag,
+                );
+              },
+            ),
+          );
+        },
+        child: Hero(
+          tag: heroTag,
+          child: Material(
+            color: Colors.transparent,
+            child: Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(14),
+                  child: Container(
+                    width: double.infinity,
+                    constraints: const BoxConstraints(
+                      minHeight: 220,
+                      maxHeight: 480,
                     ),
-
-                    SizedBox(height: 12),
-
-                    Text(
-                      '이미지를 불러올 수 없습니다.',
-                      style: TextStyle(
-                        color: Colors.white70,
+                    color: Colors.black,
+                    child: CachedNetworkImage(
+                      imageUrl: imageUrl,
+                      httpHeaders: headers,
+                      fit: BoxFit.contain,
+                      fadeInDuration: const Duration(
+                        milliseconds: 200,
                       ),
+                      placeholder: (
+                        context,
+                        url,
+                      ) {
+                        return const SizedBox(
+                          height: 260,
+                          child: Center(
+                            child: CircularProgressIndicator(),
+                          ),
+                        );
+                      },
+                      errorWidget: (
+                        context,
+                        url,
+                        error,
+                      ) {
+                        debugPrint(
+                          '이미지 요청 URL: $url',
+                        );
+
+                        debugPrint(
+                          '이미지 로드 오류: $error',
+                        );
+
+                        return const SizedBox(
+                          height: 240,
+                          child: Center(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.broken_image_outlined,
+                                  size: 52,
+                                  color: Colors.white70,
+                                ),
+
+                                SizedBox(height: 12),
+
+                                Text(
+                                  '이미지를 불러올 수 없습니다.',
+                                  style: TextStyle(
+                                    color: Colors.white70,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
                     ),
-                  ],
+                  ),
                 ),
-              ),
-            );
-          },
+
+                Positioned(
+                  top: 10,
+                  right: 10,
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(
+                        0.65,
+                      ),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.fullscreen,
+                      color: Colors.white,
+                      size: 22,
+                    ),
+                  ),
+                ),
+
+                Positioned(
+                  left: 12,
+                  bottom: 12,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(
+                        0.65,
+                      ),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.touch_app_outlined,
+                          color: Colors.white,
+                          size: 16,
+                        ),
+
+                        SizedBox(width: 5),
+
+                        Text(
+                          '눌러서 크게 보기',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
   }
 }
 
-final class _NoImageView
-    extends StatelessWidget {
+final class _FullScreenImageView extends StatefulWidget {
+  const _FullScreenImageView({
+    required this.imageUrl,
+    required this.headers,
+    required this.title,
+    required this.heroTag,
+  });
+
+  final String imageUrl;
+  final Map<String, String> headers;
+  final String title;
+  final String heroTag;
+
+  @override
+  State<_FullScreenImageView> createState() {
+    return _FullScreenImageViewState();
+  }
+}
+
+final class _FullScreenImageViewState
+    extends State<_FullScreenImageView> {
+  final TransformationController _transformationController =
+      TransformationController();
+
+  bool _isZoomed = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _transformationController.addListener(
+      _handleTransformationChanged,
+    );
+  }
+
+  @override
+  void dispose() {
+    _transformationController.removeListener(
+      _handleTransformationChanged,
+    );
+
+    _transformationController.dispose();
+
+    super.dispose();
+  }
+
+  void _handleTransformationChanged() {
+    final scale =
+        _transformationController.value.getMaxScaleOnAxis();
+
+    final nextIsZoomed = scale > 1.05;
+
+    if (nextIsZoomed != _isZoomed && mounted) {
+      setState(() {
+        _isZoomed = nextIsZoomed;
+      });
+    }
+  }
+
+  void _resetZoom() {
+    _transformationController.value = Matrix4.identity();
+  }
+
+  void _toggleZoom() {
+    if (_isZoomed) {
+      _resetZoom();
+      return;
+    }
+
+    _transformationController.value = Matrix4.diagonal3Values(
+      2.0,
+      2.0,
+      1.0,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
+        title: Text(
+          widget.title,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        actions: [
+          if (_isZoomed)
+            IconButton(
+              tooltip: '확대 초기화',
+              onPressed: _resetZoom,
+              icon: const Icon(
+                Icons.refresh,
+              ),
+            ),
+        ],
+      ),
+      body: SafeArea(
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: GestureDetector(
+                onDoubleTap: _toggleZoom,
+                child: InteractiveViewer(
+                  transformationController:
+                      _transformationController,
+                  minScale: 0.8,
+                  maxScale: 6,
+                  panEnabled: true,
+                  scaleEnabled: true,
+                  clipBehavior: Clip.none,
+                  boundaryMargin: const EdgeInsets.all(
+                    120,
+                  ),
+                  child: Center(
+                    child: Hero(
+                      tag: widget.heroTag,
+                      child: CachedNetworkImage(
+                        imageUrl: widget.imageUrl,
+                        httpHeaders: widget.headers,
+                        fit: BoxFit.contain,
+                        width: double.infinity,
+                        placeholder: (
+                          context,
+                          url,
+                        ) {
+                          return const SizedBox(
+                            height: 300,
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                              ),
+                            ),
+                          );
+                        },
+                        errorWidget: (
+                          context,
+                          url,
+                          error,
+                        ) {
+                          debugPrint(
+                            '전체 화면 이미지 URL: $url',
+                          );
+
+                          debugPrint(
+                            '전체 화면 이미지 오류: $error',
+                          );
+
+                          return const Center(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.broken_image_outlined,
+                                  size: 64,
+                                  color: Colors.white70,
+                                ),
+
+                                SizedBox(height: 14),
+
+                                Text(
+                                  '이미지를 불러올 수 없습니다.',
+                                  style: TextStyle(
+                                    color: Colors.white70,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
+            if (!_isZoomed)
+              const Positioned(
+                left: 0,
+                right: 0,
+                bottom: 24,
+                child: Center(
+                  child: _FullScreenGuide(),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+final class _FullScreenGuide extends StatelessWidget {
+  const _FullScreenGuide();
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: 9,
+        ),
+        decoration: BoxDecoration(
+          color: Colors.black.withOpacity(
+            0.7,
+          ),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: Colors.white24,
+          ),
+        ),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.zoom_in,
+              color: Colors.white,
+              size: 18,
+            ),
+
+            SizedBox(width: 7),
+
+            Text(
+              '두 손가락 또는 두 번 눌러 확대',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+final class _NoImageView extends StatelessWidget {
   const _NoImageView({
     required this.message,
   });
@@ -1137,8 +1115,7 @@ final class _NoImageView
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme =
-        Theme.of(context).colorScheme;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Container(
       width: double.infinity,
@@ -1147,18 +1124,15 @@ final class _NoImageView
         vertical: 38,
       ),
       decoration: BoxDecoration(
-        color:
-            colorScheme.surfaceContainerHighest,
-        borderRadius:
-            BorderRadius.circular(14),
+        color: colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(14),
       ),
       child: Column(
         children: [
           Icon(
             Icons.image_not_supported_outlined,
             size: 44,
-            color:
-                colorScheme.onSurfaceVariant,
+            color: colorScheme.onSurfaceVariant,
           ),
 
           const SizedBox(height: 10),
@@ -1173,8 +1147,7 @@ final class _NoImageView
   }
 }
 
-final class _EmptySectionCard
-    extends StatelessWidget {
+final class _EmptySectionCard extends StatelessWidget {
   const _EmptySectionCard({
     required this.icon,
     required this.message,
@@ -1185,8 +1158,7 @@ final class _EmptySectionCard
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme =
-        Theme.of(context).colorScheme;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Card(
       margin: EdgeInsets.zero,
@@ -1200,8 +1172,7 @@ final class _EmptySectionCard
             Icon(
               icon,
               size: 48,
-              color:
-                  colorScheme.onSurfaceVariant,
+              color: colorScheme.onSurfaceVariant,
             ),
 
             const SizedBox(height: 12),
@@ -1217,8 +1188,7 @@ final class _EmptySectionCard
   }
 }
 
-final class _PatientDetailErrorView
-    extends StatelessWidget {
+final class _PatientDetailErrorView extends StatelessWidget {
   const _PatientDetailErrorView({
     required this.message,
     required this.onRetry,
@@ -1233,8 +1203,7 @@ final class _PatientDetailErrorView
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
-          mainAxisSize:
-              MainAxisSize.min,
+          mainAxisSize: MainAxisSize.min,
           children: [
             const Icon(
               Icons.error_outline,
@@ -1269,8 +1238,7 @@ final class _PatientDetailErrorView
 String _findExaminationTitle(
   Map<String, dynamic> examination,
 ) {
-  final title =
-      examination['title'] ??
+  final title = examination['title'] ??
       examination['exam_name'] ??
       examination['examination_name'] ??
       examination['view_name'] ??
@@ -1327,14 +1295,16 @@ String _fieldLabel(
   };
 
   return labels[fieldName] ??
-      fieldName.replaceAll('_', ' ');
+      fieldName.replaceAll(
+        '_',
+        ' ',
+      );
 }
 
 String _nullableText(
   String? value,
 ) {
-  if (value == null ||
-      value.trim().isEmpty) {
+  if (value == null || value.trim().isEmpty) {
     return '미등록';
   }
 
@@ -1367,14 +1337,12 @@ String _displayValue(
 
     return value.entries
         .map(
-          (entry) =>
-              '${entry.key}: ${entry.value}',
+          (entry) => '${entry.key}: ${entry.value}',
         )
         .join(', ');
   }
 
-  final result =
-      value.toString().trim();
+  final result = value.toString().trim();
 
   return result.isEmpty ? '-' : result;
 }
@@ -1386,121 +1354,8 @@ bool _hasValue(
     return false;
   }
 
-  final text =
-      value.toString().trim();
+  final text = value.toString().trim();
 
   return text.isNotEmpty &&
       text.toLowerCase() != 'null';
-}
-
-bool _toBoolean(
-  dynamic value,
-) {
-  if (value is bool) {
-    return value;
-  }
-
-  if (value is num) {
-    return value != 0;
-  }
-
-  final normalized =
-      value?.toString().trim().toLowerCase();
-
-  return normalized == 'true' ||
-      normalized == '1' ||
-      normalized == 'yes' ||
-      normalized == 'y';
-}
-
-String _confirmationLabel(
-  dynamic value,
-) {
-  if (value == null) {
-    return '-';
-  }
-
-  return _toBoolean(value)
-      ? '확정'
-      : '미확정';
-}
-
-String _formatPercentageFromDecimal(
-  dynamic value,
-) {
-  final number = _toDouble(value);
-
-  if (number == null) {
-    return '-';
-  }
-
-  final percentage =
-      number >= 0 && number <= 1
-          ? number * 100
-          : number;
-
-  return '${percentage.toStringAsFixed(1)}%';
-}
-
-String _formatPercentage(
-  dynamic value,
-) {
-  final number = _toDouble(value);
-
-  if (number == null) {
-    return '-';
-  }
-
-  return '${number.toStringAsFixed(1)}%';
-}
-
-double? _toDouble(
-  dynamic value,
-) {
-  if (value is num) {
-    return value.toDouble();
-  }
-
-  return double.tryParse(
-    value?.toString() ?? '',
-  );
-}
-
-bool _isCompletedAiResult(
-  Map<String, dynamic> aiResult,
-) {
-  final status = (
-    aiResult['analysis_status'] ??
-    aiResult['status'] ??
-    aiResult['ai_status'] ??
-    ''
-  )
-      .toString()
-      .trim()
-      .toUpperCase();
-
-  if (status.isNotEmpty) {
-    return status == 'COMPLETED' ||
-        status == 'COMPLETE' ||
-        status == 'SUCCESS' ||
-        status == 'SUCCEEDED' ||
-        status == 'DONE';
-  }
-
-  final hasLesion =
-      aiResult['has_lesion'];
-
-  final severity =
-      aiResult['severity_class'];
-
-  final confidence =
-      aiResult['confidence_score'];
-
-  final gradcamUrl =
-      aiResult['gradcam_url'];
-
-  return hasLesion != null ||
-      _hasValue(severity) ||
-      confidence != null ||
-      _hasValue(gradcamUrl);
 }
