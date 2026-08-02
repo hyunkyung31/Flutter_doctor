@@ -5,15 +5,28 @@ abstract final class ApiEndpoints {
     defaultValue: 'http://34.80.83.7:8000',
   );
 
-  // 의료진 로그인 API 상대 경로
-  // 이후 DIO BASE URL과 결합
+  // 의료진 로그인 API
   static const String login = '/api/login/';
-  static const String tokenRefresh = '/api/token/refresh/';    // 저장된 refresh Token으로 새 access Token을 발급
-  static const String me ='/api/me/';                          // 현재 access Token에 해당하는 의료진 정보를 조회
 
-  static const String patients = '/api/patients/';
-  static const String patientSearch = '/api/patients/search/';
-  static String patientDetail(String patientId) {
+  // 저장된 Refresh Token으로 새 Access Token 발급
+  static const String tokenRefresh =
+      '/api/token/refresh/';
+
+  // 현재 로그인한 의료진 정보 조회
+  static const String me = '/api/me/';
+
+  // 환자 목록 조회
+  static const String patients =
+      '/api/patients/';
+
+  // 환자 검색
+  static const String patientSearch =
+      '/api/patients/search/';
+
+  // 환자 상세 조회
+  static String patientDetail(
+    String patientId,
+  ) {
     return '/api/patients/$patientId/';
   }
 }

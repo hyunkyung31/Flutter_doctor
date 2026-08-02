@@ -1,21 +1,29 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 
 import '../model/patient.dart';
 import '../repository/patient_repository.dart';
-import '../service/patient_service.dart';
 
-final class PatientListViewModel extends ChangeNotifier {
-  PatientListViewModel(
-    this._patientRepository,
-  );
+final class PatientListViewModel
+    extends ChangeNotifier {
+  PatientListViewModel({
+    required PatientRepository patientRepository,
+  }) : _patientRepository = patientRepository;
 
   final PatientRepository _patientRepository;
 
-  List<Patient> _patients = [];
+  final List<Patient> _patients = [];
+  final List<Patient> _recentPatients = [];
+
   bool _isLoading = false;
   String? _errorMessage;
 
-  List<Patient> get patients => _patients;
+  List<Patient> get patients {
+    return List.unmodifiable(_patients);
+  }
+
+  List<Patient> get recentPatients {
+    return List.unmodifiable(_recentPatients);
+  }
 
   bool get isLoading => _isLoading;
 
@@ -31,25 +39,68 @@ final class PatientListViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _patients = await _patientRepository.getPatients();
-    } on PatientServiceException catch (error) {
-      _patients = [];
-      _errorMessage = error.message;
-    } on PatientRepositoryException catch (error) {
-      _patients = [];
-      _errorMessage = error.message;
-    } on Exception catch (error) {
-      debugPrint('환자 ViewModel 오류: $error');
+      final patients =
+          await _patientRepository.getPatients();
 
-      _patients = [];
-      _errorMessage = '환자 목록을 불러오는 중 오류가 발생했습니다.';
+      _patients
+        ..clear()
+        ..addAll(patients);
+    } catch (error) {
+      _errorMessage = _cleanErrorMessage(error);
     } finally {
       _isLoading = false;
       notifyListeners();
     }
   }
 
-  Future<void> refreshPatients() {
-    return loadPatients();
+  Future<void> refreshPatients() async {
+    _errorMessage = null;
+
+    try {
+      final patients =
+          await _patientRepository.getPatients();
+
+      _patients
+        ..clear()
+        ..addAll(patients);
+    } catch (error) {
+      _errorMessage = _cleanErrorMessage(error);
+    }
+
+    notifyListeners();
+  }
+
+  void addRecentPatient(Patient patient) {
+    _recentPatients.removeWhere(
+      (item) =>
+          item.patientId == patient.patientId,
+    );
+
+    _recentPatients.insert(0, patient);
+
+    if (_recentPatients.length > 10) {
+      _recentPatients.removeLast();
+    }
+
+    notifyListeners();
+  }
+
+  void clearRecentPatients() {
+    _recentPatients.clear();
+    notifyListeners();
+  }
+
+  String _cleanErrorMessage(Object error) {
+    return error
+        .toString()
+        .replaceFirst(
+          'PatientRepositoryException: ',
+          '',
+        )
+        .replaceFirst(
+          'Exception: ',
+          '',
+        )
+        .trim();
   }
 }
