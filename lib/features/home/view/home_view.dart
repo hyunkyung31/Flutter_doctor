@@ -1,19 +1,19 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../auth/view_model/auth_view_model.dart';
-import '../../settings/view_model/settings_view_model.dart';
-import '../widgets/patient_status_card.dart';
-// import '../widgets/recent_patient_section.dart';
-// import '../widgets/today_schedule_section.dart';
-// import '../widgets/today_todo_section.dart';
-import '../widgets/welcome_card.dart';
+import '../../patient/view_model/patient_list_view_model.dart';
 import '../../calendar/view_model/calendar_view_model.dart';
 import '../../calendar/widgets/schedule_bottom_sheet.dart';
-
+import '../../settings/view_model/settings_view_model.dart';
+import '../widgets/Doctor_briefing_card.dart';
+import '../widgets/patient_status_card.dart';
 
 final class HomeView extends StatefulWidget {
   const HomeView({
@@ -25,26 +25,80 @@ final class HomeView extends StatefulWidget {
 }
 
 final class _HomeViewState extends State<HomeView> {
+  static const String _todoStorageKey = 'doctor_todo_items';
+
   DateTime _selectedDate = DateTime.now();
 
-  final List<Map<String, dynamic>> _todoItems = [
-    {
-      'title': 'AI 분석 결과 확인',
-      'isCompleted': false,
-    },
-    {
-      'title': '담당 환자 진료 기록 검토',
-      'isCompleted': false,
-    },
-    {
-      'title': '협진 요청 답변',
-      'isCompleted': false,
-    },
-  ];
+  List<Map<String, dynamic>> _todoItems = [];
 
-  Future<void> _logout(BuildContext context) async {
-    final authViewModel = context.read<AuthViewModel>();
-    final isSuccess = await authViewModel.logout(); 
+  @override
+  void initState() {
+    super.initState();
+    _loadTodoItems();
+  }
+
+  Future<void> _loadTodoItems() async {
+    final preferences = SharedPreferencesAsync();
+
+    final savedJson = await preferences.getString(
+      _todoStorageKey,
+    );
+
+    if (!mounted) {
+      return;
+    }
+
+    if (savedJson == null || savedJson.isEmpty) {
+      setState(() {
+        _todoItems = [];
+      });
+      return;
+    }
+
+    try {
+      final decodedData = jsonDecode(
+        savedJson,
+      ) as List<dynamic>;
+
+      final loadedItems = decodedData.map((item) {
+        final map = Map<String, dynamic>.from(
+          item as Map,
+        );
+
+        return <String, dynamic>{
+          'title': map['title']?.toString() ?? '',
+          'isCompleted':
+              map['isCompleted'] as bool? ?? false,
+        };
+      }).toList();
+
+      setState(() {
+        _todoItems = loadedItems;
+      });
+    } catch (_) {
+      setState(() {
+        _todoItems = [];
+      });
+    }
+  }
+
+  Future<void> _saveTodoItems() async {
+    final preferences = SharedPreferencesAsync();
+
+    await preferences.setString(
+      _todoStorageKey,
+      jsonEncode(_todoItems),
+    );
+  }
+
+  Future<void> _logout(
+    BuildContext context,
+  ) async {
+    final authViewModel =
+        context.read<AuthViewModel>();
+
+    final isSuccess =
+        await authViewModel.logout();
 
     if (!context.mounted) {
       return;
@@ -55,16 +109,20 @@ final class _HomeViewState extends State<HomeView> {
     }
   }
 
-  void _showPreparingMessage(BuildContext context) {
+  void _showPreparingMessage(
+    BuildContext context,
+  ) {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('현재 준비 중인 기능입니다.'),
+        content: Text(
+          '현재 준비 중인 기능입니다.',
+        ),
       ),
     );
   }
 
   Future<void> _addTodoItem() async {
-    final controller = TextEditingController();
+    String todoTitle = '';
 
     final result = await showDialog<String>(
       context: context,
@@ -80,19 +138,24 @@ final class _HomeViewState extends State<HomeView> {
             ),
           ),
           content: TextField(
-            controller: controller,
+            autofocus: true,
             decoration: const InputDecoration(
               hintText: '할 일을 입력하세요.',
               border: OutlineInputBorder(),
             ),
+            onChanged: (value) {
+              todoTitle = value.trim();
+            },
             onSubmitted: (value) {
               final todo = value.trim();
 
-              if (todo.isNotEmpty) {
-                Navigator.of(
-                  dialogContext,
-                ).pop(todo);
+              if (todo.isEmpty) {
+                return;
               }
+
+              Navigator.of(
+                dialogContext,
+              ).pop(todo);
             },
           ),
           actions: [
@@ -106,16 +169,17 @@ final class _HomeViewState extends State<HomeView> {
             ),
             FilledButton(
               onPressed: () {
-                final todo = controller.text.trim();
-
-                if (todo.isNotEmpty) {
-                  Navigator.of(
-                    dialogContext,
-                  ).pop(todo);
+                if (todoTitle.isEmpty) {
+                  return;
                 }
+
+                Navigator.of(
+                  dialogContext,
+                ).pop(todoTitle);
               },
               style: FilledButton.styleFrom(
-                backgroundColor: AppColors.primary,
+                backgroundColor:
+                    AppColors.primary,
               ),
               child: const Text('추가'),
             ),
@@ -124,11 +188,15 @@ final class _HomeViewState extends State<HomeView> {
       },
     );
 
-    controller.dispose();
-
     if (!mounted ||
         result == null ||
         result.trim().isEmpty) {
+      return;
+    }
+
+    await WidgetsBinding.instance.endOfFrame;
+
+    if (!mounted) {
       return;
     }
 
@@ -138,46 +206,75 @@ final class _HomeViewState extends State<HomeView> {
         'isCompleted': false,
       });
     });
+
+    await _saveTodoItems();
   }
 
-  void _toggleTodoItem(
+  Future<void> _toggleTodoItem(
     int index,
     bool? value,
-  ) {
+  ) async {
     setState(() {
       _todoItems[index]['isCompleted'] =
           value ?? false;
     });
+
+    await _saveTodoItems();
   }
 
-  void _removeTodoItem(int index) {
+  Future<void> _removeTodoItem(
+    int index,
+  ) async {
     final removedItem =
         Map<String, dynamic>.from(
-          _todoItems[index],
-        );
+      _todoItems[index],
+    );
 
     setState(() {
       _todoItems.removeAt(index);
     });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          '${removedItem['title']} 항목을 삭제했습니다.',
-        ),
-        action: SnackBarAction(
-          label: '되돌리기',
-          onPressed: () {
-            setState(() {
-              _todoItems.insert(
-                index,
-                removedItem,
+    await _saveTodoItems();
+
+    if (!mounted) {
+      return;
+    }
+
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          duration: const Duration(
+            seconds: 2,
+          ),
+          persist: false,
+          content: Text(
+            '${removedItem['title']} 항목을 삭제했습니다.',
+          ),
+          action: SnackBarAction(
+            label: '되돌리기',
+            onPressed: () async {
+              if (!mounted) {
+                return;
+              }
+
+              final insertIndex = index.clamp(
+                0,
+                _todoItems.length,
               );
-            });
-          },
+
+              setState(() {
+                _todoItems.insert(
+                  insertIndex,
+                  removedItem,
+                );
+              });
+
+              await _saveTodoItems();
+            },
+          ),
         ),
-      ),
-    );
+      );
   }
 
   @override
@@ -187,12 +284,27 @@ final class _HomeViewState extends State<HomeView> {
 
     final settingsViewModel =
         context.watch<SettingsViewModel>();
-    
-    final calendarViewModel = 
+
+    final calendarViewModel =
         context.watch<CalendarViewModel>();
+    
+    final patientListViewModel = 
+        context.watch<PatientListViewModel>();
+    
+    final patientCount =
+        patientListViewModel.patientCount;
 
     final doctorName =
         authViewModel.doctorName ?? '의료진';
+
+    // 실제 데이터 ViewModel을 연결하면 아래 값을 변경하면 됨.
+    const consultationCount = 0;
+    const originalVideoCount = 0;
+    const analyzedPatientCount = 0;
+
+    // 예약·대기 환자 역시 실제 데이터 연결 전 임시값.
+    const reservationCount = 0;
+    const waitingCount = 0;
 
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
@@ -201,7 +313,6 @@ final class _HomeViewState extends State<HomeView> {
     return Scaffold(
       backgroundColor:
           theme.scaffoldBackgroundColor,
-
       appBar: AppBar(
         backgroundColor: colorScheme.surface,
         surfaceTintColor: colorScheme.surface,
@@ -214,7 +325,6 @@ final class _HomeViewState extends State<HomeView> {
           ),
         ),
         actions: [
-          // 채팅
           Stack(
             clipBehavior: Clip.none,
             children: [
@@ -235,21 +345,20 @@ final class _HomeViewState extends State<HomeView> {
                 child: Container(
                   constraints:
                       const BoxConstraints(
-                        minWidth: 18,
-                        minHeight: 18,
-                      ),
+                    minWidth: 18,
+                    minHeight: 18,
+                  ),
                   padding:
                       const EdgeInsets.symmetric(
-                        horizontal: 5,
-                        vertical: 1,
-                      ),
+                    horizontal: 5,
+                    vertical: 1,
+                  ),
                   alignment: Alignment.center,
                   decoration:
                       const BoxDecoration(
-                        color:
-                            AppColors.accent,
-                        shape: BoxShape.circle,
-                      ),
+                    color: AppColors.accent,
+                    shape: BoxShape.circle,
+                  ),
                   child: const Text(
                     '3',
                     style: TextStyle(
@@ -263,8 +372,6 @@ final class _HomeViewState extends State<HomeView> {
               ),
             ],
           ),
-
-          // 일반 알림
           Stack(
             clipBehavior: Clip.none,
             children: [
@@ -295,8 +402,6 @@ final class _HomeViewState extends State<HomeView> {
               ),
             ],
           ),
-
-          // 라이트 모드 / 다크 모드
           IconButton(
             tooltip:
                 settingsViewModel.isDarkMode
@@ -312,7 +417,6 @@ final class _HomeViewState extends State<HomeView> {
           ),
         ],
       ),
-
       body: SafeArea(
         child: RefreshIndicator(
           color: AppColors.primary,
@@ -322,15 +426,17 @@ final class _HomeViewState extends State<HomeView> {
                 const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.all(20),
             children: [
-              WelcomeCard(
+              DoctorBriefingCard(
                 doctorName: doctorName,
+                schedules:
+                    calendarViewModel.schedules,
+                todoItems: _todoItems,
               ),
-
               const SizedBox(height: 20),
-
               PatientStatusSection(
-                reservationCount: 0,
-                waitingCount: 0,
+                reservationCount:
+                    reservationCount,
+                waitingCount: waitingCount,
                 onReservationTap: () {
                   _showPreparingMessage(
                     context,
@@ -342,90 +448,72 @@ final class _HomeViewState extends State<HomeView> {
                   );
                 },
               ),
-
               const SizedBox(height: 26),
-
               Text(
                 '메인 메뉴',
                 style:
                     textTheme.titleLarge?.copyWith(
-                      color:
-                          colorScheme.onSurface,
-                      fontWeight:
-                          FontWeight.bold,
-                    ),
+                  color: colorScheme.onSurface,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-
               const SizedBox(height: 14),
-
+              
               GridView.count(
                 crossAxisCount: 2,
                 shrinkWrap: true,
-                physics:
-                    const NeverScrollableScrollPhysics(),
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-                childAspectRatio: 0.9,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 10,
+
+                // 카드 높이를 고정해서 overflow 방지
+                mainAxisExtent: 90,
+
                 children: [
                   _QuickMenuCard(
-                    title: '환자 목록\n주의 환자',
-                    description:
-                        '담당 환자와 주의 환자를 확인합니다.',
-                    icon:
-                        Icons.people_alt_outlined,
-                    iconColor:
-                        AppColors.primary,
+                    title: '환자 목록',
+                    icon: Icons.people_alt_outlined,
+                    iconColor: AppColors.primary,
+                    count: patientCount,
+                    unit: '명',
                     onTap: () {
                       context.push('/patient');
                     },
                   ),
                   _QuickMenuCard(
-                    title: '새로운 분석',
-                    description:
-                        '새로운 AI 분석을 요청합니다.',
-                    icon:
-                        Icons.add_chart_outlined,
-                    iconColor:
-                        AppColors.secondary,
+                    title: '협진 요청',
+                    icon: Icons.groups_outlined,
+                    iconColor: AppColors.secondary,
+                    count: consultationCount,
+                    unit: '건',
                     onTap: () {
-                      _showPreparingMessage(
-                        context,
-                      );
+                      _showPreparingMessage(context);
                     },
                   ),
                   _QuickMenuCard(
                     title: '원본 영상 확인',
-                    description:
-                        '혈관조영 원본 영상을 확인합니다.',
-                    icon:
-                        Icons.video_library_outlined,
-                    iconColor:
-                        AppColors.primary,
+                    icon: Icons.video_library_outlined,
+                    iconColor: AppColors.primary,
+                    count: originalVideoCount,
+                    unit: '건',
                     onTap: () {
-                      _showPreparingMessage(
-                        context,
-                      );
+                      _showPreparingMessage(context);
                     },
                   ),
                   _QuickMenuCard(
                     title: 'AI 분석 환자',
-                    description:
-                        'AI 분석이 완료된 환자를 확인합니다.',
-                    icon:
-                        Icons.analytics_outlined,
-                    iconColor:
-                        AppColors.secondary,
+                    icon: Icons.analytics_outlined,
+                    iconColor: AppColors.secondary,
+                    count: analyzedPatientCount,
+                    unit: '명',
                     onTap: () {
-                      _showPreparingMessage(
-                        context,
-                      );
+                      _showPreparingMessage(context);
                     },
                   ),
                 ],
               ),
 
               const SizedBox(height: 30),
-
               Row(
                 children: [
                   Expanded(
@@ -434,16 +522,13 @@ final class _HomeViewState extends State<HomeView> {
                       style: textTheme
                           .titleLarge
                           ?.copyWith(
-                            color:
-                                colorScheme
-                                    .onSurface,
-                            fontWeight:
-                                FontWeight.bold,
-                          ),
+                        color:
+                            colorScheme.onSurface,
+                        fontWeight:
+                            FontWeight.bold,
+                      ),
                     ),
                   ),
-
-                  // 전체 캘린더 화면으로 이동
                   TextButton.icon(
                     onPressed: () {
                       context.pushNamed(
@@ -452,9 +537,9 @@ final class _HomeViewState extends State<HomeView> {
                     },
                     style:
                         TextButton.styleFrom(
-                          foregroundColor:
-                              colorScheme.primary,
-                        ),
+                      foregroundColor:
+                          colorScheme.primary,
+                    ),
                     icon: const Icon(
                       Icons
                           .calendar_month_outlined,
@@ -470,23 +555,22 @@ final class _HomeViewState extends State<HomeView> {
                   ),
                 ],
               ),
-
               const SizedBox(height: 12),
-
-              // 홈 미니 캘린더
               _HomeCalendar(
                 selectedDate: _selectedDate,
-                schedules: calendarViewModel.schedules,
+                schedules:
+                    calendarViewModel.schedules,
                 onDateChanged: (date) {
                   setState(() {
                     _selectedDate = date;
                   });
 
-                  calendarViewModel.selectDate(date);
+                  calendarViewModel.selectDate(
+                    date,
+                  );
                 },
               ),
               const SizedBox(height: 30),
-
               Row(
                 children: [
                   Expanded(
@@ -495,22 +579,20 @@ final class _HomeViewState extends State<HomeView> {
                       style: textTheme
                           .titleLarge
                           ?.copyWith(
-                            color:
-                                colorScheme
-                                    .onSurface,
-                            fontWeight:
-                                FontWeight.bold,
-                          ),
+                        color:
+                            colorScheme.onSurface,
+                        fontWeight:
+                            FontWeight.bold,
+                      ),
                     ),
                   ),
                   TextButton.icon(
                     onPressed: _addTodoItem,
                     style:
                         TextButton.styleFrom(
-                          foregroundColor:
-                              AppColors
-                                  .secondary,
-                        ),
+                      foregroundColor:
+                          AppColors.secondary,
+                    ),
                     icon: const Icon(
                       Icons.add,
                       size: 20,
@@ -519,9 +601,7 @@ final class _HomeViewState extends State<HomeView> {
                   ),
                 ],
               ),
-
               const SizedBox(height: 10),
-
               _TodoListSection(
                 todoItems: _todoItems,
                 onChanged: _toggleTodoItem,
@@ -531,144 +611,139 @@ final class _HomeViewState extends State<HomeView> {
           ),
         ),
       ),
+      bottomNavigationBar: NavigationBarTheme(
+        data: NavigationBarThemeData(
+          backgroundColor: colorScheme.surface,
 
-      bottomNavigationBar:
-          NavigationBarTheme(
-            data: NavigationBarThemeData(
-              backgroundColor:
-                  colorScheme.surface,
-              indicatorColor:
-                  colorScheme.primaryContainer,
-              iconTheme:
-                  WidgetStateProperty.resolveWith<
-                    IconThemeData
-                  >((states) {
-                    return IconThemeData(
-                      color:
-                          states.contains(
-                            WidgetState
-                                .selected,
-                          )
-                          ? colorScheme.primary
-                          : colorScheme
-                              .onSurface
-                              .withValues(
-                                alpha: 0.6,
-                              ),
-                    );
-                  }),
-              labelTextStyle:
-                  WidgetStateProperty.resolveWith<
-                    TextStyle
-                  >((states) {
-                    return TextStyle(
-                      color:
-                          states.contains(
-                            WidgetState
-                                .selected,
-                          )
-                          ? colorScheme.primary
-                          : colorScheme
-                              .onSurface
-                              .withValues(
-                                alpha: 0.6,
-                              ),
-                      fontWeight:
-                          states.contains(
-                            WidgetState
-                                .selected,
-                          )
-                          ? FontWeight.w700
-                          : FontWeight.w500,
-                    );
-                  }),
-            ),
-            child: NavigationBar(
-              selectedIndex: 0,
-              onDestinationSelected: (
-                index,
-              ) {
-                switch (index) {
-                  case 0:
-                    context.go('/home');
-                    break;
+          // 선택된 메뉴의 둥근 배경
+          indicatorColor: colorScheme.primary,
 
-                  case 1:
-                    context.go('/patient');
-                    break;
+          iconTheme:
+              WidgetStateProperty.resolveWith<IconThemeData>(
+            (states) {
+              final isSelected = states.contains(
+                WidgetState.selected,
+              );
 
-                  case 2:
-                    _showPreparingMessage(
-                      context,
-                    );
-                    break;
-
-                  case 3:
-                    _showPreparingMessage(
-                      context,
-                    );
-                    break;
-                }
-              },
-              destinations: const [
-                NavigationDestination(
-                  icon: Icon(
-                    Icons.home_outlined,
-                  ),
-                  selectedIcon: Icon(
-                    Icons.home,
-                  ),
-                  label: '홈',
-                ),
-                NavigationDestination(
-                  icon: Icon(
-                    Icons.people_outline,
-                  ),
-                  selectedIcon: Icon(
-                    Icons.people,
-                  ),
-                  label: '환자',
-                ),
-                NavigationDestination(
-                  icon: Icon(
-                    Icons
-                        .analytics_outlined,
-                  ),
-                  selectedIcon: Icon(
-                    Icons.analytics,
-                  ),
-                  label: '분석',
-                ),
-                NavigationDestination(
-                  icon: Icon(
-                    Icons.person_outline,
-                  ),
-                  selectedIcon: Icon(
-                    Icons.person,
-                  ),
-                  label: '마이페이지',
-                ),
-              ],
-            ),
+              return IconThemeData(
+                color: isSelected
+                    ? colorScheme.onPrimary
+                    : colorScheme.onSurface.withValues(
+                        alpha: 0.90,
+                      ),
+                size: isSelected ? 25 : 23,
+              );
+            },
           ),
+
+          labelTextStyle:
+              WidgetStateProperty.resolveWith<TextStyle>(
+            (states) {
+              final isSelected = states.contains(
+                WidgetState.selected,
+              );
+
+              return TextStyle(
+                color: isSelected
+                    ? colorScheme.primary
+                    : colorScheme.onSurface.withValues(
+                        alpha: 0.90,
+                      ),
+                fontSize: 12,
+                fontWeight: isSelected
+                    ? FontWeight.w800
+                    : FontWeight.w600,
+              );
+            },
+          ),
+        ),
+        child: NavigationBar(
+          selectedIndex: 0,
+          height: 72,
+          labelBehavior:
+              NavigationDestinationLabelBehavior.alwaysShow,
+          onDestinationSelected: (index) {
+            switch (index) {
+              case 0:
+                context.go('/home');
+                break;
+
+              case 1:
+                context.go('/patient');
+                break;
+
+              case 2:
+                _showPreparingMessage(
+                  context,
+                );
+                break;
+
+              case 3:
+                _showPreparingMessage(
+                  context,
+                );
+                break;
+            }
+          },
+          destinations: const [
+            NavigationDestination(
+              icon: Icon(
+                Icons.home_outlined,
+              ),
+              selectedIcon: Icon(
+                Icons.home,
+              ),
+              label: '홈',
+            ),
+            NavigationDestination(
+              icon: Icon(
+                Icons.people_outline,
+              ),
+              selectedIcon: Icon(
+                Icons.people,
+              ),
+              label: '환자',
+            ),
+            NavigationDestination(
+              icon: Icon(
+                Icons.analytics_outlined,
+              ),
+              selectedIcon: Icon(
+                Icons.analytics,
+              ),
+              label: '분석',
+            ),
+            NavigationDestination(
+              icon: Icon(
+                Icons.person_outline,
+              ),
+              selectedIcon: Icon(
+                Icons.person,
+              ),
+              label: '마이페이지',
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
 
-final class _QuickMenuCard
-    extends StatelessWidget {
+final class _QuickMenuCard extends StatelessWidget {
   const _QuickMenuCard({
     required this.title,
-    required this.description,
     required this.icon,
     required this.iconColor,
+    required this.count,
+    required this.unit,
     required this.onTap,
   });
 
   final String title;
-  final String description;
   final IconData icon;
   final Color iconColor;
+  final int count;
+  final String unit;
   final VoidCallback onTap;
 
   @override
@@ -677,14 +752,24 @@ final class _QuickMenuCard
     final colorScheme = theme.colorScheme;
     final textTheme = theme.textTheme;
 
+    final isDarkMode =
+    theme.brightness == Brightness.dark;
+
+    final effectiveIconColor = isDarkMode
+        ? Color.lerp(
+            iconColor,
+            Colors.white,
+            0.35,
+          )!
+        : iconColor;
+
     return Card(
       margin: EdgeInsets.zero,
       clipBehavior: Clip.antiAlias,
       color: colorScheme.surface,
       elevation: 1,
       shape: RoundedRectangleBorder(
-        borderRadius:
-            BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
         side: BorderSide(
           color: theme.dividerColor,
         ),
@@ -692,61 +777,102 @@ final class _QuickMenuCard
       child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding:
-              const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(12),
           child: Column(
             crossAxisAlignment:
                 CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 46,
-                height: 46,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: iconColor.withValues(
-                    alpha: 0.1,
-                  ),
-                  borderRadius:
-                      BorderRadius.circular(
-                        12,
+              Row(
+                children: [
+                  Container(
+                    width: 34,
+                    height: 34,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: effectiveIconColor.withValues(
+                        alpha: isDarkMode ? 0.20 : 0.10,
                       ),
-                ),
-                child: Icon(
-                  icon,
-                  size: 28,
-                  color: iconColor,
-                ),
+                      borderRadius:
+                          BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      icon,
+                      size: 19,
+                      color: effectiveIconColor,
+                    ),
+                  ),
+
+                  const SizedBox(width: 10),
+
+                  Expanded(
+                    child: Text(
+                      title,
+                      maxLines: 1,
+                      overflow:
+                          TextOverflow.ellipsis,
+                      style: textTheme
+                          .titleSmall
+                          ?.copyWith(
+                        color:
+                            colorScheme.onSurface,
+                        fontSize: 15,
+                        fontWeight:
+                            FontWeight.w700,
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(width: 6),
+
+                  Icon(
+                    Icons.chevron_right,
+                    size: 18,
+                    color: colorScheme.onSurface.withValues(
+                      alpha: isDarkMode ? 0.70 : 0.35,
+                    ),
+                  ),
+                ],
               ),
 
               const Spacer(),
 
-              Text(
-                title,
-                style: textTheme
-                    .titleMedium
-                    ?.copyWith(
-                      color:
-                          colorScheme.onSurface,
-                      fontWeight:
-                          FontWeight.bold,
+              Align(
+                alignment: Alignment.centerRight,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment:
+                      CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      '$count',
+                      style: TextStyle(
+                        color: effectiveIconColor,
+                        fontSize: 20,
+                        height: 1,
+                        fontWeight:
+                            FontWeight.w800,
+                      ),
                     ),
-              ),
-
-              const SizedBox(height: 6),
-
-              Text(
-                description,
-                maxLines: 2,
-                overflow:
-                    TextOverflow.ellipsis,
-                style: textTheme.bodySmall
-                    ?.copyWith(
-                      color: colorScheme
-                          .onSurface
-                          .withValues(
-                            alpha: 0.65,
+                    const SizedBox(width: 3),
+                    Padding(
+                      padding:
+                          const EdgeInsets.only(
+                        bottom: 1,
+                      ),
+                      child: Text(
+                        unit,
+                        style: TextStyle(
+                          color: colorScheme.onSurface.withValues(
+                            alpha: isDarkMode ? 0.85 : 0.68,
                           ),
+                          fontSize: 11,
+                          fontWeight:
+                              FontWeight.w600,
+                        ),
+                      ),
                     ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -756,7 +882,8 @@ final class _QuickMenuCard
   }
 }
 
-final class _HomeCalendar extends StatefulWidget {
+final class _HomeCalendar
+    extends StatefulWidget {
   const _HomeCalendar({
     required this.selectedDate,
     required this.schedules,
@@ -765,13 +892,17 @@ final class _HomeCalendar extends StatefulWidget {
 
   final DateTime selectedDate;
   final List<ScheduleItem> schedules;
-  final ValueChanged<DateTime> onDateChanged;
+  final ValueChanged<DateTime>
+      onDateChanged;
 
   @override
-  State<_HomeCalendar> createState() => _HomeCalendarState();
+  State<_HomeCalendar> createState() {
+    return _HomeCalendarState();
+  }
 }
 
-final class _HomeCalendarState extends State<_HomeCalendar> {
+final class _HomeCalendarState
+    extends State<_HomeCalendar> {
   late DateTime _focusedDate;
 
   @override
@@ -781,7 +912,9 @@ final class _HomeCalendarState extends State<_HomeCalendar> {
   }
 
   @override
-  void didUpdateWidget(covariant _HomeCalendar oldWidget) {
+  void didUpdateWidget(
+    covariant _HomeCalendar oldWidget,
+  ) {
     super.didUpdateWidget(oldWidget);
 
     if (!isSameDay(
@@ -810,13 +943,15 @@ final class _HomeCalendarState extends State<_HomeCalendar> {
       ),
       decoration: BoxDecoration(
         color: colorScheme.surface,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius:
+            BorderRadius.circular(20),
         border: Border.all(
           color: theme.dividerColor,
         ),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withValues(
+            color:
+                AppColors.primary.withValues(
               alpha: 0.05,
             ),
             blurRadius: 12,
@@ -826,39 +961,39 @@ final class _HomeCalendarState extends State<_HomeCalendar> {
       ),
       child: TableCalendar<ScheduleItem>(
         firstDay: DateTime(2020, 1, 1),
-        lastDay: DateTime(2035, 12, 31),
+        lastDay:
+            DateTime(2035, 12, 31),
         focusedDay: _focusedDate,
-
         locale: 'ko_KR',
-
-        startingDayOfWeek: StartingDayOfWeek.sunday,
-
-        calendarFormat: CalendarFormat.month,
-
-        availableCalendarFormats: const {
+        startingDayOfWeek:
+            StartingDayOfWeek.sunday,
+        calendarFormat:
+            CalendarFormat.month,
+        availableCalendarFormats:
+            const {
           CalendarFormat.month: '월',
         },
-
-        /// 일요일만 주말로 지정
         weekendDays: const [
           DateTime.sunday,
         ],
-
         selectedDayPredicate: (day) {
           return isSameDay(
             widget.selectedDate,
             day,
           );
         },
-
-        eventLoader: (day){
-          return widget.schedules.where((schedule){
-            return schedule.date.year == day.year &&
-                schedule.date.month == day.month &&
-                schedule.date.day == day.day;
-          }).toList();
+        eventLoader: (day) {
+          return widget.schedules.where(
+            (schedule) {
+              return schedule.date.year ==
+                      day.year &&
+                  schedule.date.month ==
+                      day.month &&
+                  schedule.date.day ==
+                      day.day;
+            },
+          ).toList();
         },
-
         onDaySelected: (
           selectedDay,
           focusedDay,
@@ -867,19 +1002,20 @@ final class _HomeCalendarState extends State<_HomeCalendar> {
             _focusedDate = focusedDay;
           });
 
-          widget.onDateChanged(selectedDay);
+          widget.onDateChanged(
+            selectedDay,
+          );
         },
-
         onPageChanged: (focusedDay) {
           setState(() {
             _focusedDate = focusedDay;
           });
         },
-
         headerStyle: HeaderStyle(
           formatButtonVisible: false,
           titleCentered: true,
-          headerPadding: const EdgeInsets.symmetric(
+          headerPadding:
+              const EdgeInsets.symmetric(
             vertical: 10,
           ),
           leftChevronIcon: Icon(
@@ -896,27 +1032,33 @@ final class _HomeCalendarState extends State<_HomeCalendar> {
             fontWeight: FontWeight.bold,
           ),
         ),
-
-        daysOfWeekStyle: DaysOfWeekStyle(
+        daysOfWeekStyle:
+            DaysOfWeekStyle(
           weekdayStyle: TextStyle(
-            color: colorScheme.onSurface.withValues(
+            color: colorScheme.onSurface
+                .withValues(
               alpha: 0.7,
             ),
-            fontWeight: FontWeight.w600,
+            fontWeight:
+                FontWeight.w600,
           ),
-          weekendStyle: const TextStyle(
+          weekendStyle:
+              const TextStyle(
             color: Colors.red,
-            fontWeight: FontWeight.w700,
+            fontWeight:
+                FontWeight.w700,
           ),
         ),
-
-        calendarBuilders: CalendarBuilders<ScheduleItem>(
+        calendarBuilders:
+            CalendarBuilders<
+                ScheduleItem>(
           defaultBuilder: (
             context,
             day,
             focusedDay,
           ) {
-            final isSunday = _isSunday(day);
+            final isSunday =
+                _isSunday(day);
 
             return Center(
               child: Text(
@@ -924,37 +1066,42 @@ final class _HomeCalendarState extends State<_HomeCalendar> {
                 style: TextStyle(
                   color: isSunday
                       ? Colors.red
-                      : colorScheme.onSurface,
-                  fontWeight: FontWeight.w500,
+                      : colorScheme
+                          .onSurface,
+                  fontWeight:
+                      FontWeight.w500,
                 ),
               ),
             );
           },
-
           outsideBuilder: (
             context,
             day,
             focusedDay,
           ) {
-            final isSunday = _isSunday(day);
+            final isSunday =
+                _isSunday(day);
 
             return Center(
               child: Text(
                 '${day.day}',
                 style: TextStyle(
                   color: isSunday
-                      ? Colors.red.withValues(
+                      ? Colors.red
+                          .withValues(
                           alpha: 0.3,
                         )
-                      : colorScheme.onSurface.withValues(
+                      : colorScheme
+                          .onSurface
+                          .withValues(
                           alpha: 0.25,
                         ),
-                  fontWeight: FontWeight.w500,
+                  fontWeight:
+                      FontWeight.w500,
                 ),
               ),
             );
           },
-
           selectedBuilder: (
             context,
             day,
@@ -966,26 +1113,29 @@ final class _HomeCalendarState extends State<_HomeCalendar> {
                 height: 38,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: colorScheme.primary,
+                  color:
+                      colorScheme.primary,
                   shape: BoxShape.circle,
                 ),
                 child: Text(
                   '${day.day}',
                   style: TextStyle(
-                    color: colorScheme.onPrimary,
-                    fontWeight: FontWeight.bold,
+                    color: colorScheme
+                        .onPrimary,
+                    fontWeight:
+                        FontWeight.bold,
                   ),
                 ),
               ),
             );
           },
-
           todayBuilder: (
             context,
             day,
             focusedDay,
           ) {
-            final isSunday = _isSunday(day);
+            final isSunday =
+                _isSunday(day);
 
             return Center(
               child: Container(
@@ -993,12 +1143,14 @@ final class _HomeCalendarState extends State<_HomeCalendar> {
                 height: 38,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: AppColors.secondary.withValues(
+                  color: AppColors.secondary
+                      .withValues(
                     alpha: 0.16,
                   ),
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: AppColors.secondary,
+                    color:
+                        AppColors.secondary,
                     width: 1.5,
                   ),
                 ),
@@ -1007,67 +1159,73 @@ final class _HomeCalendarState extends State<_HomeCalendar> {
                   style: TextStyle(
                     color: isSunday
                         ? Colors.red
-                        : AppColors.secondary,
-                    fontWeight: FontWeight.bold,
+                        : AppColors
+                            .secondary,
+                    fontWeight:
+                        FontWeight.bold,
                   ),
                 ),
               ),
             );
           },
         ),
-
         calendarStyle: CalendarStyle(
           outsideDaysVisible: true,
-
-          markersMaxCount:  3,
+          markersMaxCount: 3,
           markerSize: 6,
-          markerMargin: const EdgeInsets.symmetric(
+          markerMargin:
+              const EdgeInsets.symmetric(
             horizontal: 1.5,
           ),
-          markerDecoration: const BoxDecoration(
+          markerDecoration:
+              const BoxDecoration(
             color: Color(0xFFF0B52D),
             shape: BoxShape.circle,
           ),
-
-          defaultTextStyle: TextStyle(
+          defaultTextStyle:
+              TextStyle(
             color: colorScheme.onSurface,
-            fontWeight: FontWeight.w500,
+            fontWeight:
+                FontWeight.w500,
           ),
-
-          weekendTextStyle: const TextStyle(
+          weekendTextStyle:
+              const TextStyle(
             color: Colors.red,
-            fontWeight: FontWeight.w500,
+            fontWeight:
+                FontWeight.w500,
           ),
-
-          outsideTextStyle: TextStyle(
-            color: colorScheme.onSurface.withValues(
+          outsideTextStyle:
+              TextStyle(
+            color: colorScheme.onSurface
+                .withValues(
               alpha: 0.25,
             ),
           ),
-
-          selectedDecoration: BoxDecoration(
+          selectedDecoration:
+              BoxDecoration(
             color: colorScheme.primary,
             shape: BoxShape.circle,
           ),
-
-          selectedTextStyle: TextStyle(
+          selectedTextStyle:
+              TextStyle(
             color: colorScheme.onPrimary,
             fontWeight: FontWeight.bold,
           ),
-
-          todayDecoration: BoxDecoration(
-            color: AppColors.secondary.withValues(
+          todayDecoration:
+              BoxDecoration(
+            color: AppColors.secondary
+                .withValues(
               alpha: 0.16,
             ),
             shape: BoxShape.circle,
           ),
-
-          todayTextStyle: const TextStyle(
+          todayTextStyle:
+              const TextStyle(
             color: AppColors.secondary,
             fontWeight: FontWeight.bold,
           ),
-
-          cellMargin: const EdgeInsets.all(4),
+          cellMargin:
+              const EdgeInsets.all(4),
         ),
       ),
     );
@@ -1083,16 +1241,16 @@ final class _TodoListSection
   });
 
   final List<Map<String, dynamic>>
-  todoItems;
+      todoItems;
 
   final void Function(
     int index,
     bool? value,
-  )
-  onChanged;
+  ) onChanged;
 
-  final void Function(int index)
-  onDelete;
+  final void Function(
+    int index,
+  ) onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -1101,8 +1259,7 @@ final class _TodoListSection
 
     if (todoItems.isEmpty) {
       return Container(
-        padding:
-            const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
           color: colorScheme.surface,
           borderRadius:
@@ -1120,8 +1277,8 @@ final class _TodoListSection
               decoration: BoxDecoration(
                 color: AppColors.accent
                     .withValues(
-                      alpha: 0.16,
-                    ),
+                  alpha: 0.16,
+                ),
                 shape: BoxShape.circle,
               ),
               child: const Icon(
@@ -1130,9 +1287,7 @@ final class _TodoListSection
                 size: 30,
               ),
             ),
-
             const SizedBox(height: 12),
-
             Text(
               '등록된 할 일이 없습니다.',
               style: TextStyle(
@@ -1170,16 +1325,15 @@ final class _TodoListSection
             indent: 56,
             color: colorScheme.onSurface
                 .withValues(
-                  alpha: 0.08,
-                ),
+              alpha: 0.08,
+            ),
           );
         },
         itemBuilder: (
           context,
           index,
         ) {
-          final item =
-              todoItems[index];
+          final item = todoItems[index];
 
           final title =
               item['title'] as String;
@@ -1202,14 +1356,14 @@ final class _TodoListSection
                   Alignment.centerRight,
               padding:
                   const EdgeInsets.only(
-                    right: 22,
-                  ),
+                right: 22,
+              ),
               decoration: BoxDecoration(
                 color: AppColors.accent,
                 borderRadius:
                     BorderRadius.circular(
-                      18,
-                    ),
+                  18,
+                ),
               ),
               child: const Icon(
                 Icons.delete_outline,
@@ -1232,9 +1386,9 @@ final class _TodoListSection
                       .leading,
               contentPadding:
                   const EdgeInsets.only(
-                    left: 10,
-                    right: 8,
-                  ),
+                left: 10,
+                right: 8,
+              ),
               title: Text(
                 title,
                 style: TextStyle(
@@ -1242,8 +1396,8 @@ final class _TodoListSection
                       ? colorScheme
                           .onSurface
                           .withValues(
-                            alpha: 0.45,
-                          )
+                          alpha: 0.45,
+                        )
                       : colorScheme
                           .onSurface,
                   fontWeight:
@@ -1265,8 +1419,8 @@ final class _TodoListSection
                   color: colorScheme
                       .onSurface
                       .withValues(
-                        alpha: 0.45,
-                      ),
+                    alpha: 0.45,
+                  ),
                 ),
               ),
             ),

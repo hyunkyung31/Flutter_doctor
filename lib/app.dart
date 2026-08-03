@@ -23,7 +23,9 @@ import 'features/settings/view_model/settings_view_model.dart';
 import 'features/calendar/view_model/calendar_view_model.dart';
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  const MyApp({
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -55,7 +57,8 @@ class MyApp extends StatelessWidget {
         ),
 
         Provider<SensitiveAuthService>(
-          create: (context) => SensitiveAuthService(
+          create: (context) =>
+              SensitiveAuthService(
             context.read<BiometricAuthService>(),
           ),
         ),
@@ -83,18 +86,22 @@ class MyApp extends StatelessWidget {
           ),
         ),
 
-        ChangeNotifierProvider<PatientListViewModel>(
-          create: (context) => PatientListViewModel(
+        ChangeNotifierProvider<
+            PatientListViewModel>(
+          create: (context) =>
+              PatientListViewModel(
             patientRepository:
                 context.read<PatientRepository>(),
-          ),
+          )..loadPatients(),
         ),
 
-        ChangeNotifierProvider<SettingsViewModel>(
+        ChangeNotifierProvider<
+            SettingsViewModel>(
           create: (_) => SettingsViewModel(),
         ),
 
-        ChangeNotifierProvider<CalendarViewModel>(
+        ChangeNotifierProvider<
+            CalendarViewModel>(
           create: (_) => CalendarViewModel(),
         ),
       ],
@@ -105,8 +112,9 @@ class MyApp extends StatelessWidget {
             title: 'Doctor App',
             theme: AppTheme.lightTheme,
             darkTheme: AppTheme.darkTheme,
-            themeMode:
-                context.watch<SettingsViewModel>().themeMode,
+            themeMode: context
+                .watch<SettingsViewModel>()
+                .themeMode,
             builder: (context, child) {
               return PrivacyShield(
                 child:
