@@ -15,10 +15,7 @@ final class DoctorBriefingCard extends StatelessWidget {
   final List<ScheduleItem> schedules;
   final List<Map<String, dynamic>> todoItems;
 
-  bool _isSameDate(
-    DateTime first,
-    DateTime second,
-  ) {
+  bool _isSameDate(DateTime first, DateTime second) {
     return first.year == second.year &&
         first.month == second.month &&
         first.day == second.day;
@@ -30,26 +27,20 @@ final class DoctorBriefingCard extends StatelessWidget {
     final colorScheme = theme.colorScheme;
     final textTheme = theme.textTheme;
 
-    final isDarkMode =
-    theme.brightness == Brightness.dark;
+    final isDarkMode = theme.brightness == Brightness.dark;
 
     final primaryColor = isDarkMode
         ? const Color(0xFF8EC5FF)
         : AppColors.primary;
 
     final secondaryTextColor = isDarkMode
-        ? colorScheme.onSurface.withValues(
-            alpha: 0.88,
-          )
-    : colorScheme.onSurfaceVariant;
+        ? colorScheme.onSurface.withValues(alpha: 0.88)
+        : colorScheme.onSurfaceVariant;
 
     final now = DateTime.now();
 
     final todaySchedules = schedules.where((schedule) {
-      return _isSameDate(
-        schedule.date,
-        now,
-      );
+      return _isSameDate(schedule.date, now);
     }).toList();
 
     final pendingTodos = todoItems.where((item) {
@@ -62,16 +53,10 @@ final class DoctorBriefingCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: colorScheme.primary.withValues(
-            alpha: 0.14,
-          ),
-        ),
+        border: Border.all(color: colorScheme.primary.withValues(alpha: 0.14)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(
-              alpha: 0.035,
-            ),
+            color: Colors.black.withValues(alpha: 0.035),
             blurRadius: 8,
             offset: const Offset(0, 3),
           ),
@@ -122,10 +107,7 @@ final class DoctorBriefingCard extends StatelessWidget {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 8,
-                  vertical: 4,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
                   color: primaryColor.withValues(
                     alpha: isDarkMode ? 0.20 : 0.10,
@@ -155,11 +137,7 @@ final class DoctorBriefingCard extends StatelessWidget {
                   value: '${todaySchedules.length}건',
                 ),
               ),
-              Container(
-                width: 1,
-                height: 34,
-                color: theme.dividerColor,
-              ),
+              Container(width: 1, height: 34, color: theme.dividerColor),
               Expanded(
                 child: _BriefingCountItem(
                   icon: Icons.task_alt_outlined,
@@ -221,8 +199,7 @@ final class _BriefingCountItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final isDarkMode =
-        theme.brightness == Brightness.dark;
+    final isDarkMode = theme.brightness == Brightness.dark;
 
     final primaryColor = isDarkMode
         ? const Color(0xFF8EC5FF)
@@ -235,16 +212,10 @@ final class _BriefingCountItem extends StatelessWidget {
           height: 30,
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: primaryColor.withValues(
-              alpha: isDarkMode ? 0.20 : 0.09,
-            ),
+            color: primaryColor.withValues(alpha: isDarkMode ? 0.20 : 0.09),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Icon(
-            icon,
-            size: 17,
-            color: primaryColor,
-          ),
+          child: Icon(icon, size: 17, color: primaryColor),
         ),
         const SizedBox(width: 8),
         Column(
@@ -296,35 +267,36 @@ final class _BriefingListSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final isDarkMode =
-        theme.brightness == Brightness.dark;
+    final isDarkMode = theme.brightness == Brightness.dark;
 
     final accentColor = warning
-        ? const Color(0xFFF0B52D)
-        : colorScheme.primary;
+        ? isDarkMode
+              ? const Color(0xFFC98FA5)
+              : const Color(0xFFD88C78)
+        : isDarkMode
+        ? const Color(0xFF7FB3E8)
+        : const Color(0xFF4F83C2);
 
     final titleColor = warning
         ? isDarkMode
-            ? const Color(0xFFFFD76A)
-            : const Color(0xFF7A5600)
-        : colorScheme.onSurface;
+              ? const Color(0xFFE8B9C9)
+              : const Color(0xFF8F493A)
+        : isDarkMode
+        ? const Color(0xFFC8E1FA)
+        : const Color(0xFF24578F);
 
-    final backgroundColor = warning
-        ? isDarkMode
-            ? const Color(0xFF2A2518)
-            : const Color(0xFFFFFAEC)
-        : colorScheme.surface;
+    final backgroundColor = isDarkMode
+        ? const Color(0xFF1B2B3D)
+        : warning
+        ? const Color(0xFFFFF1EC)
+        : const Color(0xFFEAF3FD);
 
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
         color: backgroundColor,
         borderRadius: BorderRadius.circular(9),
-        border: Border.all(
-          color: accentColor.withValues(
-            alpha: 0.22,
-          ),
-        ),
+        border: Border.all(color: accentColor.withValues(alpha: 0.22)),
       ),
       child: IntrinsicHeight(
         child: Row(
@@ -356,9 +328,7 @@ final class _BriefingListSection extends StatelessWidget {
                           height: 26,
                           alignment: Alignment.center,
                           decoration: BoxDecoration(
-                            color: accentColor.withValues(
-                              alpha: 0.11,
-                            ),
+                            color: accentColor.withValues(alpha: 0.11),
                             borderRadius: BorderRadius.circular(7),
                           ),
                           child: Icon(
@@ -366,11 +336,11 @@ final class _BriefingListSection extends StatelessWidget {
                             size: 15,
                             color: warning
                                 ? isDarkMode
-                                    ? const Color(0xFFFFD76A)
-                                    : const Color(0xFF9A6B00)
+                                      ? const Color(0xFFE6D5AC)
+                                      : const Color(0xFF6F5A2F)
                                 : isDarkMode
-                                    ? const Color(0xFF8EC5FF)
-                                    : colorScheme.primary,
+                                ? const Color(0xFFB8CAE0)
+                                : const Color(0xFF40566F),
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -390,9 +360,7 @@ final class _BriefingListSection extends StatelessWidget {
                             vertical: 2,
                           ),
                           decoration: BoxDecoration(
-                            color: accentColor.withValues(
-                              alpha: 0.11,
-                            ),
+                            color: accentColor.withValues(alpha: 0.11),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
@@ -444,38 +412,25 @@ final class _BriefingListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final isDarkMode =
-        theme.brightness == Brightness.dark;
-
-    final primaryColor = isDarkMode
-        ? const Color(0xFF8EC5FF)
-        : colorScheme.primary;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Padding(
-      padding: const EdgeInsets.only(
-        bottom: 4,
-      ),
+      padding: const EdgeInsets.only(bottom: 4),
       child: Row(
         children: [
           if (leadingText != null) ...[
             Container(
               width: 48,
-              padding: const EdgeInsets.symmetric(
-                vertical: 2,
-              ),
+              padding: const EdgeInsets.symmetric(vertical: 2),
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: primaryColor.withValues(
-                  alpha: isDarkMode ? 0.20 : 0.10,
-                ),
+                color: colorScheme.primary.withValues(alpha: 0.10),
                 borderRadius: BorderRadius.circular(5),
               ),
               child: Text(
                 leadingText!,
                 style: TextStyle(
-                  color: primaryColor,
+                  color: colorScheme.primary,
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
                 ),
@@ -486,7 +441,9 @@ final class _BriefingListItem extends StatelessWidget {
             Icon(
               leadingIcon!,
               size: 6,
-              color: const Color(0xFFF0B52D),
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? const Color(0xFFC98FA5)
+                  : const Color(0xFFD88C78),
             ),
             const SizedBox(width: 8),
           ],
