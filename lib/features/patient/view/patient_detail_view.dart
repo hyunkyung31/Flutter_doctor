@@ -4,12 +4,10 @@ import 'package:provider/provider.dart';
 
 import '../model/patient_detail.dart';
 import '../view_model/patient_detail_view_model.dart';
+import 'package:go_router/go_router.dart';
 
 final class PatientDetailView extends StatefulWidget {
-  const PatientDetailView({
-    super.key,
-    required this.patientId,
-  });
+  const PatientDetailView({super.key, required this.patientId});
 
   final String patientId;
 
@@ -30,38 +28,29 @@ final class _PatientDetailViewState extends State<PatientDetailView> {
       }
 
       context.read<PatientDetailViewModel>().loadPatientDetail(
-            widget.patientId,
-          );
+        widget.patientId,
+      );
     });
   }
 
   @override
   Widget build(BuildContext context) {
     return Consumer<PatientDetailViewModel>(
-      builder: (
-        context,
-        viewModel,
-        child,
-      ) {
+      builder: (context, viewModel, child) {
         if (viewModel.isLoading && viewModel.patientDetail == null) {
           return const Scaffold(
             appBar: _PatientDetailAppBar(),
-            body: Center(
-              child: CircularProgressIndicator(),
-            ),
+            body: Center(child: CircularProgressIndicator()),
           );
         }
 
-        if (viewModel.errorMessage != null &&
-            viewModel.patientDetail == null) {
+        if (viewModel.errorMessage != null && viewModel.patientDetail == null) {
           return Scaffold(
             appBar: const _PatientDetailAppBar(),
             body: _PatientDetailErrorView(
               message: viewModel.errorMessage!,
               onRetry: () {
-                viewModel.loadPatientDetail(
-                  widget.patientId,
-                );
+                viewModel.loadPatientDetail(widget.patientId);
               },
             ),
           );
@@ -72,11 +61,7 @@ final class _PatientDetailViewState extends State<PatientDetailView> {
         if (detail == null) {
           return const Scaffold(
             appBar: _PatientDetailAppBar(),
-            body: Center(
-              child: Text(
-                '환자 정보가 없습니다.',
-              ),
-            ),
+            body: Center(child: Text('환자 정보가 없습니다.')),
           );
         }
 
@@ -84,9 +69,7 @@ final class _PatientDetailViewState extends State<PatientDetailView> {
           appBar: const _PatientDetailAppBar(),
           body: RefreshIndicator(
             onRefresh: () {
-              return viewModel.refreshPatientDetail(
-                widget.patientId,
-              );
+              return viewModel.refreshPatientDetail(widget.patientId);
             },
             child: _PatientDetailBody(
               detail: detail,
@@ -106,9 +89,7 @@ final class _PatientDetailAppBar extends StatelessWidget
 
   @override
   Size get preferredSize {
-    return const Size.fromHeight(
-      kToolbarHeight,
-    );
+    return const Size.fromHeight(kToolbarHeight);
   }
 
   @override
@@ -116,9 +97,7 @@ final class _PatientDetailAppBar extends StatelessWidget
     return AppBar(
       title: const Text(
         '환자 상세 정보',
-        style: TextStyle(
-          fontWeight: FontWeight.bold,
-        ),
+        style: TextStyle(fontWeight: FontWeight.bold),
       ),
     );
   }
@@ -141,12 +120,7 @@ final class _PatientDetailBody extends StatelessWidget {
 
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(
-        16,
-        16,
-        16,
-        32,
-      ),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
       children: [
         _PatientProfileCard(
           patientName: patient.patientName,
@@ -193,25 +167,75 @@ final class _PatientDetailBody extends StatelessWidget {
             message: '등록된 촬영 이미지가 없습니다.',
           )
         else
-          ...detail.examinations.asMap().entries.map(
-            (entry) {
-              final index = entry.key;
-              final examination = entry.value;
+          ...detail.examinations.asMap().entries.map((entry) {
+            final index = entry.key;
+            final examination = entry.value;
 
-              return Padding(
-                padding: const EdgeInsets.only(
-                  bottom: 12,
-                ),
-                child: _ExaminationExpansionCard(
-                  examination: examination,
-                  examinationIndex: index,
-                  mediaHeaders: mediaHeaders,
-                  resolveMediaUrl: resolveMediaUrl,
-                ),
-              );
-            },
-          ),
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _ExaminationExpansionCard(
+                examination: examination,
+                examinationIndex: index,
+                mediaHeaders: mediaHeaders,
+                resolveMediaUrl: resolveMediaUrl,
+              ),
+            );
+          }),
+        const SizedBox(height: 20),
+
+        _AiAnalysisRequestButton(patientId: patient.patientId),
+
+        const SizedBox(height: 8),
       ],
+    );
+  }
+}
+
+final class _AiAnalysisRequestButton extends StatelessWidget {
+  const _AiAnalysisRequestButton({required this.patientId});
+
+  final String patientId;
+
+  void _showNotConnectedMessage(BuildContext context) {
+    final normalizedPatientId = patientId.trim();
+
+    if (normalizedPatientId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('환자 ID가 없어 AI 분석을 요청할 수 없습니다.')),
+      );
+
+      return;
+    }
+
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('AI 분석 요청 화면은 연결 예정입니다.')));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return SizedBox(
+      width: double.infinity,
+      height: 54,
+      child: FilledButton.icon(
+        onPressed: () {
+          _showNotConnectedMessage(context);
+        },
+        icon: const Icon(Icons.analytics_outlined),
+        label: const Text(
+          'AI 예측분석 요청',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+        style: FilledButton.styleFrom(
+          backgroundColor: colorScheme.primary,
+          foregroundColor: colorScheme.onPrimary,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -319,34 +343,22 @@ final class _PatientProfileCard extends StatelessWidget {
 
             _ProfileInformationRow(
               title: '담당 의료진',
-              value: _nullableText(
-                primaryDoctorId,
-              ),
+              value: _nullableText(primaryDoctorId),
             ),
 
             _ProfileInformationRow(
               title: '주호소',
-              value: _nullableText(
-                chiefComplaint,
-              ),
+              value: _nullableText(chiefComplaint),
             ),
 
             _ProfileInformationRow(
               title: 'ECG 결과',
-              value: _nullableText(
-                ecgResult,
-              ),
+              value: _nullableText(ecgResult),
             ),
 
-            _ProfileInformationRow(
-              title: 'Troponin T',
-              value: troponinTText,
-            ),
+            _ProfileInformationRow(title: 'Troponin T', value: troponinTText),
 
-            _ProfileInformationRow(
-              title: '병력 점수',
-              value: historyScoreText,
-            ),
+            _ProfileInformationRow(title: '병력 점수', value: historyScoreText),
 
             _ProfileInformationRow(
               title: '위험요인',
@@ -374,9 +386,7 @@ final class _ProfileInformationRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.only(
-        bottom: showBottomPadding ? 12 : 0,
-      ),
+      padding: EdgeInsets.only(bottom: showBottomPadding ? 12 : 0),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -384,20 +394,13 @@ final class _ProfileInformationRow extends StatelessWidget {
             width: 95,
             child: Text(
               title,
-              style: const TextStyle(
-                fontWeight: FontWeight.w600,
-              ),
+              style: const TextStyle(fontWeight: FontWeight.w600),
             ),
           ),
 
           const SizedBox(width: 12),
 
-          Expanded(
-            child: Text(
-              value,
-              textAlign: TextAlign.right,
-            ),
-          ),
+          Expanded(child: Text(value, textAlign: TextAlign.right)),
         ],
       ),
     );
@@ -405,11 +408,7 @@ final class _ProfileInformationRow extends StatelessWidget {
 }
 
 final class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({
-    required this.title,
-    required this.icon,
-    this.count,
-  });
+  const _SectionHeader({required this.title, required this.icon, this.count});
 
   final String title;
   final IconData icon;
@@ -422,11 +421,7 @@ final class _SectionHeader extends StatelessWidget {
 
     return Row(
       children: [
-        Icon(
-          icon,
-          size: 21,
-          color: colorScheme.primary,
-        ),
+        Icon(icon, size: 21, color: colorScheme.primary),
 
         const SizedBox(width: 8),
 
@@ -441,10 +436,7 @@ final class _SectionHeader extends StatelessWidget {
 
         if (count != null)
           Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 10,
-              vertical: 4,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
               color: colorScheme.primaryContainer,
               borderRadius: BorderRadius.circular(20),
@@ -480,45 +472,26 @@ final class _EcgImageExpansionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final hasImage = ecgImageUrl.trim().isNotEmpty;
 
-    final resolvedImageUrl = hasImage
-        ? resolveMediaUrl(
-            ecgImageUrl,
-          )
-        : '';
+    final resolvedImageUrl = hasImage ? resolveMediaUrl(ecgImageUrl) : '';
 
     return Card(
       margin: EdgeInsets.zero,
       clipBehavior: Clip.antiAlias,
       child: ExpansionTile(
-        leading: const CircleAvatar(
-          child: Icon(
-            Icons.monitor_heart_outlined,
-          ),
-        ),
+        leading: const CircleAvatar(child: Icon(Icons.monitor_heart_outlined)),
         title: const Text(
           'ECG 이미지',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        subtitle: Text(
-          _nullableText(ecgResult),
-        ),
-        childrenPadding: const EdgeInsets.fromLTRB(
-          16,
-          0,
-          16,
-          18,
-        ),
+        subtitle: Text(_nullableText(ecgResult)),
+        childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 18),
         children: [
           const Divider(height: 1),
 
           const SizedBox(height: 16),
 
           if (!hasImage)
-            const _NoImageView(
-              message: '등록된 ECG 이미지가 없습니다.',
-            )
+            const _NoImageView(message: '등록된 ECG 이미지가 없습니다.')
           else
             _NetworkImageViewer(
               imageUrl: resolvedImageUrl,
@@ -547,93 +520,53 @@ final class _ExaminationExpansionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final examId = _displayValue(
-      examination['exam_id'] ?? examination['id'],
-    );
+    final examId = _displayValue(examination['exam_id'] ?? examination['id']);
 
-    final title = _findExaminationTitle(
-      examination,
-    );
+    final title = _findExaminationTitle(examination);
 
-    final imageUrl = _findImageUrl(
-      examination,
-      const [
-        'key_frame_url',
-        'image_url',
-        'frame_url',
-        'thumbnail_url',
-      ],
-    );
+    final imageUrl = _findImageUrl(examination, const [
+      'key_frame_url',
+      'image_url',
+      'frame_url',
+      'thumbnail_url',
+    ]);
 
     final resolvedImageUrl = imageUrl == null
         ? null
-        : resolveMediaUrl(
-            imageUrl,
-          );
+        : resolveMediaUrl(imageUrl);
 
-    final examinationInformation = examination.entries.where(
-      (entry) {
-        return !_isHiddenExaminationField(
-          entry.key.toLowerCase(),
-        );
-      },
-    ).toList();
+    final examinationInformation = examination.entries.where((entry) {
+      return !_isHiddenExaminationField(entry.key.toLowerCase());
+    }).toList();
 
     return Card(
       margin: EdgeInsets.zero,
       clipBehavior: Clip.antiAlias,
       child: ExpansionTile(
-        leading: const CircleAvatar(
-          child: Icon(
-            Icons.image_outlined,
-          ),
-        ),
-        title: Text(
-          title,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        leading: const CircleAvatar(child: Icon(Icons.image_outlined)),
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
         subtitle: examId == '-'
-            ? const Text(
-                '이미지 상세보기',
-              )
-            : Text(
-                '검사 번호 $examId',
-              ),
-        childrenPadding: const EdgeInsets.fromLTRB(
-          16,
-          0,
-          16,
-          18,
-        ),
+            ? const Text('이미지 상세보기')
+            : Text('검사 번호 $examId'),
+        childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 18),
         children: [
           const Divider(height: 1),
 
           if (examinationInformation.isNotEmpty) ...[
             const SizedBox(height: 16),
 
-            ...examinationInformation.map(
-              (entry) {
-                return _InformationRow(
-                  title: _fieldLabel(
-                    entry.key,
-                  ),
-                  value: _displayValue(
-                    entry.value,
-                  ),
-                );
-              },
-            ),
+            ...examinationInformation.map((entry) {
+              return _InformationRow(
+                title: _fieldLabel(entry.key),
+                value: _displayValue(entry.value),
+              );
+            }),
           ],
 
           const SizedBox(height: 12),
 
-          if (resolvedImageUrl == null ||
-              resolvedImageUrl.trim().isEmpty)
-            const _NoImageView(
-              message: '등록된 Key Frame 이미지가 없습니다.',
-            )
+          if (resolvedImageUrl == null || resolvedImageUrl.trim().isEmpty)
+            const _NoImageView(message: '등록된 Key Frame 이미지가 없습니다.')
           else
             _NetworkImageViewer(
               imageUrl: resolvedImageUrl,
@@ -649,10 +582,7 @@ final class _ExaminationExpansionCard extends StatelessWidget {
 }
 
 final class _InformationRow extends StatelessWidget {
-  const _InformationRow({
-    required this.title,
-    required this.value,
-  });
+  const _InformationRow({required this.title, required this.value});
 
   final String title;
   final String value;
@@ -660,9 +590,7 @@ final class _InformationRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(
-        bottom: 11,
-      ),
+      padding: const EdgeInsets.only(bottom: 11),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -670,20 +598,13 @@ final class _InformationRow extends StatelessWidget {
             width: 115,
             child: Text(
               title,
-              style: const TextStyle(
-                fontWeight: FontWeight.w600,
-              ),
+              style: const TextStyle(fontWeight: FontWeight.w600),
             ),
           ),
 
           const SizedBox(width: 12),
 
-          Expanded(
-            child: Text(
-              value,
-              textAlign: TextAlign.right,
-            ),
-          ),
+          Expanded(child: Text(value, textAlign: TextAlign.right)),
         ],
       ),
     );
@@ -743,32 +664,17 @@ final class _NetworkImageViewer extends StatelessWidget {
                       imageUrl: imageUrl,
                       httpHeaders: headers,
                       fit: BoxFit.contain,
-                      fadeInDuration: const Duration(
-                        milliseconds: 200,
-                      ),
-                      placeholder: (
-                        context,
-                        url,
-                      ) {
+                      fadeInDuration: const Duration(milliseconds: 200),
+                      placeholder: (context, url) {
                         return const SizedBox(
                           height: 260,
-                          child: Center(
-                            child: CircularProgressIndicator(),
-                          ),
+                          child: Center(child: CircularProgressIndicator()),
                         );
                       },
-                      errorWidget: (
-                        context,
-                        url,
-                        error,
-                      ) {
-                        debugPrint(
-                          '이미지 요청 URL: $url',
-                        );
+                      errorWidget: (context, url, error) {
+                        debugPrint('이미지 요청 URL: $url');
 
-                        debugPrint(
-                          '이미지 로드 오류: $error',
-                        );
+                        debugPrint('이미지 로드 오류: $error');
 
                         return const SizedBox(
                           height: 240,
@@ -786,9 +692,7 @@ final class _NetworkImageViewer extends StatelessWidget {
 
                                 Text(
                                   '이미지를 불러올 수 없습니다.',
-                                  style: TextStyle(
-                                    color: Colors.white70,
-                                  ),
+                                  style: TextStyle(color: Colors.white70),
                                 ),
                               ],
                             ),
@@ -805,9 +709,7 @@ final class _NetworkImageViewer extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(
-                        0.65,
-                      ),
+                      color: Colors.black.withOpacity(0.65),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: const Icon(
@@ -827,9 +729,7 @@ final class _NetworkImageViewer extends StatelessWidget {
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(
-                        0.65,
-                      ),
+                      color: Colors.black.withOpacity(0.65),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: const Row(
@@ -883,8 +783,7 @@ final class _FullScreenImageView extends StatefulWidget {
   }
 }
 
-final class _FullScreenImageViewState
-    extends State<_FullScreenImageView> {
+final class _FullScreenImageViewState extends State<_FullScreenImageView> {
   final TransformationController _transformationController =
       TransformationController();
 
@@ -894,16 +793,12 @@ final class _FullScreenImageViewState
   void initState() {
     super.initState();
 
-    _transformationController.addListener(
-      _handleTransformationChanged,
-    );
+    _transformationController.addListener(_handleTransformationChanged);
   }
 
   @override
   void dispose() {
-    _transformationController.removeListener(
-      _handleTransformationChanged,
-    );
+    _transformationController.removeListener(_handleTransformationChanged);
 
     _transformationController.dispose();
 
@@ -911,8 +806,7 @@ final class _FullScreenImageViewState
   }
 
   void _handleTransformationChanged() {
-    final scale =
-        _transformationController.value.getMaxScaleOnAxis();
+    final scale = _transformationController.value.getMaxScaleOnAxis();
 
     final nextIsZoomed = scale > 1.05;
 
@@ -933,11 +827,7 @@ final class _FullScreenImageViewState
       return;
     }
 
-    _transformationController.value = Matrix4.diagonal3Values(
-      2.0,
-      2.0,
-      1.0,
-    );
+    _transformationController.value = Matrix4.diagonal3Values(2.0, 2.0, 1.0);
   }
 
   @override
@@ -949,18 +839,14 @@ final class _FullScreenImageViewState
         foregroundColor: Colors.white,
         title: Text(
           widget.title,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-          ),
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         actions: [
           if (_isZoomed)
             IconButton(
               tooltip: '확대 초기화',
               onPressed: _resetZoom,
-              icon: const Icon(
-                Icons.refresh,
-              ),
+              icon: const Icon(Icons.refresh),
             ),
         ],
       ),
@@ -971,16 +857,13 @@ final class _FullScreenImageViewState
               child: GestureDetector(
                 onDoubleTap: _toggleZoom,
                 child: InteractiveViewer(
-                  transformationController:
-                      _transformationController,
+                  transformationController: _transformationController,
                   minScale: 0.8,
                   maxScale: 6,
                   panEnabled: true,
                   scaleEnabled: true,
                   clipBehavior: Clip.none,
-                  boundaryMargin: const EdgeInsets.all(
-                    120,
-                  ),
+                  boundaryMargin: const EdgeInsets.all(120),
                   child: Center(
                     child: Hero(
                       tag: widget.heroTag,
@@ -989,10 +872,7 @@ final class _FullScreenImageViewState
                         httpHeaders: widget.headers,
                         fit: BoxFit.contain,
                         width: double.infinity,
-                        placeholder: (
-                          context,
-                          url,
-                        ) {
+                        placeholder: (context, url) {
                           return const SizedBox(
                             height: 300,
                             child: Center(
@@ -1002,18 +882,10 @@ final class _FullScreenImageViewState
                             ),
                           );
                         },
-                        errorWidget: (
-                          context,
-                          url,
-                          error,
-                        ) {
-                          debugPrint(
-                            '전체 화면 이미지 URL: $url',
-                          );
+                        errorWidget: (context, url, error) {
+                          debugPrint('전체 화면 이미지 URL: $url');
 
-                          debugPrint(
-                            '전체 화면 이미지 오류: $error',
-                          );
+                          debugPrint('전체 화면 이미지 오류: $error');
 
                           return const Center(
                             child: Column(
@@ -1029,9 +901,7 @@ final class _FullScreenImageViewState
 
                                 Text(
                                   '이미지를 불러올 수 없습니다.',
-                                  style: TextStyle(
-                                    color: Colors.white70,
-                                  ),
+                                  style: TextStyle(color: Colors.white70),
                                 ),
                               ],
                             ),
@@ -1049,9 +919,7 @@ final class _FullScreenImageViewState
                 left: 0,
                 right: 0,
                 bottom: 24,
-                child: Center(
-                  child: _FullScreenGuide(),
-                ),
+                child: Center(child: _FullScreenGuide()),
               ),
           ],
         ),
@@ -1067,27 +935,16 @@ final class _FullScreenGuide extends StatelessWidget {
   Widget build(BuildContext context) {
     return IgnorePointer(
       child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: 14,
-          vertical: 9,
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
         decoration: BoxDecoration(
-          color: Colors.black.withOpacity(
-            0.7,
-          ),
+          color: Colors.black.withOpacity(0.7),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: Colors.white24,
-          ),
+          border: Border.all(color: Colors.white24),
         ),
         child: const Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.zoom_in,
-              color: Colors.white,
-              size: 18,
-            ),
+            Icon(Icons.zoom_in, color: Colors.white, size: 18),
 
             SizedBox(width: 7),
 
@@ -1107,9 +964,7 @@ final class _FullScreenGuide extends StatelessWidget {
 }
 
 final class _NoImageView extends StatelessWidget {
-  const _NoImageView({
-    required this.message,
-  });
+  const _NoImageView({required this.message});
 
   final String message;
 
@@ -1119,10 +974,7 @@ final class _NoImageView extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(
-        horizontal: 20,
-        vertical: 38,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 38),
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(14),
@@ -1137,10 +989,7 @@ final class _NoImageView extends StatelessWidget {
 
           const SizedBox(height: 10),
 
-          Text(
-            message,
-            textAlign: TextAlign.center,
-          ),
+          Text(message, textAlign: TextAlign.center),
         ],
       ),
     );
@@ -1148,10 +997,7 @@ final class _NoImageView extends StatelessWidget {
 }
 
 final class _EmptySectionCard extends StatelessWidget {
-  const _EmptySectionCard({
-    required this.icon,
-    required this.message,
-  });
+  const _EmptySectionCard({required this.icon, required this.message});
 
   final IconData icon;
   final String message;
@@ -1163,24 +1009,14 @@ final class _EmptySectionCard extends StatelessWidget {
     return Card(
       margin: EdgeInsets.zero,
       child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: 20,
-          vertical: 32,
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 32),
         child: Column(
           children: [
-            Icon(
-              icon,
-              size: 48,
-              color: colorScheme.onSurfaceVariant,
-            ),
+            Icon(icon, size: 48, color: colorScheme.onSurfaceVariant),
 
             const SizedBox(height: 12),
 
-            Text(
-              message,
-              textAlign: TextAlign.center,
-            ),
+            Text(message, textAlign: TextAlign.center),
           ],
         ),
       ),
@@ -1189,10 +1025,7 @@ final class _EmptySectionCard extends StatelessWidget {
 }
 
 final class _PatientDetailErrorView extends StatelessWidget {
-  const _PatientDetailErrorView({
-    required this.message,
-    required this.onRetry,
-  });
+  const _PatientDetailErrorView({required this.message, required this.onRetry});
 
   final String message;
   final VoidCallback onRetry;
@@ -1205,28 +1038,18 @@ final class _PatientDetailErrorView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
-              Icons.error_outline,
-              size: 64,
-            ),
+            const Icon(Icons.error_outline, size: 64),
 
             const SizedBox(height: 16),
 
-            Text(
-              message,
-              textAlign: TextAlign.center,
-            ),
+            Text(message, textAlign: TextAlign.center),
 
             const SizedBox(height: 20),
 
             FilledButton.icon(
               onPressed: onRetry,
-              icon: const Icon(
-                Icons.refresh,
-              ),
-              label: const Text(
-                '다시 시도',
-              ),
+              icon: const Icon(Icons.refresh),
+              label: const Text('다시 시도'),
             ),
           ],
         ),
@@ -1235,10 +1058,9 @@ final class _PatientDetailErrorView extends StatelessWidget {
   }
 }
 
-String _findExaminationTitle(
-  Map<String, dynamic> examination,
-) {
-  final title = examination['title'] ??
+String _findExaminationTitle(Map<String, dynamic> examination) {
+  final title =
+      examination['title'] ??
       examination['exam_name'] ??
       examination['examination_name'] ??
       examination['view_name'] ??
@@ -1252,10 +1074,7 @@ String _findExaminationTitle(
   return 'Key Frame 이미지';
 }
 
-String? _findImageUrl(
-  Map<String, dynamic> data,
-  List<String> candidateKeys,
-) {
+String? _findImageUrl(Map<String, dynamic> data, List<String> candidateKeys) {
   for (final key in candidateKeys) {
     final value = data[key];
 
@@ -1267,9 +1086,7 @@ String? _findImageUrl(
   return null;
 }
 
-bool _isHiddenExaminationField(
-  String fieldName,
-) {
+bool _isHiddenExaminationField(String fieldName) {
   return fieldName.endsWith('_path') ||
       fieldName.endsWith('_url') ||
       fieldName.contains('video') ||
@@ -1277,9 +1094,7 @@ bool _isHiddenExaminationField(
       fieldName == 'exam_id';
 }
 
-String _fieldLabel(
-  String fieldName,
-) {
+String _fieldLabel(String fieldName) {
   const labels = <String, String>{
     'exam_date': '검사일',
     'exam_type': '검사 종류',
@@ -1294,16 +1109,10 @@ String _fieldLabel(
     'updated_at': '수정일',
   };
 
-  return labels[fieldName] ??
-      fieldName.replaceAll(
-        '_',
-        ' ',
-      );
+  return labels[fieldName] ?? fieldName.replaceAll('_', ' ');
 }
 
-String _nullableText(
-  String? value,
-) {
+String _nullableText(String? value) {
   if (value == null || value.trim().isEmpty) {
     return '미등록';
   }
@@ -1311,9 +1120,7 @@ String _nullableText(
   return value.trim();
 }
 
-String _displayValue(
-  dynamic value,
-) {
+String _displayValue(dynamic value) {
   if (value == null) {
     return '-';
   }
@@ -1336,9 +1143,7 @@ String _displayValue(
     }
 
     return value.entries
-        .map(
-          (entry) => '${entry.key}: ${entry.value}',
-        )
+        .map((entry) => '${entry.key}: ${entry.value}')
         .join(', ');
   }
 
@@ -1347,15 +1152,12 @@ String _displayValue(
   return result.isEmpty ? '-' : result;
 }
 
-bool _hasValue(
-  dynamic value,
-) {
+bool _hasValue(dynamic value) {
   if (value == null) {
     return false;
   }
 
   final text = value.toString().trim();
 
-  return text.isNotEmpty &&
-      text.toLowerCase() != 'null';
+  return text.isNotEmpty && text.toLowerCase() != 'null';
 }
