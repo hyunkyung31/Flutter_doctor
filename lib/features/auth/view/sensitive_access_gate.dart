@@ -22,22 +22,78 @@ final class SensitiveAccessGate extends StatefulWidget {
 }
 
 final class _SensitiveAccessGateState
-    extends State<SensitiveAccessGate> {
+    extends State<SensitiveAccessGate>
+    with WidgetsBindingObserver {
   bool _isAuthenticating = false;
   bool _isAuthorized = false;
+  bool _isAppInForeground = true;  // 앱이 사용자에게 표시되고 입력을 받을 수 있는 상태인지 기록
   String? _errorMessage;
+
 
   @override
   void initState() {
     super.initState();
 
+    // 앱의 resumed, inactive, paused 등의 상태 변화를 감지
+    WidgetsBinding.instance.addObserver(this);
+
+    final lifecycleState =
+        WidgetsBinding.instance.lifecycleState;
+
+    // 초기 상태가 없거나 정상 실행 상태인 경우에만 민감정보 화면의 인증을 시작
+    _isAppInForeground =
+        lifecycleState == null ||
+        lifecycleState ==
+            AppLifecycleState.resumed;
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted ||
+          !_isAppInForeground) {
+        return;
+      }
+
       _authorize();
     });
   }
 
+  @override
+  void dispose() {
+    // 화면이 제거되면 주기 감시 해제
+    WidgetsBinding.instance.removeObserver(this);
+
+    super.dispose();
+  }
+
+    @override
+  void didChangeAppLifecycleState(
+    AppLifecycleState state,
+  ) {
+    if (!mounted) {
+      return;
+    }
+
+    if (state == AppLifecycleState.resumed) {
+      // 앱이 다시 포그라운드로 돌아오면 기존 인증의 5분 유효시간 다시 확인
+      setState(() {
+        _isAppInForeground = true;
+      });
+
+      _authorize();
+      return;
+    }
+
+    // 앱이 비활성화되거나 백그라운드로 이동하면 민감정보 화면 즉시 가리기
+    // SensitiveAuthService의 마지막 인증 시각은 삭제하지 않음 - 5분 이내에 복귀하면 생체인증 창 없이 다시 승인
+    setState(() {
+      _isAppInForeground = false;
+      _isAuthorized = false;
+      _errorMessage = null;
+    });
+  }
+
+
   Future<void> _authorize() async {
-    if (_isAuthenticating) {
+    if (_isAuthenticating || !_isAppInForeground) {
       return;
     }
 
@@ -61,7 +117,9 @@ final class _SensitiveAccessGateState
       case SensitiveAuthResult.authorized:
         setState(() {
           _isAuthenticating = false;
-          _isAuthorized = true;
+
+          // 인증 도중 백그라운드로 이동하면 성공해도 민감정보 표시하지 않음
+          _isAuthorized = _isAppInForeground;
           _errorMessage = null;
         });
         return;
@@ -111,7 +169,8 @@ final class _SensitiveAccessGateState
 
   @override
   Widget build(BuildContext context) {
-    if (_isAuthorized) {
+    // 앱이 포그라운드이고 인증된 경우에만 민감정보 표시
+    if (_isAppInForeground && _isAuthorized) {
       return widget.child;
     }
 
