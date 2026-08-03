@@ -7,10 +7,13 @@ import '../../../core/theme/app_colors.dart';
 import '../../auth/view_model/auth_view_model.dart';
 import '../../settings/view_model/settings_view_model.dart';
 import '../widgets/patient_status_card.dart';
-import '../widgets/recent_patient_section.dart';
-import '../widgets/today_schedule_section.dart';
-import '../widgets/today_todo_section.dart';
+// import '../widgets/recent_patient_section.dart';
+// import '../widgets/today_schedule_section.dart';
+// import '../widgets/today_todo_section.dart';
 import '../widgets/welcome_card.dart';
+import '../../calendar/view_model/calendar_view_model.dart';
+import '../../calendar/widgets/schedule_bottom_sheet.dart';
+
 
 final class HomeView extends StatefulWidget {
   const HomeView({
@@ -41,7 +44,7 @@ final class _HomeViewState extends State<HomeView> {
 
   Future<void> _logout(BuildContext context) async {
     final authViewModel = context.read<AuthViewModel>();
-    final isSuccess = await authViewModel.logout();
+    final isSuccess = await authViewModel.logout(); 
 
     if (!context.mounted) {
       return;
@@ -184,6 +187,9 @@ final class _HomeViewState extends State<HomeView> {
 
     final settingsViewModel =
         context.watch<SettingsViewModel>();
+    
+    final calendarViewModel = 
+        context.watch<CalendarViewModel>();
 
     final doctorName =
         authViewModel.doctorName ?? '의료진';
@@ -468,34 +474,17 @@ final class _HomeViewState extends State<HomeView> {
               const SizedBox(height: 12),
 
               // 홈 미니 캘린더
-              //
-              // 캘린더 내부를 누르면
-              // 전체 CalendarView로 이동
-              Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  borderRadius:
-                      BorderRadius.circular(20),
-                  onTap: () {
-                    context.pushNamed(
-                      'calendar',
-                    );
-                  },
-                  child: IgnorePointer(
-                    child: _HomeCalendar(
-                      selectedDate:
-                          _selectedDate,
-                      onDateChanged: (date) {
-                        setState(() {
-                          _selectedDate =
-                              date;
-                        });
-                      },
-                    ),
-                  ),
-                ),
-              ),
+              _HomeCalendar(
+                selectedDate: _selectedDate,
+                schedules: calendarViewModel.schedules,
+                onDateChanged: (date) {
+                  setState(() {
+                    _selectedDate = date;
+                  });
 
+                  calendarViewModel.selectDate(date);
+                },
+              ),
               const SizedBox(height: 30),
 
               Row(
@@ -770,10 +759,12 @@ final class _QuickMenuCard
 final class _HomeCalendar extends StatefulWidget {
   const _HomeCalendar({
     required this.selectedDate,
+    required this.schedules,
     required this.onDateChanged,
   });
 
   final DateTime selectedDate;
+  final List<ScheduleItem> schedules;
   final ValueChanged<DateTime> onDateChanged;
 
   @override
@@ -833,7 +824,7 @@ final class _HomeCalendarState extends State<_HomeCalendar> {
           ),
         ],
       ),
-      child: TableCalendar<void>(
+      child: TableCalendar<ScheduleItem>(
         firstDay: DateTime(2020, 1, 1),
         lastDay: DateTime(2035, 12, 31),
         focusedDay: _focusedDate,
@@ -858,6 +849,14 @@ final class _HomeCalendarState extends State<_HomeCalendar> {
             widget.selectedDate,
             day,
           );
+        },
+
+        eventLoader: (day){
+          return widget.schedules.where((schedule){
+            return schedule.date.year == day.year &&
+                schedule.date.month == day.month &&
+                schedule.date.day == day.day;
+          }).toList();
         },
 
         onDaySelected: (
@@ -911,7 +910,7 @@ final class _HomeCalendarState extends State<_HomeCalendar> {
           ),
         ),
 
-        calendarBuilders: CalendarBuilders<void>(
+        calendarBuilders: CalendarBuilders<ScheduleItem>(
           defaultBuilder: (
             context,
             day,
@@ -1019,6 +1018,16 @@ final class _HomeCalendarState extends State<_HomeCalendar> {
 
         calendarStyle: CalendarStyle(
           outsideDaysVisible: true,
+
+          markersMaxCount:  3,
+          markerSize: 6,
+          markerMargin: const EdgeInsets.symmetric(
+            horizontal: 1.5,
+          ),
+          markerDecoration: const BoxDecoration(
+            color: Color(0xFFF0B52D),
+            shape: BoxShape.circle,
+          ),
 
           defaultTextStyle: TextStyle(
             color: colorScheme.onSurface,
