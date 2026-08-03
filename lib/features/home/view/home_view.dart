@@ -14,6 +14,9 @@ import '../../calendar/widgets/schedule_bottom_sheet.dart';
 import '../../settings/view_model/settings_view_model.dart';
 import '../widgets/Doctor_briefing_card.dart';
 import '../widgets/patient_status_card.dart';
+// import '../widgets/recent_patient_section.dart';
+// import '../widgets/today_schedule_section.dart';
+// import '../widgets/today_todo_section.dart';
 
 final class HomeView extends StatefulWidget {
   const HomeView({super.key});
@@ -125,8 +128,8 @@ final class _HomeViewState extends State<HomeView> {
             onSubmitted: (value) {
               final todo = value.trim();
 
-              if (todo.isEmpty) {
-                return;
+              if (todo.isNotEmpty) {
+                Navigator.of(dialogContext).pop(todo);
               }
 
               Navigator.of(dialogContext).pop(todo);
@@ -249,6 +252,7 @@ final class _HomeViewState extends State<HomeView> {
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
+
       appBar: AppBar(
         backgroundColor: colorScheme.surface,
         surfaceTintColor: colorScheme.surface,
@@ -310,16 +314,15 @@ final class _HomeViewState extends State<HomeView> {
                 },
                 icon: const Icon(Icons.notifications_none),
               ),
-              Positioned(
+              const Positioned(
                 right: 10,
                 top: 9,
-                child: Container(
-                  width: 8,
-                  height: 8,
-                  decoration: const BoxDecoration(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
                     color: AppColors.accent,
                     shape: BoxShape.circle,
                   ),
+                  child: SizedBox(width: 8, height: 8),
                 ),
               ),
             ],
@@ -335,6 +338,7 @@ final class _HomeViewState extends State<HomeView> {
           ),
         ],
       ),
+
       body: SafeArea(
         child: RefreshIndicator(
           color: AppColors.primary,
@@ -451,6 +455,8 @@ final class _HomeViewState extends State<HomeView> {
                 ],
               ),
               const SizedBox(height: 12),
+
+              // 홈 미니 캘린더
               _HomeCalendar(
                 selectedDate: _selectedDate,
                 schedules: calendarViewModel.schedules,
@@ -462,7 +468,6 @@ final class _HomeViewState extends State<HomeView> {
                   calendarViewModel.selectDate(date);
                 },
               ),
-
               const SizedBox(height: 30),
               Row(
                 children: [
@@ -611,13 +616,13 @@ final class _QuickMenuCard extends StatelessWidget {
       color: colorScheme.surface,
       elevation: 1,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(16),
         side: BorderSide(color: theme.dividerColor),
       ),
       child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -662,6 +667,7 @@ final class _QuickMenuCard extends StatelessWidget {
                   ),
                 ],
               ),
+
               const Spacer(),
 
               Align(
@@ -716,9 +722,7 @@ final class _HomeCalendar extends StatefulWidget {
   final ValueChanged<DateTime> onDateChanged;
 
   @override
-  State<_HomeCalendar> createState() {
-    return _HomeCalendarState();
-  }
+  State<_HomeCalendar> createState() => _HomeCalendarState();
 }
 
 final class _HomeCalendarState extends State<_HomeCalendar> {
@@ -745,7 +749,6 @@ final class _HomeCalendarState extends State<_HomeCalendar> {
 
   @override
   Widget build(BuildContext context) {
-    final today = DateTime.now();
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
@@ -767,14 +770,22 @@ final class _HomeCalendarState extends State<_HomeCalendar> {
         firstDay: DateTime(2020, 1, 1),
         lastDay: DateTime(2035, 12, 31),
         focusedDay: _focusedDate,
+
         locale: 'ko_KR',
+
         startingDayOfWeek: StartingDayOfWeek.sunday,
+
         calendarFormat: CalendarFormat.month,
+
         availableCalendarFormats: const {CalendarFormat.month: '월'},
+
+        /// 일요일만 주말로 지정
         weekendDays: const [DateTime.sunday],
+
         selectedDayPredicate: (day) {
           return isSameDay(widget.selectedDate, day);
         },
+
         eventLoader: (day) {
           return widget.schedules.where((schedule) {
             return schedule.date.year == day.year &&
@@ -980,7 +991,9 @@ final class _TodoListSection extends StatelessWidget {
                 size: 30,
               ),
             ),
+
             const SizedBox(height: 12),
+
             Text(
               '등록된 할 일이 없습니다.',
               style: TextStyle(

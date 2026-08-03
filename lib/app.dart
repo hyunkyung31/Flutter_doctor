@@ -6,6 +6,7 @@ import 'routes/app_router.dart';
 
 import 'core/network/api_client.dart';
 import 'core/theme/app_theme.dart';
+import 'core/security/screen_protection/privacy_shield.dart';
 
 import 'features/auth/repository/auth_repository.dart';
 import 'features/auth/service/auth_service.dart';
@@ -90,6 +91,9 @@ class MyApp extends StatelessWidget {
             theme: AppTheme.lightTheme,
             darkTheme: AppTheme.darkTheme,
             themeMode: context.watch<SettingsViewModel>().themeMode,
+            builder: (context, child) {
+              return PrivacyShield(child: child ?? const SizedBox.shrink());
+            },
             routerConfig: AppRouter.router,
           );
         },
