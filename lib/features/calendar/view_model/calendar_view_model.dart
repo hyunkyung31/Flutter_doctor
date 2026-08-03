@@ -3,20 +3,23 @@ import 'package:flutter/material.dart';
 import '../widgets/schedule_bottom_sheet.dart';
 
 final class CalendarViewModel extends ChangeNotifier {
-  CalendarViewModel() {
-    _initializeSchedules();
-  }
+  CalendarViewModel();
 
+  /// 현재 선택된 날짜
   DateTime _selectedDate = DateTime.now();
 
+  /// 사용자가 추가한 일정만 저장
   final List<ScheduleItem> _schedules = [];
 
+  /// 현재 선택된 날짜
   DateTime get selectedDate => _selectedDate;
 
+  /// 전체 일정 목록
   List<ScheduleItem> get schedules {
     return List.unmodifiable(_schedules);
   }
 
+  /// 선택한 날짜의 일정만 반환
   List<ScheduleItem> get selectedSchedules {
     final result = _schedules.where((schedule) {
       return _isSameDate(
@@ -32,6 +35,7 @@ final class CalendarViewModel extends ChangeNotifier {
     return result;
   }
 
+  /// 날짜 선택
   void selectDate(DateTime date) {
     _selectedDate = DateTime(
       date.year,
@@ -42,16 +46,36 @@ final class CalendarViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// 일정 추가
   void addSchedule(ScheduleItem schedule) {
     _schedules.add(schedule);
+
     notifyListeners();
   }
 
+  /// 일정 삭제
   void removeSchedule(ScheduleItem schedule) {
     _schedules.remove(schedule);
+
     notifyListeners();
   }
 
+  /// 선택 날짜의 일정 삭제
+  void removeScheduleAt(int index) {
+    final selectedDateSchedules = selectedSchedules;
+
+    if (index < 0 || index >= selectedDateSchedules.length) {
+      return;
+    }
+
+    final schedule = selectedDateSchedules[index];
+
+    _schedules.remove(schedule);
+
+    notifyListeners();
+  }
+
+  /// 일정 수정
   void updateSchedule({
     required ScheduleItem oldSchedule,
     required ScheduleItem newSchedule,
@@ -63,9 +87,11 @@ final class CalendarViewModel extends ChangeNotifier {
     }
 
     _schedules[index] = newSchedule;
+
     notifyListeners();
   }
 
+  /// 같은 날짜인지 확인
   bool _isSameDate(
     DateTime first,
     DateTime second,
@@ -73,52 +99,5 @@ final class CalendarViewModel extends ChangeNotifier {
     return first.year == second.year &&
         first.month == second.month &&
         first.day == second.day;
-  }
-
-  void _initializeSchedules() {
-    final today = DateTime.now();
-
-    _schedules.addAll([
-      ScheduleItem(
-        date: DateTime(
-          today.year,
-          today.month,
-          today.day,
-        ),
-        time: '09:30',
-        title: '외래 진료',
-        description: '김민수 환자 진료',
-      ),
-      ScheduleItem(
-        date: DateTime(
-          today.year,
-          today.month,
-          today.day,
-        ),
-        time: '13:00',
-        title: '심장내과 협진',
-        description: '3층 협진 회의실',
-      ),
-      ScheduleItem(
-        date: DateTime(
-          today.year,
-          today.month,
-          today.day + 1,
-        ),
-        time: '10:00',
-        title: '검사 결과 확인',
-        description: '혈관조영 검사 결과 검토',
-      ),
-      ScheduleItem(
-        date: DateTime(
-          today.year,
-          today.month,
-          today.day + 3,
-        ),
-        time: '14:00',
-        title: '학회 일정',
-        description: '심혈관 영상 학회',
-      ),
-    ]);
   }
 }

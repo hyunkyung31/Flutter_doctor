@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:table_calendar/table_calendar.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../auth/view_model/auth_view_model.dart';
@@ -766,130 +767,298 @@ final class _QuickMenuCard
   }
 }
 
-final class _HomeCalendar
-    extends StatelessWidget {
+final class _HomeCalendar extends StatefulWidget {
   const _HomeCalendar({
     required this.selectedDate,
     required this.onDateChanged,
   });
 
   final DateTime selectedDate;
-  final ValueChanged<DateTime>
-  onDateChanged;
+  final ValueChanged<DateTime> onDateChanged;
+
+  @override
+  State<_HomeCalendar> createState() => _HomeCalendarState();
+}
+
+final class _HomeCalendarState extends State<_HomeCalendar> {
+  late DateTime _focusedDate;
+
+  @override
+  void initState() {
+    super.initState();
+    _focusedDate = widget.selectedDate;
+  }
+
+  @override
+  void didUpdateWidget(covariant _HomeCalendar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (!isSameDay(
+      oldWidget.selectedDate,
+      widget.selectedDate,
+    )) {
+      _focusedDate = widget.selectedDate;
+    }
+  }
+
+  bool _isSunday(DateTime day) {
+    return day.weekday == DateTime.sunday;
+  }
 
   @override
   Widget build(BuildContext context) {
-    final today = DateTime.now();
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
     return Container(
-      padding:
-          const EdgeInsets.fromLTRB(
-            8,
-            8,
-            8,
-            12,
-          ),
+      padding: const EdgeInsets.fromLTRB(
+        8,
+        8,
+        8,
+        12,
+      ),
       decoration: BoxDecoration(
         color: colorScheme.surface,
-        borderRadius:
-            BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: theme.dividerColor,
         ),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary
-                .withValues(
-                  alpha: 0.05,
-                ),
-            blurRadius: 12,
-            offset: const Offset(
-              0,
-              4,
+            color: AppColors.primary.withValues(
+              alpha: 0.05,
             ),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
-      child: Theme(
-        data: theme.copyWith(
-          colorScheme:
-              colorScheme.copyWith(
-                primary:
-                    colorScheme.primary,
-                onPrimary:
-                    colorScheme.onPrimary,
-                surface:
-                    colorScheme.surface,
-                onSurface:
-                    colorScheme.onSurface,
-              ),
-          datePickerTheme:
-              DatePickerThemeData(
-                backgroundColor:
-                    colorScheme.surface,
-                headerBackgroundColor:
-                    colorScheme.primary,
-                headerForegroundColor:
-                    colorScheme.onPrimary,
-                todayForegroundColor:
-                    WidgetStateProperty.all(
-                      AppColors.secondary,
-                    ),
-                todayBorder:
-                    const BorderSide(
-                      color:
-                          AppColors
-                              .secondary,
-                      width: 1.5,
-                    ),
-                dayForegroundColor:
-                    WidgetStateProperty
-                        .resolveWith(
-                          (states) {
-                            if (states
-                                .contains(
-                                  WidgetState
-                                      .selected,
-                                )) {
-                              return colorScheme
-                                  .onPrimary;
-                            }
+      child: TableCalendar<void>(
+        firstDay: DateTime(2020, 1, 1),
+        lastDay: DateTime(2035, 12, 31),
+        focusedDay: _focusedDate,
 
-                            return colorScheme
-                                .onSurface;
-                          },
-                        ),
-                dayBackgroundColor:
-                    WidgetStateProperty
-                        .resolveWith(
-                          (states) {
-                            if (states
-                                .contains(
-                                  WidgetState
-                                      .selected,
-                                )) {
-                              return colorScheme
-                                  .primary;
-                            }
+        locale: 'ko_KR',
 
-                            return Colors
-                                .transparent;
-                          },
-                        ),
-              ),
+        startingDayOfWeek: StartingDayOfWeek.sunday,
+
+        calendarFormat: CalendarFormat.month,
+
+        availableCalendarFormats: const {
+          CalendarFormat.month: '월',
+        },
+
+        /// 일요일만 주말로 지정
+        weekendDays: const [
+          DateTime.sunday,
+        ],
+
+        selectedDayPredicate: (day) {
+          return isSameDay(
+            widget.selectedDate,
+            day,
+          );
+        },
+
+        onDaySelected: (
+          selectedDay,
+          focusedDay,
+        ) {
+          setState(() {
+            _focusedDate = focusedDay;
+          });
+
+          widget.onDateChanged(selectedDay);
+        },
+
+        onPageChanged: (focusedDay) {
+          setState(() {
+            _focusedDate = focusedDay;
+          });
+        },
+
+        headerStyle: HeaderStyle(
+          formatButtonVisible: false,
+          titleCentered: true,
+          headerPadding: const EdgeInsets.symmetric(
+            vertical: 10,
+          ),
+          leftChevronIcon: Icon(
+            Icons.chevron_left,
+            color: colorScheme.onSurface,
+          ),
+          rightChevronIcon: Icon(
+            Icons.chevron_right,
+            color: colorScheme.onSurface,
+          ),
+          titleTextStyle: TextStyle(
+            color: colorScheme.onSurface,
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
         ),
-        child: CalendarDatePicker(
-          initialDate: selectedDate,
-          currentDate: today,
-          firstDate: DateTime(
-            2020,
+
+        daysOfWeekStyle: DaysOfWeekStyle(
+          weekdayStyle: TextStyle(
+            color: colorScheme.onSurface.withValues(
+              alpha: 0.7,
+            ),
+            fontWeight: FontWeight.w600,
           ),
-          lastDate: DateTime(
-            2035,
+          weekendStyle: const TextStyle(
+            color: Colors.red,
+            fontWeight: FontWeight.w700,
           ),
-          onDateChanged: onDateChanged,
+        ),
+
+        calendarBuilders: CalendarBuilders<void>(
+          defaultBuilder: (
+            context,
+            day,
+            focusedDay,
+          ) {
+            final isSunday = _isSunday(day);
+
+            return Center(
+              child: Text(
+                '${day.day}',
+                style: TextStyle(
+                  color: isSunday
+                      ? Colors.red
+                      : colorScheme.onSurface,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            );
+          },
+
+          outsideBuilder: (
+            context,
+            day,
+            focusedDay,
+          ) {
+            final isSunday = _isSunday(day);
+
+            return Center(
+              child: Text(
+                '${day.day}',
+                style: TextStyle(
+                  color: isSunday
+                      ? Colors.red.withValues(
+                          alpha: 0.3,
+                        )
+                      : colorScheme.onSurface.withValues(
+                          alpha: 0.25,
+                        ),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            );
+          },
+
+          selectedBuilder: (
+            context,
+            day,
+            focusedDay,
+          ) {
+            return Center(
+              child: Container(
+                width: 38,
+                height: 38,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: colorScheme.primary,
+                  shape: BoxShape.circle,
+                ),
+                child: Text(
+                  '${day.day}',
+                  style: TextStyle(
+                    color: colorScheme.onPrimary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            );
+          },
+
+          todayBuilder: (
+            context,
+            day,
+            focusedDay,
+          ) {
+            final isSunday = _isSunday(day);
+
+            return Center(
+              child: Container(
+                width: 38,
+                height: 38,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: AppColors.secondary.withValues(
+                    alpha: 0.16,
+                  ),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: AppColors.secondary,
+                    width: 1.5,
+                  ),
+                ),
+                child: Text(
+                  '${day.day}',
+                  style: TextStyle(
+                    color: isSunday
+                        ? Colors.red
+                        : AppColors.secondary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+
+        calendarStyle: CalendarStyle(
+          outsideDaysVisible: true,
+
+          defaultTextStyle: TextStyle(
+            color: colorScheme.onSurface,
+            fontWeight: FontWeight.w500,
+          ),
+
+          weekendTextStyle: const TextStyle(
+            color: Colors.red,
+            fontWeight: FontWeight.w500,
+          ),
+
+          outsideTextStyle: TextStyle(
+            color: colorScheme.onSurface.withValues(
+              alpha: 0.25,
+            ),
+          ),
+
+          selectedDecoration: BoxDecoration(
+            color: colorScheme.primary,
+            shape: BoxShape.circle,
+          ),
+
+          selectedTextStyle: TextStyle(
+            color: colorScheme.onPrimary,
+            fontWeight: FontWeight.bold,
+          ),
+
+          todayDecoration: BoxDecoration(
+            color: AppColors.secondary.withValues(
+              alpha: 0.16,
+            ),
+            shape: BoxShape.circle,
+          ),
+
+          todayTextStyle: const TextStyle(
+            color: AppColors.secondary,
+            fontWeight: FontWeight.bold,
+          ),
+
+          cellMargin: const EdgeInsets.all(4),
         ),
       ),
     );
