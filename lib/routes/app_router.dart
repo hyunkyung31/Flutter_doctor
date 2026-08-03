@@ -4,6 +4,7 @@ import '../features/auth/view/login_screen.dart';
 import '../features/home/home_routes.dart';
 import '../features/patient/patient_routes.dart';
 import '../features/splash/view/splash_screen.dart';
+import '../features/calendar/calendar_routes.dart';
 import 'route_names.dart';
 
 class AppRouter {
@@ -23,6 +24,8 @@ class AppRouter {
       ...homeRoutes,
 
       ...patientRoutes,
+
+      ...calendarRoutes,
 
       GoRoute(
         path: RouteNames.loginPath,
