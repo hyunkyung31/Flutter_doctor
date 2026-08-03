@@ -35,7 +35,7 @@ dependencies:
   # Local Storage
   # ----------------------------
   flutter_secure_storage: ^9.2.4
-  shared_preferences: ^2.5.3
+  shared_preferences: ^2.5.5
 
   # ----------------------------
   # Authentication
@@ -70,6 +70,7 @@ dependencies:
   flutter_svg: ^2.2.0
   cached_network_image: ^3.4.1
   shimmer: ^3.0.0
+  table_calendar: ^3.2.0
 
 dev_dependencies:
   flutter_test:

@@ -18,6 +18,7 @@ import 'features/patient/service/patient_service.dart';
 import 'features/patient/view_model/patient_list_view_model.dart';
 
 import 'features/settings/view_model/settings_view_model.dart';
+import 'features/calendar/view_model/calendar_view_model.dart';
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -26,18 +27,12 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        Provider<ApiClient>(
-          create: (_) => ApiClient(),
-        ),
+        Provider<ApiClient>(create: (_) => ApiClient()),
 
-        Provider<SecureStorage>(
-          create: (_) => SecureStorage(),
-        ),
+        Provider<SecureStorage>(create: (_) => SecureStorage()),
 
         Provider<AuthService>(
-          create: (context) => AuthService(
-            context.read<ApiClient>(),
-          ),
+          create: (context) => AuthService(context.read<ApiClient>()),
         ),
 
         Provider<AuthRepository>(
@@ -47,76 +42,55 @@ class MyApp extends StatelessWidget {
           ),
         ),
 
-        Provider<BiometricAuthService>(
-          create: (_) =>
-              BiometricAuthService(),
-        ),
+        Provider<BiometricAuthService>(create: (_) => BiometricAuthService()),
 
         Provider<SensitiveAuthService>(
-          create: (context) => SensitiveAuthService(
-            context.read<BiometricAuthService>(),
-          ),),
-
+          create: (context) =>
+              SensitiveAuthService(context.read<BiometricAuthService>()),
+        ),
 
         ChangeNotifierProvider<AuthViewModel>(
           create: (context) => AuthViewModel(
             context.read<AuthRepository>(),
-            context.read<
-                BiometricAuthService>(),
+            context.read<BiometricAuthService>(),
             context.read<SensitiveAuthService>(),
           ),
         ),
 
         Provider<PatientService>(
-          create: (context) =>
-              PatientService(
-            context.read<ApiClient>(),
-          ),
+          create: (context) => PatientService(context.read<ApiClient>()),
         ),
 
         Provider<PatientRepository>(
-          create: (context) =>
-              PatientRepository(
-            patientService:
-                context.read<
-                    PatientService>(),
-            secureStorage:
-                context.read<
-                    SecureStorage>(),
+          create: (context) => PatientRepository(
+            patientService: context.read<PatientService>(),
+            secureStorage: context.read<SecureStorage>(),
           ),
         ),
 
-        ChangeNotifierProvider<
-            PatientListViewModel>(
-          create: (context) =>
-              PatientListViewModel(
-            patientRepository:
-                context.read<
-                    PatientRepository>(),
-          ),
+        ChangeNotifierProvider<PatientListViewModel>(
+          create: (context) => PatientListViewModel(
+            patientRepository: context.read<PatientRepository>(),
+          )..loadPatients(),
         ),
 
-        ChangeNotifierProvider<
-            SettingsViewModel>(
-          create: (_) =>
-              SettingsViewModel(),
+        ChangeNotifierProvider<SettingsViewModel>(
+          create: (_) => SettingsViewModel(),
+        ),
+
+        ChangeNotifierProvider<CalendarViewModel>(
+          create: (_) => CalendarViewModel(),
         ),
       ],
       child: Builder(
         builder: (context) {
           return MaterialApp.router(
-            debugShowCheckedModeBanner:
-                false,
+            debugShowCheckedModeBanner: false,
             title: 'Doctor App',
             theme: AppTheme.lightTheme,
-            darkTheme:
-                AppTheme.darkTheme,
-            themeMode: context
-                .watch<
-                    SettingsViewModel>()
-                .themeMode,
-            routerConfig:
-                AppRouter.router,
+            darkTheme: AppTheme.darkTheme,
+            themeMode: context.watch<SettingsViewModel>().themeMode,
+            routerConfig: AppRouter.router,
           );
         },
       ),

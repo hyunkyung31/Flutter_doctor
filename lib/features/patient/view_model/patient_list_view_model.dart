@@ -21,6 +21,8 @@ final class PatientListViewModel
     return List.unmodifiable(_patients);
   }
 
+  int get patientCount => _patients.length;
+
   List<Patient> get recentPatients {
     return List.unmodifiable(_recentPatients);
   }
