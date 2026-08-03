@@ -5,6 +5,12 @@ import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../auth/view_model/auth_view_model.dart';
 import '../../settings/view_model/settings_view_model.dart';
+import '../widgets/patient_status_card.dart';
+import '../widgets/recent_patient_section.dart';
+import '../widgets/today_schedule_section.dart';
+import '../widgets/today_todo_section.dart';
+import '../widgets/welcome_card.dart';
+
 
 final class HomeView extends StatefulWidget {
   const HomeView({super.key});
@@ -263,15 +269,24 @@ final class _HomeViewState extends State<HomeView> {
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.all(20),
             children: [
-              _WelcomeCard(
+              WelcomeCard(
                 doctorName: doctorName,
               ),
 
               const SizedBox(height: 20),
 
-              const _NoticeCard(),
+              PatientStatusSection(
+                reservationCount:0,
+                waitingCount:0,
+                onReservationTap:(){
+                  _showPreparingMessage(context);
+                },
+                onWaitingTap:(){
+                  _showPreparingMessage(context);
+                },
+              ),
 
-              const SizedBox(height: 26),
+              const SizedBox(height: 26,),
 
               Text(
                 '메인 메뉴',
@@ -482,152 +497,6 @@ final class _HomeViewState extends State<HomeView> {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-final class _WelcomeCard extends StatelessWidget {
-  const _WelcomeCard({
-    required this.doctorName,
-  });
-
-  final String doctorName;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final textTheme = theme.textTheme;
-
-    return Container(
-      width: double.infinity,
-      height: 170,
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: colorScheme.primaryContainer,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Stack(
-        children: [
-          Positioned(
-            left: 20,
-            top: 24,
-            right: 170,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '$doctorName님,\n안녕하세요 👋',
-                  style: textTheme.titleLarge?.copyWith(
-                    color: colorScheme.onPrimaryContainer,
-                    fontWeight: FontWeight.bold,
-                    height: 1.3,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  '오늘도 파이팅하세요 🙂',
-                  style: textTheme.bodyMedium?.copyWith(
-                    color: colorScheme.onPrimaryContainer.withOpacity(0.68),
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Positioned(
-            right: -26,
-            bottom: -62,
-            child: SizedBox(
-              width: 220,
-              height: 220,
-              child: ClipRect(
-                child: Transform.scale(
-                  scale: 1.65,
-                  alignment: Alignment.topCenter,
-                  child: Image.asset(
-                    'assets/images/bomi_welcome.png',
-                    fit: BoxFit.contain,
-                    alignment: Alignment.topCenter,
-                    errorBuilder: (context, error, stackTrace) {
-                      return const Icon(
-                        Icons.image_not_supported_outlined,
-                        size: 42,
-                        color: AppColors.accent,
-                      );
-                    },
-                  ),
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            right: 118,
-            top: 18,
-            child: Icon(
-              Icons.auto_awesome,
-              size: 18,
-              color: AppColors.accent.withOpacity(0.75),
-            ),
-          ),
-          Positioned(
-            right: 95,
-            top: 42,
-            child: Icon(
-              Icons.auto_awesome,
-              size: 11,
-              color: AppColors.accent.withOpacity(0.5),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-final class _NoticeCard extends StatelessWidget {
-  const _NoticeCard();
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final textTheme = theme.textTheme;
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.accent.withOpacity(0.14),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: AppColors.accent.withOpacity(0.38),
-        ),
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(
-            backgroundColor: colorScheme.surface,
-            child: const Icon(
-              Icons.fact_check_outlined,
-              color: AppColors.accent,
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Text(
-              '확인해야 할 AI 분석 결과가 있습니다.',
-              style: textTheme.bodyMedium?.copyWith(
-                color: colorScheme.onSurface,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          Icon(
-            Icons.chevron_right,
-            color: colorScheme.onSurface.withOpacity(0.6),
-          ),
-        ],
       ),
     );
   }
