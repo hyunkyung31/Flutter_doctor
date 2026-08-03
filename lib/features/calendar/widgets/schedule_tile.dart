@@ -7,9 +7,13 @@ final class ScheduleTile extends StatelessWidget {
   const ScheduleTile({
     super.key,
     required this.schedule,
+    required this.onEdit,
+    required this.onDelete,
   });
 
   final ScheduleItem schedule;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -78,9 +82,47 @@ final class ScheduleTile extends StatelessWidget {
 
           const SizedBox(width: 8),
 
-          Icon(
-            Icons.chevron_right,
-            color: colorScheme.onSurface.withOpacity(0.4),
+          PopupMenuButton<String>(
+            tooltip: '일정 메뉴',
+            onSelected: (value) {
+              if (value == 'edit') {
+                onEdit();
+              }
+
+              if (value == 'delete') {
+                onDelete();
+              }
+            },
+            itemBuilder: (context) {
+              return const [
+                PopupMenuItem<String>(
+                  value: 'edit',
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.edit_outlined,
+                        size: 20,
+                      ),
+                      SizedBox(width: 10),
+                      Text('수정'),
+                    ],
+                  ),
+                ),
+                PopupMenuItem<String>(
+                  value: 'delete',
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.delete_outline,
+                        size: 20,
+                      ),
+                      SizedBox(width: 10),
+                      Text('삭제'),
+                    ],
+                  ),
+                ),
+              ];
+            },
           ),
         ],
       ),
