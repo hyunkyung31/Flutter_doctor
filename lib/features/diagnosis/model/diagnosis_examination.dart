@@ -20,11 +20,11 @@ final class DiagnosisExamination {
   final String? videoUrl;
 
   bool get hasKeyFrame {    //이미지 있는지 확인
-    return keyFrameUrl != null;
+    return keyFrameUrl?.trim().isNotEmpty ?? false;
   }
 
   bool get hasVideo {   // 동영상 있는지 확인
-    return videoUrl != null;
+    return videoUrl?.trim().isNotEmpty ?? false;
   }
 
   bool get canRunIntegratedAnalysis {
