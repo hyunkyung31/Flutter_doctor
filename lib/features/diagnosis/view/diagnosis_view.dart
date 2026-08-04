@@ -205,37 +205,54 @@ final class _DiagnosisViewState
 
             const SizedBox(height: 24),
 
-            FilledButton.icon(
-              onPressed:
-                  diagnosisViewModel
-                          .canRunAnalysis
-                      ? () async {
-                          await diagnosisViewModel
-                              .runAnalysis();
-                        }
-                      : null,
-              icon: diagnosisViewModel.isBusy
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child:
-                          CircularProgressIndicator(
-                        strokeWidth: 2,
+
+
+            if (!diagnosisViewModel.hasCompletedAnalysis)
+              FilledButton.icon(
+                onPressed:
+                    diagnosisViewModel.canRunAnalysis
+                        ? () async {
+                            await diagnosisViewModel
+                                .runAnalysis();
+                          }
+                        : null,
+                icon: diagnosisViewModel.isBusy
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Icon(
+                        Icons.auto_awesome,
                       ),
-                    )
-                  : const Icon(
-                      Icons.auto_awesome,
-                    ),
-              label: Text(
-                diagnosisViewModel.isBusy
-                    ? 'AI 분석 중'
-                    : 'AI 분석 시작',
+                label: Text(
+                  diagnosisViewModel.isBusy
+                      ? 'AI 분석 중'
+                      : 'AI 분석 시작',
+                ),
+                style: FilledButton.styleFrom(
+                  minimumSize:
+                      const Size.fromHeight(54),
+                ),
+              )
+            else
+              OutlinedButton.icon(
+                onPressed: diagnosisViewModel
+                    .clearAnalysisResult,
+                icon: const Icon(
+                  Icons.tune_outlined,
+                ),
+                label: const Text(
+                  '분석 조건 변경',
+                ),
+                style: OutlinedButton.styleFrom(
+                  minimumSize:
+                      const Size.fromHeight(50),
+                ),
               ),
-              style: FilledButton.styleFrom(
-                minimumSize:
-                    const Size.fromHeight(54),
-              ),
-            ),
+
 
             const SizedBox(height: 12),
 
@@ -333,26 +350,28 @@ final class _ScreenHeader
                   CrossAxisAlignment.start,
               children: [
                 Text(
-                  '관상동맥 AI 분석',
+                  'AI 영상 판독 지원',
                   style: Theme.of(context)
                       .textTheme
                       .titleLarge
                       ?.copyWith(
+                        color: colorScheme.onPrimaryContainer,
                         fontWeight:
-                            FontWeight.w700,
+                            FontWeight.w800,
                       ),
                 ),
 
                 const SizedBox(height: 6),
 
                 Text(
-                  '환자와 검사를 선택한 뒤 병변 위치, 정상·협착 분류 또는 통합 결과를 확인합니다.',
+                  '관상동맥 조영 영상의 병변 위치와 정상·협착 분류 결과를 확인합니다.',
                   style: Theme.of(context)
                       .textTheme
                       .bodyMedium
                       ?.copyWith(
                         color: colorScheme
                             .onPrimaryContainer,
+                        height: 1.5,
                       ),
                 ),
               ],
@@ -1093,7 +1112,7 @@ final class _AnalysisProgressCard
     );
   }
 }
-// 신뢰도, 탐지 영역 수, BBox/Heatmap 사용 가능 여부 등 분석 결과 요약 표시
+// 선택한 분석 유형에 따라 탐지, 분류 또는 통합 결과를 구분하여 표시한다.
 final class _AnalysisCompletedCard
     extends StatelessWidget {
   const _AnalysisCompletedCard({
@@ -1104,79 +1123,405 @@ final class _AnalysisCompletedCard
 
   @override
   Widget build(BuildContext context) {
-    final result =
-        viewModel.analysisResult;
+    final result = viewModel.analysisResult;
+    final analysisType =
+        viewModel.selectedAnalysisType;
 
-    if (result == null) {
+    if (result == null ||
+        analysisType == null) {
       return const SizedBox.shrink();
     }
 
-    final confidence =
-        result.confidenceScore <= 1
-            ? result.confidenceScore *
-                100
-            : result.confidenceScore;
+    final confidencePercent =
+        _toPercent(
+      result.confidenceScore,
+    );
+
+    switch (analysisType) {
+      case AiAnalysisType.detection:
+        return _ResultCard(
+          icon: Icons.crop_free,
+          title: 'YOLOv11 병변 탐지 결과',
+          summary:
+              _detectionSummary(
+            result.boundingBoxData
+                .detectionCount,
+          ),
+          rows: [
+            _ResultRowData(
+              label: '협착 의심 영역',
+              value:
+                  '${result.boundingBoxData.detectionCount}개',
+            ),
+            _ResultRowData(
+              label: 'BBox 결과',
+              value: result
+                      .canShowBoundingBox
+                  ? '표시 가능'
+                  : '표시할 영역 없음',
+            ),
+          ],
+          notice:
+              '탐지 결과는 협착 의심 영역의 위치를 나타내며 정상·협착 분류 결과와는 별개의 모델 출력입니다.',
+        );
+
+      case AiAnalysisType.classification:
+        return _ResultCard(
+          icon: Icons.gradient,
+          title:
+              'InceptionV3 정상·협착 분류 결과',
+          summary:
+              '영상 전체에 대한 분류 결과를 확인했습니다.',
+          rows: [
+            _ResultRowData(
+              label: '분류 판정',
+              value: _normalizedText(
+                result.severityClass,
+              ),
+            ),
+            _ResultRowData(
+              label: '분류 신뢰도',
+              value:
+                  '${confidencePercent.toStringAsFixed(1)}%',
+            ),
+            _ResultRowData(
+              label: 'Grad-CAM',
+              value:
+                  result.canShowHeatmap
+                      ? '표시 가능'
+                      : '결과 없음',
+            ),
+          ],
+          notice:
+              '분류 결과는 영상 전체의 정상·협착 가능성을 나타내며 병변 위치를 직접 표시하지 않습니다.',
+        );
+
+      case AiAnalysisType.integrated:
+        return _ResultCard(
+          icon: Icons.layers_outlined,
+          title: '통합 AI 분석 결과',
+          summary:
+              '병변 위치 탐지와 정상·협착 분류 결과를 함께 확인했습니다.',
+          rows: [
+            _ResultRowData(
+              label: '분류 판정',
+              value: _normalizedText(
+                result.severityClass,
+              ),
+            ),
+            _ResultRowData(
+              label: '분류 신뢰도',
+              value:
+                  '${confidencePercent.toStringAsFixed(1)}%',
+            ),
+            _ResultRowData(
+              label: '협착 의심 영역',
+              value:
+                  '${result.boundingBoxData.detectionCount}개',
+            ),
+            _ResultRowData(
+              label: 'BBox 결과',
+              value: result
+                      .canShowBoundingBox
+                  ? '표시 가능'
+                  : '표시할 영역 없음',
+            ),
+            _ResultRowData(
+              label: 'Grad-CAM',
+              value:
+                  result.canShowHeatmap
+                      ? '표시 가능'
+                      : '결과 없음',
+            ),
+          ],
+          notice:
+              '탐지와 분류는 서로 다른 모델의 결과이므로 두 결과가 일치하지 않을 수도 있습니다.',
+        );
+    }
+  }
+
+  String _detectionSummary(
+    int detectionCount,
+  ) {
+    if (detectionCount <= 0) {
+      return '탐지된 협착 의심 영역이 없습니다.';
+    }
+
+    return '협착 의심 영역이 탐지되었습니다.';
+  }
+
+  String _normalizedText(
+    String value,
+  ) {
+    final normalizedValue =
+        value.trim();
+
+    if (normalizedValue.isEmpty) {
+      return '확인되지 않음';
+    }
+
+    return normalizedValue;
+  }
+
+  double _toPercent(
+    double value,
+  ) {
+    final percent =
+        value <= 1
+            ? value * 100
+            : value;
+
+    return percent
+        .clamp(0, 100)
+        .toDouble();
+  }
+}
+
+// 분석 유형별 결과 카드에 전달할 한 줄 지표를 표현
+final class _ResultRowData {
+  const _ResultRowData({
+    required this.label,
+    required this.value,
+  });
+
+  final String label;
+  final String value;
+}
+
+// 탐지, 분류와 통합 분석 결과에 공통으로 사용하는 카드
+final class _ResultCard
+    extends StatelessWidget {
+  const _ResultCard({
+    required this.icon,
+    required this.title,
+    required this.summary,
+    required this.rows,
+    required this.notice,
+  });
+
+  final IconData icon;
+  final String title;
+  final String summary;
+  final List<_ResultRowData> rows;
+  final String notice;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme =
+        Theme.of(context);
+
+    final colorScheme =
+        theme.colorScheme;
 
     return Card(
       margin: EdgeInsets.zero,
+      clipBehavior: Clip.antiAlias,
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding:
+            const EdgeInsets.all(18),
         child: Column(
           crossAxisAlignment:
               CrossAxisAlignment.start,
           children: [
             Row(
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
               children: [
-                Icon(
-                  Icons
-                      .check_circle_outline,
-                  color: Theme.of(context)
-                      .colorScheme
-                      .primary,
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: colorScheme
+                        .primaryContainer,
+                    borderRadius:
+                        BorderRadius.circular(
+                      12,
+                    ),
+                  ),
+                  child: Icon(
+                    icon,
+                    color: colorScheme
+                        .onPrimaryContainer,
+                  ),
                 ),
-                const SizedBox(width: 8),
-                Text(
-                  'AI 분석 완료',
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleMedium
-                      ?.copyWith(
-                        fontWeight:
-                            FontWeight.w700,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment:
+                        CrossAxisAlignment
+                            .start,
+                    children: [
+                      Text(
+                        title,
+                        style: theme
+                            .textTheme
+                            .titleMedium
+                            ?.copyWith(
+                          color: colorScheme
+                              .onSurface,
+                          fontWeight:
+                              FontWeight.w800,
+                        ),
                       ),
+                      const SizedBox(
+                        height: 5,
+                      ),
+                      Text(
+                        summary,
+                        style: theme
+                            .textTheme
+                            .bodyMedium
+                            ?.copyWith(
+                          color: colorScheme
+                              .onSurfaceVariant,
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
 
+            const SizedBox(height: 18),
+
+            Container(
+              width: double.infinity,
+              padding:
+                  const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: colorScheme
+                    .surfaceContainerHighest,
+                borderRadius:
+                    BorderRadius.circular(
+                  14,
+                ),
+              ),
+              child: Column(
+                children: [
+                  for (var index = 0;
+                      index < rows.length;
+                      index++) ...[
+                    _ResultValueRow(
+                      data: rows[index],
+                    ),
+                    if (index !=
+                        rows.length - 1)
+                      Padding(
+                        padding:
+                            const EdgeInsets
+                                .symmetric(
+                          vertical: 10,
+                        ),
+                        child: Divider(
+                          height: 1,
+                          color: colorScheme
+                              .outlineVariant,
+                        ),
+                      ),
+                  ],
+                ],
+              ),
+            ),
+
             const SizedBox(height: 14),
 
-            Text(
-              '결과 보기: ${viewModel.selectedAnalysisType?.title ?? '-'}',
-            ),
-
-            Text(
-              '분류 결과: ${result.severityClass}',
-            ),
-
-            Text(
-              '분류 신뢰도: ${confidence.toStringAsFixed(1)}%',
-            ),
-
-            Text(
-              '탐지 영역: ${result.boundingBoxData.detectionCount}개',
-            ),
-
-            const SizedBox(height: 8),
-
-            Text(
-              'BBox ${result.canShowBoundingBox ? '사용 가능' : '결과 없음'} · Heatmap ${result.canShowHeatmap ? '사용 가능' : '결과 없음'}',
-              style: Theme.of(context)
-                  .textTheme
-                  .bodySmall,
+            Container(
+              width: double.infinity,
+              padding:
+                  const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: colorScheme
+                    .secondaryContainer,
+                borderRadius:
+                    BorderRadius.circular(
+                  12,
+                ),
+              ),
+              child: Row(
+                crossAxisAlignment:
+                    CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    Icons.info_outline,
+                    size: 18,
+                    color: colorScheme
+                        .onSecondaryContainer,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      notice,
+                      style: theme
+                          .textTheme
+                          .bodySmall
+                          ?.copyWith(
+                        color: colorScheme
+                            .onSecondaryContainer,
+                        height: 1.45,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+// 결과 카드 내부에 지표 이름과 값을 한 줄로 표시
+final class _ResultValueRow
+    extends StatelessWidget {
+  const _ResultValueRow({
+    required this.data,
+  });
+
+  final _ResultRowData data;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme =
+        Theme.of(context);
+
+    final colorScheme =
+        theme.colorScheme;
+
+    return Row(
+      crossAxisAlignment:
+          CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Text(
+            data.label,
+            style: theme
+                .textTheme
+                .bodyMedium
+                ?.copyWith(
+              color: colorScheme
+                  .onSurfaceVariant,
+            ),
+          ),
+        ),
+        const SizedBox(width: 16),
+        Flexible(
+          child: Text(
+            data.value,
+            textAlign: TextAlign.end,
+            style: theme
+                .textTheme
+                .bodyMedium
+                ?.copyWith(
+              color:
+                  colorScheme.onSurface,
+              fontWeight:
+                  FontWeight.w700,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
