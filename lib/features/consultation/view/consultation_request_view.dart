@@ -1,20 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../patient/model/patient.dart';
 import '../../patient/view_model/patient_list_view_model.dart';
 
-enum _PatientTypeFilter {
-  all,
-  outpatient,
-  inpatient,
-}
+enum _PatientTypeFilter { all, outpatient, inpatient }
 
-enum _GenderFilter {
-  all,
-  male,
-  female,
-}
+enum _GenderFilter { all, male, female }
 
 enum _AgeFilter {
   all,
@@ -30,9 +23,7 @@ enum _AgeFilter {
 }
 
 final class ConsultationRequestView extends StatefulWidget {
-  const ConsultationRequestView({
-    super.key,
-  });
+  const ConsultationRequestView({super.key});
 
   @override
   State<ConsultationRequestView> createState() {
@@ -42,19 +33,15 @@ final class ConsultationRequestView extends StatefulWidget {
 
 final class _ConsultationRequestViewState
     extends State<ConsultationRequestView> {
-  final TextEditingController _searchController =
-      TextEditingController();
+  final TextEditingController _searchController = TextEditingController();
 
   String _searchKeyword = '';
 
-  _PatientTypeFilter _selectedPatientType =
-      _PatientTypeFilter.all;
+  _PatientTypeFilter _selectedPatientType = _PatientTypeFilter.all;
 
-  _GenderFilter _selectedGender =
-      _GenderFilter.all;
+  _GenderFilter _selectedGender = _GenderFilter.all;
 
-  _AgeFilter _selectedAge =
-      _AgeFilter.all;
+  _AgeFilter _selectedAge = _AgeFilter.all;
 
   DateTimeRange? _selectedDateRange;
 
@@ -69,9 +56,7 @@ final class _ConsultationRequestViewState
         return;
       }
 
-      context
-          .read<PatientListViewModel>()
-          .loadPatients();
+      context.read<PatientListViewModel>().loadPatients();
     });
   }
 
@@ -83,14 +68,11 @@ final class _ConsultationRequestViewState
 
   void _onSearchChanged(String value) {
     setState(() {
-      _searchKeyword =
-          value.trim().toLowerCase();
+      _searchKeyword = value.trim().toLowerCase();
     });
   }
 
-  String _patientTypeLabel(
-    _PatientTypeFilter filter,
-  ) {
+  String _patientTypeLabel(_PatientTypeFilter filter) {
     switch (filter) {
       case _PatientTypeFilter.all:
         return '전체';
@@ -103,9 +85,7 @@ final class _ConsultationRequestViewState
     }
   }
 
-  String _genderLabel(
-    _GenderFilter filter,
-  ) {
+  String _genderLabel(_GenderFilter filter) {
     switch (filter) {
       case _GenderFilter.all:
         return '전체';
@@ -118,9 +98,7 @@ final class _ConsultationRequestViewState
     }
   }
 
-  String _ageLabel(
-    _AgeFilter filter,
-  ) {
+  String _ageLabel(_AgeFilter filter) {
     switch (filter) {
       case _AgeFilter.all:
         return '전체';
@@ -157,18 +135,15 @@ final class _ConsultationRequestViewState
   int get _activeFilterCount {
     var count = 0;
 
-    if (_selectedPatientType !=
-        _PatientTypeFilter.all) {
+    if (_selectedPatientType != _PatientTypeFilter.all) {
       count++;
     }
 
-    if (_selectedGender !=
-        _GenderFilter.all) {
+    if (_selectedGender != _GenderFilter.all) {
       count++;
     }
 
-    if (_selectedAge !=
-        _AgeFilter.all) {
+    if (_selectedAge != _AgeFilter.all) {
       count++;
     }
 
@@ -180,13 +155,11 @@ final class _ConsultationRequestViewState
   }
 
   bool _matchesGender(Patient patient) {
-    if (_selectedGender ==
-        _GenderFilter.all) {
+    if (_selectedGender == _GenderFilter.all) {
       return true;
     }
 
-    final gender =
-        patient.genderText.trim().toLowerCase();
+    final gender = patient.genderText.trim().toLowerCase();
 
     switch (_selectedGender) {
       case _GenderFilter.all:
@@ -242,9 +215,7 @@ final class _ConsultationRequestViewState
     }
   }
 
-  bool _matchesPatientType(
-    Patient patient,
-  ) {
+  bool _matchesPatientType(Patient patient) {
     switch (_selectedPatientType) {
       case _PatientTypeFilter.all:
         return true;
@@ -271,9 +242,7 @@ final class _ConsultationRequestViewState
     return true;
   }
 
-  List<Patient> _applyFilters(
-    List<Patient> patients,
-  ) {
+  List<Patient> _applyFilters(List<Patient> patients) {
     return patients.where((patient) {
       return _matchesPatientType(patient) &&
           _matchesGender(patient) &&
@@ -282,75 +251,54 @@ final class _ConsultationRequestViewState
     }).toList();
   }
 
-  List<Patient> _applySearch(
-    List<Patient> patients,
-  ) {
+  List<Patient> _applySearch(List<Patient> patients) {
     if (_searchKeyword.isEmpty) {
       return patients;
     }
 
     return patients.where((patient) {
-      final name =
-          patient.patientName.toLowerCase();
+      final name = patient.patientName.toLowerCase();
 
-      final id =
-          patient.patientId.toLowerCase();
+      final id = patient.patientId.toLowerCase();
 
-      return name.contains(_searchKeyword) ||
-          id.contains(_searchKeyword);
+      return name.contains(_searchKeyword) || id.contains(_searchKeyword);
     }).toList();
   }
 
   String _formatDate(DateTime date) {
     final year = date.year.toString();
 
-    final month =
-        date.month.toString().padLeft(2, '0');
+    final month = date.month.toString().padLeft(2, '0');
 
-    final day =
-        date.day.toString().padLeft(2, '0');
+    final day = date.day.toString().padLeft(2, '0');
 
     return '$year.$month.$day';
   }
 
   Future<void> _showFilterBottomSheet() async {
-    var temporaryPatientType =
-        _selectedPatientType;
+    var temporaryPatientType = _selectedPatientType;
 
-    var temporaryGender =
-        _selectedGender;
+    var temporaryGender = _selectedGender;
 
-    var temporaryAge =
-        _selectedAge;
+    var temporaryAge = _selectedAge;
 
-    DateTimeRange? temporaryDateRange =
-        _selectedDateRange;
+    DateTimeRange? temporaryDateRange = _selectedDateRange;
 
-    final result =
-        await showModalBottomSheet<
-            _ConsultationFilterResult>(
+    final result = await showModalBottomSheet<_ConsultationFilterResult>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
       builder: (bottomSheetContext) {
         return StatefulBuilder(
-          builder: (
-            context,
-            setModalState,
-          ) {
-            Future<void>
-                selectDateRange() async {
+          builder: (context, setModalState) {
+            Future<void> selectDateRange() async {
               final now = DateTime.now();
 
-              final picked =
-                  await showDateRangePicker(
+              final picked = await showDateRangePicker(
                 context: context,
-                firstDate:
-                    DateTime(now.year - 10),
-                lastDate:
-                    DateTime(now.year + 1),
-                initialDateRange:
-                    temporaryDateRange,
+                firstDate: DateTime(now.year - 10),
+                lastDate: DateTime(now.year + 1),
+                initialDateRange: temporaryDateRange,
                 helpText: '환자 조회 날짜 선택',
                 cancelText: '취소',
                 confirmText: '선택',
@@ -362,8 +310,7 @@ final class _ConsultationRequestViewState
               }
 
               setModalState(() {
-                temporaryDateRange =
-                    picked;
+                temporaryDateRange = picked;
               });
             }
 
@@ -372,34 +319,20 @@ final class _ConsultationRequestViewState
                 20,
                 12,
                 20,
-                MediaQuery.of(context)
-                        .viewInsets
-                        .bottom +
-                    24,
+                MediaQuery.of(context).viewInsets.bottom + 24,
               ),
               child: SingleChildScrollView(
                 child: Column(
-                  mainAxisSize:
-                      MainAxisSize.min,
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Center(
                       child: Container(
                         width: 42,
                         height: 4,
-                        decoration:
-                            BoxDecoration(
-                          color: Theme.of(
-                            context,
-                          )
-                              .colorScheme
-                              .outlineVariant,
-                          borderRadius:
-                              BorderRadius
-                                  .circular(
-                            10,
-                          ),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.outlineVariant,
+                          borderRadius: BorderRadius.circular(10),
                         ),
                       ),
                     ),
@@ -413,33 +346,23 @@ final class _ConsultationRequestViewState
                             '환자 필터',
                             style: TextStyle(
                               fontSize: 20,
-                              fontWeight:
-                                  FontWeight
-                                      .bold,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),
                         TextButton(
                           onPressed: () {
                             setModalState(() {
-                              temporaryPatientType =
-                                  _PatientTypeFilter
-                                      .all;
+                              temporaryPatientType = _PatientTypeFilter.all;
 
-                              temporaryGender =
-                                  _GenderFilter
-                                      .all;
+                              temporaryGender = _GenderFilter.all;
 
-                              temporaryAge =
-                                  _AgeFilter.all;
+                              temporaryAge = _AgeFilter.all;
 
-                              temporaryDateRange =
-                                  null;
+                              temporaryDateRange = null;
                             });
                           },
-                          child: const Text(
-                            '초기화',
-                          ),
+                          child: const Text('초기화'),
                         ),
                       ],
                     ),
@@ -448,8 +371,7 @@ final class _ConsultationRequestViewState
 
                     const _FilterTitle(
                       title: '환자 구분',
-                      icon: Icons
-                          .local_hospital_outlined,
+                      icon: Icons.local_hospital_outlined,
                     ),
 
                     const SizedBox(height: 10),
@@ -457,186 +379,115 @@ final class _ConsultationRequestViewState
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
-                      children:
-                          _PatientTypeFilter
-                              .values
-                              .map(
-                        (filter) {
-                          return ChoiceChip(
-                            label: Text(
-                              _patientTypeLabel(
-                                filter,
-                              ),
-                            ),
-                            selected:
-                                temporaryPatientType ==
-                                    filter,
-                            onSelected: (_) {
-                              setModalState(() {
-                                temporaryPatientType =
-                                    filter;
-                              });
-                            },
-                          );
-                        },
-                      ).toList(),
+                      children: _PatientTypeFilter.values.map((filter) {
+                        return ChoiceChip(
+                          label: Text(_patientTypeLabel(filter)),
+                          selected: temporaryPatientType == filter,
+                          onSelected: (_) {
+                            setModalState(() {
+                              temporaryPatientType = filter;
+                            });
+                          },
+                        );
+                      }).toList(),
                     ),
 
                     const SizedBox(height: 24),
 
-                    const _FilterTitle(
-                      title: '성별',
-                      icon: Icons.wc_outlined,
-                    ),
+                    const _FilterTitle(title: '성별', icon: Icons.wc_outlined),
 
                     const SizedBox(height: 10),
 
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
-                      children: _GenderFilter
-                          .values
-                          .map(
-                        (filter) {
-                          return ChoiceChip(
-                            label: Text(
-                              _genderLabel(
-                                filter,
-                              ),
-                            ),
-                            selected:
-                                temporaryGender ==
-                                    filter,
-                            onSelected: (_) {
-                              setModalState(() {
-                                temporaryGender =
-                                    filter;
-                              });
-                            },
-                          );
-                        },
-                      ).toList(),
+                      children: _GenderFilter.values.map((filter) {
+                        return ChoiceChip(
+                          label: Text(_genderLabel(filter)),
+                          selected: temporaryGender == filter,
+                          onSelected: (_) {
+                            setModalState(() {
+                              temporaryGender = filter;
+                            });
+                          },
+                        );
+                      }).toList(),
                     ),
 
                     const SizedBox(height: 24),
 
-                    const _FilterTitle(
-                      title: '나이',
-                      icon:
-                          Icons.cake_outlined,
-                    ),
+                    const _FilterTitle(title: '나이', icon: Icons.cake_outlined),
 
                     const SizedBox(height: 10),
 
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
-                      children:
-                          _AgeFilter.values.map(
-                        (filter) {
-                          return ChoiceChip(
-                            label: Text(
-                              _ageLabel(
-                                filter,
-                              ),
-                            ),
-                            selected:
-                                temporaryAge ==
-                                    filter,
-                            onSelected: (_) {
-                              setModalState(() {
-                                temporaryAge =
-                                    filter;
-                              });
-                            },
-                          );
-                        },
-                      ).toList(),
+                      children: _AgeFilter.values.map((filter) {
+                        return ChoiceChip(
+                          label: Text(_ageLabel(filter)),
+                          selected: temporaryAge == filter,
+                          onSelected: (_) {
+                            setModalState(() {
+                              temporaryAge = filter;
+                            });
+                          },
+                        );
+                      }).toList(),
                     ),
 
                     const SizedBox(height: 24),
 
                     const _FilterTitle(
                       title: '날짜',
-                      icon: Icons
-                          .calendar_month_outlined,
+                      icon: Icons.calendar_month_outlined,
                     ),
 
                     const SizedBox(height: 10),
 
                     InkWell(
                       onTap: selectDateRange,
-                      borderRadius:
-                          BorderRadius.circular(
-                        14,
-                      ),
+                      borderRadius: BorderRadius.circular(14),
                       child: Container(
                         width: double.infinity,
-                        padding:
-                            const EdgeInsets
-                                .symmetric(
+                        padding: const EdgeInsets.symmetric(
                           horizontal: 16,
                           vertical: 15,
                         ),
-                        decoration:
-                            BoxDecoration(
+                        decoration: BoxDecoration(
                           border: Border.all(
-                            color: Theme.of(
-                              context,
-                            )
-                                .colorScheme
-                                .outlineVariant,
+                            color: Theme.of(context).colorScheme.outlineVariant,
                           ),
-                          borderRadius:
-                              BorderRadius
-                                  .circular(
-                            14,
-                          ),
+                          borderRadius: BorderRadius.circular(14),
                         ),
                         child: Row(
                           children: [
-                            const Icon(
-                              Icons
-                                  .date_range_outlined,
-                            ),
+                            const Icon(Icons.date_range_outlined),
 
-                            const SizedBox(
-                              width: 12,
-                            ),
+                            const SizedBox(width: 12),
 
                             Expanded(
                               child: Text(
-                                temporaryDateRange ==
-                                        null
+                                temporaryDateRange == null
                                     ? '날짜 범위 선택'
                                     : '${_formatDate(temporaryDateRange!.start)}'
-                                        ' ~ '
-                                        '${_formatDate(temporaryDateRange!.end)}',
+                                          ' ~ '
+                                          '${_formatDate(temporaryDateRange!.end)}',
                               ),
                             ),
 
-                            if (temporaryDateRange !=
-                                null)
+                            if (temporaryDateRange != null)
                               IconButton(
-                                tooltip:
-                                    '날짜 초기화',
+                                tooltip: '날짜 초기화',
                                 onPressed: () {
-                                  setModalState(
-                                    () {
-                                      temporaryDateRange =
-                                          null;
-                                    },
-                                  );
+                                  setModalState(() {
+                                    temporaryDateRange = null;
+                                  });
                                 },
-                                icon: const Icon(
-                                  Icons.close,
-                                ),
+                                icon: const Icon(Icons.close),
                               )
                             else
-                              const Icon(
-                                Icons
-                                    .chevron_right,
-                              ),
+                              const Icon(Icons.chevron_right),
                           ],
                         ),
                       ),
@@ -648,28 +499,18 @@ final class _ConsultationRequestViewState
                       width: double.infinity,
                       child: FilledButton(
                         onPressed: () {
-                          Navigator.of(
-                            bottomSheetContext,
-                          ).pop(
+                          Navigator.of(bottomSheetContext).pop(
                             _ConsultationFilterResult(
-                              patientType:
-                                  temporaryPatientType,
-                              gender:
-                                  temporaryGender,
-                              age:
-                                  temporaryAge,
-                              dateRange:
-                                  temporaryDateRange,
+                              patientType: temporaryPatientType,
+                              gender: temporaryGender,
+                              age: temporaryAge,
+                              dateRange: temporaryDateRange,
                             ),
                           );
                         },
                         child: const Padding(
-                          padding:
-                              EdgeInsets.symmetric(
-                            vertical: 4,
-                          ),
-                          child:
-                              Text('필터 적용'),
+                          padding: EdgeInsets.symmetric(vertical: 4),
+                          child: Text('필터 적용'),
                         ),
                       ),
                     ),
@@ -687,96 +528,54 @@ final class _ConsultationRequestViewState
     }
 
     setState(() {
-      _selectedPatientType =
-          result.patientType;
+      _selectedPatientType = result.patientType;
 
-      _selectedGender =
-          result.gender;
+      _selectedGender = result.gender;
 
-      _selectedAge =
-          result.age;
+      _selectedAge = result.age;
 
-      _selectedDateRange =
-          result.dateRange;
+      _selectedDateRange = result.dateRange;
     });
   }
 
   void _selectPatient(Patient patient) {
-    setState(() {
-      _selectedPatient = patient;
-    });
+    context.pushNamed('consultationForm', extra: patient);
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    final colorScheme =
-        theme.colorScheme;
+    final colorScheme = theme.colorScheme;
 
     return Scaffold(
-      backgroundColor:
-          theme.scaffoldBackgroundColor,
-      appBar: AppBar(
-        title: const Text(
-          '협진 요청',
-        ),
-        centerTitle: true,
-      ),
+      backgroundColor: theme.scaffoldBackgroundColor,
+      appBar: AppBar(title: const Text('협진 요청'), centerTitle: true),
       body: SafeArea(
-        child:
-            Consumer<PatientListViewModel>(
-          builder: (
-            context,
-            viewModel,
-            child,
-          ) {
-            if (viewModel.isLoading &&
-                viewModel.patients.isEmpty) {
-              return const Center(
-                child:
-                    CircularProgressIndicator(),
-              );
+        child: Consumer<PatientListViewModel>(
+          builder: (context, viewModel, child) {
+            if (viewModel.isLoading && viewModel.patients.isEmpty) {
+              return const Center(child: CircularProgressIndicator());
             }
 
-            if (viewModel.errorMessage != null &&
-                viewModel.patients.isEmpty) {
+            if (viewModel.errorMessage != null && viewModel.patients.isEmpty) {
               return Center(
                 child: Padding(
-                  padding:
-                      const EdgeInsets.all(
-                    24,
-                  ),
+                  padding: const EdgeInsets.all(24),
                   child: Column(
-                    mainAxisSize:
-                        MainAxisSize.min,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(
-                        Icons.error_outline,
-                        size: 56,
-                      ),
-                      const SizedBox(
-                        height: 12,
-                      ),
+                      const Icon(Icons.error_outline, size: 56),
+                      const SizedBox(height: 12),
                       Text(
-                        viewModel
-                            .errorMessage!,
-                        textAlign:
-                            TextAlign.center,
+                        viewModel.errorMessage!,
+                        textAlign: TextAlign.center,
                       ),
-                      const SizedBox(
-                        height: 16,
-                      ),
+                      const SizedBox(height: 16),
                       FilledButton.icon(
-                        onPressed:
-                            viewModel
-                                .loadPatients,
-                        icon: const Icon(
-                          Icons.refresh,
-                        ),
-                        label: const Text(
-                          '다시 시도',
-                        ),
+                        onPressed: viewModel.loadPatients,
+                        icon: const Icon(Icons.refresh),
+                        label: const Text('다시 시도'),
                       ),
                     ],
                   ),
@@ -784,34 +583,18 @@ final class _ConsultationRequestViewState
               );
             }
 
-            final patients = _applySearch(
-              _applyFilters(
-                viewModel.patients,
-              ),
-            );
+            final patients = _applySearch(_applyFilters(viewModel.patients));
 
             return RefreshIndicator(
-              onRefresh:
-                  viewModel.refreshPatients,
+              onRefresh: viewModel.refreshPatients,
               child: ListView(
-                physics:
-                    const AlwaysScrollableScrollPhysics(),
-                padding:
-                    const EdgeInsets.fromLTRB(
-                  16,
-                  16,
-                  16,
-                  30,
-                ),
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 30),
                 children: [
                   Text(
                     '환자 검색',
-                    style: theme
-                        .textTheme
-                        .titleMedium
-                        ?.copyWith(
-                      fontWeight:
-                          FontWeight.bold,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
 
@@ -821,51 +604,27 @@ final class _ConsultationRequestViewState
                     children: [
                       Expanded(
                         child: TextField(
-                          controller:
-                              _searchController,
-                          onChanged:
-                              _onSearchChanged,
-                          decoration:
-                              InputDecoration(
-                            hintText:
-                                '환자 이름 또는 ID 검색',
-                            prefixIcon:
-                                const Icon(
-                              Icons.search,
-                            ),
-                            suffixIcon:
-                                _searchKeyword
-                                        .isNotEmpty
-                                    ? IconButton(
-                                        onPressed:
-                                            () {
-                                          _searchController
-                                              .clear();
+                          controller: _searchController,
+                          onChanged: _onSearchChanged,
+                          decoration: InputDecoration(
+                            hintText: '환자 이름 또는 ID 검색',
+                            prefixIcon: const Icon(Icons.search),
+                            suffixIcon: _searchKeyword.isNotEmpty
+                                ? IconButton(
+                                    onPressed: () {
+                                      _searchController.clear();
 
-                                          setState(
-                                            () {
-                                              _searchKeyword =
-                                                  '';
-                                            },
-                                          );
-                                        },
-                                        icon:
-                                            const Icon(
-                                          Icons.close,
-                                        ),
-                                      )
-                                    : null,
+                                      setState(() {
+                                        _searchKeyword = '';
+                                      });
+                                    },
+                                    icon: const Icon(Icons.close),
+                                  )
+                                : null,
                             filled: true,
-                            border:
-                                OutlineInputBorder(
-                              borderRadius:
-                                  BorderRadius
-                                      .circular(
-                                14,
-                              ),
-                              borderSide:
-                                  BorderSide
-                                      .none,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: BorderSide.none,
                             ),
                           ),
                         ),
@@ -874,20 +633,12 @@ final class _ConsultationRequestViewState
                       const SizedBox(width: 10),
 
                       Badge(
-                        isLabelVisible:
-                            _activeFilterCount >
-                                0,
-                        label: Text(
-                          '$_activeFilterCount',
-                        ),
-                        child:
-                            IconButton.filledTonal(
-                          onPressed:
-                              _showFilterBottomSheet,
+                        isLabelVisible: _activeFilterCount > 0,
+                        label: Text('$_activeFilterCount'),
+                        child: IconButton.filledTonal(
+                          onPressed: _showFilterBottomSheet,
                           tooltip: '환자 필터',
-                          icon: const Icon(
-                            Icons.tune,
-                          ),
+                          icon: const Icon(Icons.tune),
                         ),
                       ),
                     ],
@@ -895,57 +646,30 @@ final class _ConsultationRequestViewState
 
                   const SizedBox(height: 18),
 
-                  if (_selectedPatient !=
-                      null) ...[
+                  if (_selectedPatient != null) ...[
                     Container(
-                      padding:
-                          const EdgeInsets.all(
-                        16,
-                      ),
-                      decoration:
-                          BoxDecoration(
-                        color: colorScheme
-                            .primaryContainer,
-                        borderRadius:
-                            BorderRadius.circular(
-                          16,
-                        ),
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: colorScheme.primaryContainer,
+                        borderRadius: BorderRadius.circular(16),
                       ),
                       child: Row(
                         children: [
-                          Icon(
-                            Icons
-                                .check_circle,
-                            color: colorScheme
-                                .primary,
-                          ),
-                          const SizedBox(
-                            width: 12,
-                          ),
+                          Icon(Icons.check_circle, color: colorScheme.primary),
+                          const SizedBox(width: 12),
                           Expanded(
                             child: Column(
-                              crossAxisAlignment:
-                                  CrossAxisAlignment
-                                      .start,
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 const Text(
                                   '선택된 환자',
-                                  style:
-                                      TextStyle(
-                                    fontSize: 12,
-                                  ),
+                                  style: TextStyle(fontSize: 12),
                                 ),
-                                const SizedBox(
-                                  height: 3,
-                                ),
+                                const SizedBox(height: 3),
                                 Text(
-                                  _selectedPatient!
-                                      .patientName,
-                                  style:
-                                      const TextStyle(
-                                    fontWeight:
-                                        FontWeight
-                                            .bold,
+                                  _selectedPatient!.patientName,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
                                   ),
                                 ),
                                 Text(
@@ -958,13 +682,10 @@ final class _ConsultationRequestViewState
                           IconButton(
                             onPressed: () {
                               setState(() {
-                                _selectedPatient =
-                                    null;
+                                _selectedPatient = null;
                               });
                             },
-                            icon: const Icon(
-                              Icons.close,
-                            ),
+                            icon: const Icon(Icons.close),
                           ),
                         ],
                       ),
@@ -975,115 +696,70 @@ final class _ConsultationRequestViewState
 
                   if (patients.isEmpty)
                     Padding(
-                      padding:
-                          const EdgeInsets.only(
-                        top: 70,
-                      ),
+                      padding: const EdgeInsets.only(top: 70),
                       child: Column(
                         children: [
                           Icon(
-                            Icons
-                                .person_search_outlined,
+                            Icons.person_search_outlined,
                             size: 64,
-                            color: colorScheme
-                                .onSurfaceVariant,
+                            color: colorScheme.onSurfaceVariant,
                           ),
-                          const SizedBox(
-                            height: 14,
-                          ),
-                          const Text(
-                            '조건에 맞는 환자가 없습니다.',
-                          ),
+                          const SizedBox(height: 14),
+                          const Text('조건에 맞는 환자가 없습니다.'),
                         ],
                       ),
                     )
                   else
-                    ...patients.map(
-                      (patient) {
-                        final isSelected =
-                            identical(
-                              _selectedPatient,
-                              patient,
-                            ) ||
-                            _selectedPatient
-                                    ?.patientId ==
-                                patient.patientId;
+                    ...patients.map((patient) {
+                      final isSelected =
+                          identical(_selectedPatient, patient) ||
+                          _selectedPatient?.patientId == patient.patientId;
 
-                        return Card(
-                          margin:
-                              const EdgeInsets.only(
-                            bottom: 10,
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 10),
+                        child: ListTile(
+                          onTap: () {
+                            _selectPatient(patient);
+                          },
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
                           ),
-                          child: ListTile(
-                            onTap: () {
-                              _selectPatient(
-                                patient,
-                              );
-                            },
-                            contentPadding:
-                                const EdgeInsets
-                                    .symmetric(
-                              horizontal: 16,
-                              vertical: 8,
-                            ),
-                            leading:
-                                CircleAvatar(
-                              backgroundColor:
-                                  colorScheme
-                                      .primaryContainer,
-                              foregroundColor:
-                                  colorScheme
-                                      .onPrimaryContainer,
-                              child: Text(
-                                patient
-                                        .patientName
-                                        .isNotEmpty
-                                    ? patient
-                                        .patientName[0]
-                                    : '?',
-                              ),
-                            ),
-                            title: Text(
-                              patient.patientName
-                                      .isEmpty
-                                  ? '이름 미등록'
-                                  : patient
-                                      .patientName,
-                              style:
-                                  const TextStyle(
-                                fontWeight:
-                                    FontWeight.bold,
-                              ),
-                            ),
-                            subtitle: Padding(
-                              padding:
-                                  const EdgeInsets
-                                      .only(
-                                top: 5,
-                              ),
-                              child: Text(
-                                '환자 ID: '
-                                '${patient.patientId}\n'
-                                '${patient.genderText} · '
-                                '${patient.age}세',
-                              ),
-                            ),
-                            trailing: Icon(
-                              isSelected
-                                  ? Icons
-                                      .check_circle
-                                  : Icons
-                                      .radio_button_unchecked,
-                              color: isSelected
-                                  ? colorScheme
-                                      .primary
-                                  : colorScheme
-                                      .onSurfaceVariant,
+                          leading: CircleAvatar(
+                            backgroundColor: colorScheme.primaryContainer,
+                            foregroundColor: colorScheme.onPrimaryContainer,
+                            child: Text(
+                              patient.patientName.isNotEmpty
+                                  ? patient.patientName[0]
+                                  : '?',
                             ),
                           ),
-                        );
-                      },
-                    ),
+                          title: Text(
+                            patient.patientName.isEmpty
+                                ? '이름 미등록'
+                                : patient.patientName,
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          subtitle: Padding(
+                            padding: const EdgeInsets.only(top: 5),
+                            child: Text(
+                              '환자 ID: '
+                              '${patient.patientId}\n'
+                              '${patient.genderText} · '
+                              '${patient.age}세',
+                            ),
+                          ),
+                          trailing: Icon(
+                            isSelected
+                                ? Icons.check_circle
+                                : Icons.radio_button_unchecked,
+                            color: isSelected
+                                ? colorScheme.primary
+                                : colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      );
+                    }),
                 ],
               ),
             );
@@ -1108,12 +784,8 @@ final class _ConsultationFilterResult {
   final DateTimeRange? dateRange;
 }
 
-final class _FilterTitle
-    extends StatelessWidget {
-  const _FilterTitle({
-    required this.title,
-    required this.icon,
-  });
+final class _FilterTitle extends StatelessWidget {
+  const _FilterTitle({required this.title, required this.icon});
 
   final String title;
   final IconData icon;
@@ -1122,21 +794,9 @@ final class _FilterTitle
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(
-          icon,
-          size: 20,
-          color:
-              Theme.of(context)
-                  .colorScheme
-                  .primary,
-        ),
+        Icon(icon, size: 20, color: Theme.of(context).colorScheme.primary),
         const SizedBox(width: 8),
-        Text(
-          title,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
       ],
     );
   }
