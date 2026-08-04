@@ -9,24 +9,22 @@ abstract final class ApiEndpoints {
   static const String login = '/api/login/';
 
   // 저장된 Refresh Token으로 새 Access Token 발급
-  static const String tokenRefresh =
-      '/api/token/refresh/';
+  static const String tokenRefresh = '/api/token/refresh/';
 
   // 현재 로그인한 의료진 정보 조회
   static const String me = '/api/me/';
 
   // 환자 목록 조회
-  static const String patients =
-      '/api/patients/';
+  static const String patients = '/api/patients/';
+
+  // 협진 대상 의료진 목록 조회
+  static const String doctors = '/api/doctors/';
 
   // 환자 검색
-  static const String patientSearch =
-      '/api/patients/search/';
+  static const String patientSearch = '/api/patients/search/';
 
   // 환자 상세 조회
-  static String patientDetail(
-    String patientId,
-  ) {
+  static String patientDetail(String patientId) {
     return '/api/patients/$patientId/';
   }
 }

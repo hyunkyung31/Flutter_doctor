@@ -21,6 +21,10 @@ import 'features/patient/view_model/patient_list_view_model.dart';
 import 'features/settings/view_model/settings_view_model.dart';
 import 'features/calendar/view_model/calendar_view_model.dart';
 
+import 'features/consultation/repository/consultation_repository.dart';
+import 'features/consultation/service/consultation_service.dart';
+import 'features/consultation/view_model/consultation_view_model.dart';
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -81,6 +85,22 @@ class MyApp extends StatelessWidget {
 
         ChangeNotifierProvider<CalendarViewModel>(
           create: (_) => CalendarViewModel(),
+        ),
+
+        Provider<ConsultationService>(
+          create: (context) => ConsultationService(context.read<ApiClient>()),
+        ),
+
+        Provider<ConsultationRepository>(
+          create: (context) => ConsultationRepository(
+            consultationService: context.read<ConsultationService>(),
+            secureStorage: context.read<SecureStorage>(),
+          ),
+        ),
+        ChangeNotifierProvider<ConsultationViewModel>(
+          create: (context) => ConsultationViewModel(
+            consultationRepository: context.read<ConsultationRepository>(),
+          ),
         ),
       ],
       child: Builder(
