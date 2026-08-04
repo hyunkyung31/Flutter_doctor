@@ -11,6 +11,7 @@ import '../../auth/view_model/auth_view_model.dart';
 import '../../patient/view_model/patient_list_view_model.dart';
 import '../../calendar/view_model/calendar_view_model.dart';
 import '../../calendar/widgets/schedule_bottom_sheet.dart';
+import '../../consultation/view_model/consultation_view_model.dart';
 import '../../settings/view_model/settings_view_model.dart';
 import '../widgets/Doctor_briefing_card.dart';
 import '../widgets/patient_status_card.dart';
@@ -36,6 +37,11 @@ final class _HomeViewState extends State<HomeView> {
   void initState() {
     super.initState();
     _loadTodoItems();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<ConsultationViewModel>().loadReceivedRequests();
+      }
+    });
   }
 
   Future<void> _loadTodoItems() async {
@@ -232,13 +238,13 @@ final class _HomeViewState extends State<HomeView> {
     final calendarViewModel = context.watch<CalendarViewModel>();
 
     final patientListViewModel = context.watch<PatientListViewModel>();
+    final consultationViewModel = context.watch<ConsultationViewModel>();
 
     final patientCount = patientListViewModel.patientCount;
 
     final doctorName = authViewModel.doctorName ?? '의료진';
 
-    // 실제 데이터 ViewModel을 연결하면 아래 값을 변경하면 됨.
-    const consultationCount = 0;
+    final consultationCount = consultationViewModel.pendingCount;
     const originalVideoCount = 0;
     const analyzedPatientCount = 0;
 
@@ -342,7 +348,12 @@ final class _HomeViewState extends State<HomeView> {
       body: SafeArea(
         child: RefreshIndicator(
           color: AppColors.primary,
-          onRefresh: () async {},
+          onRefresh: () async {
+            await Future.wait([
+              patientListViewModel.refreshPatients(),
+              consultationViewModel.refreshReceivedRequests(),
+            ]);
+          },
           child: ListView(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.all(20),
@@ -401,7 +412,7 @@ final class _HomeViewState extends State<HomeView> {
                     count: consultationCount,
                     unit: '건',
                     onTap: () {
-                      context.pushNamed('consultationRequest');
+                      context.pushNamed('consultationInbox');
                     },
                   ),
                   _QuickMenuCard(
@@ -416,7 +427,7 @@ final class _HomeViewState extends State<HomeView> {
                     },
                   ),
                   _QuickMenuCard(
-                    title: '분석 완료',
+                    title: '소견 작성',
                     icon: Icons.analytics_outlined,
                     iconColor: AppColors.secondary,
                     count: analyzedPatientCount,

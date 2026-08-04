@@ -3,9 +3,10 @@ import 'package:dio/dio.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../model/consultation_doctor.dart';
+import '../model/consultation_request.dart';
 
 final class ConsultationService {
-  ConsultationService(this._apiClient);
+  const ConsultationService(this._apiClient);
 
   final ApiClient _apiClient;
 
@@ -15,99 +16,209 @@ final class ConsultationService {
     try {
       final response = await _apiClient.dio.get<dynamic>(
         ApiEndpoints.doctors,
-        options: Options(headers: {'Authorization': 'Bearer $accessToken'}),
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $accessToken',
+          },
+        ),
       );
 
-      print('의사 목록 상태 코드: ${response.statusCode}');
+      final data = response.data;
 
-      print('의사 목록 응답 데이터: ${response.data}');
+      List<dynamic> doctorList;
 
-      final responseData = response.data;
+      if (data is List<dynamic>) {
+        doctorList = data;
+      } else if (data is Map<String, dynamic>) {
+        final results =
+            data['results'] ?? data['doctors'] ?? data['data'];
 
-      if (responseData is List) {
-        return responseData
-            .whereType<Map>()
-            .map(
-              (json) =>
-                  ConsultationDoctor.fromJson(Map<String, dynamic>.from(json)),
-            )
-            .toList();
+        doctorList = results is List<dynamic>
+            ? results
+            : <dynamic>[];
+      } else {
+        doctorList = <dynamic>[];
       }
 
-      if (responseData is! Map) {
-        throw const ConsultationServiceException('의사 목록 응답 형식이 올바르지 않습니다.');
-      }
-
-      final responseMap = Map<String, dynamic>.from(responseData);
-
-      final results =
-          responseMap['results'] ??
-          responseMap['doctors'] ??
-          responseMap['data'];
-
-      if (results is! List) {
-        throw const ConsultationServiceException('의사 목록 응답에 의사 배열이 없습니다.');
-      }
-
-      return results
-          .whereType<Map>()
-          .map(
-            (json) =>
-                ConsultationDoctor.fromJson(Map<String, dynamic>.from(json)),
-          )
+      return doctorList
+          .whereType<Map<String, dynamic>>()
+          .map(ConsultationDoctor.fromJson)
           .toList();
     } on DioException catch (error) {
-      print('의사 목록 오류 상태: ${error.response?.statusCode}');
-
-      print('의사 목록 오류 응답: ${error.response?.data}');
-
-      throw ConsultationServiceException(_messageFromDioException(error));
-    } on ConsultationServiceException {
-      rethrow;
-    } catch (error) {
-      print('의사 목록 알 수 없는 오류: $error');
-
-      throw const ConsultationServiceException('의사 목록을 불러오는 중 오류가 발생했습니다.');
+      throw ConsultationServiceException(
+        _extractErrorMessage(
+          error,
+          defaultMessage: '의사 목록을 불러오지 못했습니다.',
+        ),
+      );
+    } catch (_) {
+      throw const ConsultationServiceException(
+        '의사 목록을 불러오지 못했습니다.',
+      );
     }
   }
 
-  String _messageFromDioException(DioException error) {
-    switch (error.type) {
-      case DioExceptionType.connectionTimeout:
-      case DioExceptionType.sendTimeout:
-      case DioExceptionType.receiveTimeout:
-      case DioExceptionType.transformTimeout:
-        return '서버 응답 시간이 초과되었습니다.';
-
-      case DioExceptionType.connectionError:
-        return '서버에 연결할 수 없습니다.';
-
-      case DioExceptionType.badResponse:
-        final statusCode = error.response?.statusCode;
-
-        if (statusCode == 401 || statusCode == 403) {
-          return '로그인 정보가 만료되었습니다. 다시 로그인해 주세요.';
-        }
-
-        if (statusCode == 404) {
-          return '의사 목록 API 주소를 찾을 수 없습니다.';
-        }
-
-        if (statusCode != null && statusCode >= 500) {
-          return '서버 내부 오류가 발생했습니다.';
-        }
-
-        return '의사 목록을 불러오지 못했습니다.';
-
-      case DioExceptionType.cancel:
-        return '의사 목록 요청이 취소되었습니다.';
-
-      case DioExceptionType.badCertificate:
-        return '서버 인증서를 확인할 수 없습니다.';
-
-      case DioExceptionType.unknown:
-        return '네트워크 오류가 발생했습니다.';
+  Future<void> createConsultation({
+    required String accessToken,
+    required String patientId,
+    required String receiverId,
+    required String reason,
+    required String priority,
+    required String memo,
+    required List<String> referenceTypes,
+    String? examId,
+  }) async {
+    try {
+      await _apiClient.dio.post<dynamic>(
+        ApiEndpoints.consultations,
+        data: {
+          'patient_id': patientId,
+          'receiver_id': receiverId,
+          'reason': reason,
+          'priority': priority,
+          'memo': memo,
+          'reference_types': referenceTypes,
+          'exam_id': examId,
+        },
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $accessToken',
+            'Content-Type': 'application/json',
+          },
+        ),
+      );
+    } on DioException catch (error) {
+      throw ConsultationServiceException(
+        _extractErrorMessage(
+          error,
+          defaultMessage: '협진 요청 전송에 실패했습니다.',
+        ),
+      );
+    } catch (_) {
+      throw const ConsultationServiceException(
+        '협진 요청 전송에 실패했습니다.',
+      );
     }
+  }
+
+  Future<List<ConsultationRequest>> fetchReceivedConsultations({
+    required String accessToken,
+  }) async {
+    try {
+      final response = await _apiClient.dio.get<dynamic>(
+        ApiEndpoints.consultations,
+        queryParameters: const {'receiver': 'me'},
+        options: Options(
+          headers: {'Authorization': 'Bearer $accessToken'},
+        ),
+      );
+
+      final data = response.data;
+      final dynamic items = data is List
+          ? data
+          : data is Map
+          ? data['results'] ?? data['consultations'] ?? data['data']
+          : null;
+
+      if (items is! List) {
+        return const <ConsultationRequest>[];
+      }
+
+      return items
+          .whereType<Map>()
+          .map(
+            (item) => ConsultationRequest.fromJson(
+              Map<String, dynamic>.from(item),
+            ),
+          )
+          .toList(growable: false);
+    } on DioException catch (error) {
+      throw ConsultationServiceException(
+        _extractErrorMessage(
+          error,
+          defaultMessage: '받은 협진 요청을 불러오지 못했습니다.',
+        ),
+      );
+    } catch (_) {
+      throw const ConsultationServiceException(
+        '받은 협진 요청을 불러오지 못했습니다.',
+      );
+    }
+  }
+
+  Future<ConsultationRequest> updateConsultationStatus({
+    required String accessToken,
+    required String consultationId,
+    required String status,
+  }) async {
+    try {
+      final response = await _apiClient.dio.patch<dynamic>(
+        ApiEndpoints.consultationStatus(consultationId),
+        data: {'status': status},
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $accessToken',
+            'Content-Type': 'application/json',
+          },
+        ),
+      );
+
+      if (response.data is! Map) {
+        throw const ConsultationServiceException(
+          '협진 상태 응답 형식이 올바르지 않습니다.',
+        );
+      }
+
+      return ConsultationRequest.fromJson(
+        Map<String, dynamic>.from(response.data as Map),
+      );
+    } on DioException catch (error) {
+      throw ConsultationServiceException(
+        _extractErrorMessage(
+          error,
+          defaultMessage: '협진 상태를 변경하지 못했습니다.',
+        ),
+      );
+    } on ConsultationServiceException {
+      rethrow;
+    } catch (_) {
+      throw const ConsultationServiceException(
+        '협진 상태를 변경하지 못했습니다.',
+      );
+    }
+  }
+
+  String _extractErrorMessage(
+    DioException error, {
+    required String defaultMessage,
+  }) {
+    final data = error.response?.data;
+
+    if (data is Map<String, dynamic>) {
+      final detail = data['detail'];
+
+      if (detail is String && detail.trim().isNotEmpty) {
+        return detail;
+      }
+
+      final message = data['message'];
+
+      if (message is String && message.trim().isNotEmpty) {
+        return message;
+      }
+
+      for (final value in data.values) {
+        if (value is List && value.isNotEmpty) {
+          return value.first.toString();
+        }
+
+        if (value is String && value.trim().isNotEmpty) {
+          return value;
+        }
+      }
+    }
+
+    return defaultMessage;
   }
 }
 

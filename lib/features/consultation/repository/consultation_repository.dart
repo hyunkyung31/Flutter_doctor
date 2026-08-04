@@ -1,31 +1,107 @@
 import '../../../core/storage/secure_storage.dart';
-
 import '../model/consultation_doctor.dart';
+import '../model/consultation_request.dart';
 import '../service/consultation_service.dart';
 
 final class ConsultationRepository {
-  ConsultationRepository({
+  const ConsultationRepository({
     required ConsultationService consultationService,
     required SecureStorage secureStorage,
-  }) : _consultationService = consultationService,
-       _secureStorage = secureStorage;
+  })  : _consultationService = consultationService,
+        _secureStorage = secureStorage;
 
   final ConsultationService _consultationService;
   final SecureStorage _secureStorage;
 
-  Future<List<ConsultationDoctor>> getDoctors() async {
+  Future<List<ConsultationDoctor>> fetchDoctors() async {
     final accessToken = await _secureStorage.readAccessToken();
 
-    if (accessToken == null || accessToken.trim().isEmpty) {
-      throw const ConsultationRepositoryException('로그인이 필요합니다.');
+    if (accessToken == null || accessToken.isEmpty) {
+      throw const ConsultationRepositoryException(
+        '로그인 정보가 없습니다. 다시 로그인해 주세요.',
+      );
     }
 
     try {
-      return await _consultationService.fetchDoctors(accessToken: accessToken);
+      return await _consultationService.fetchDoctors(
+        accessToken: accessToken,
+      );
     } on ConsultationServiceException catch (error) {
       throw ConsultationRepositoryException(error.message);
-    } catch (error) {
-      throw const ConsultationRepositoryException('의사 목록을 불러오지 못했습니다.');
+    }
+  }
+
+  Future<void> createConsultation({
+    required String patientId,
+    required String receiverId,
+    required String reason,
+    required String priority,
+    required String memo,
+    required List<String> referenceTypes,
+    String? examId,
+  }) async {
+    final accessToken = await _secureStorage.readAccessToken();
+
+    if (accessToken == null || accessToken.isEmpty) {
+      throw const ConsultationRepositoryException(
+        '로그인 정보가 없습니다. 다시 로그인해 주세요.',
+      );
+    }
+
+    try {
+      await _consultationService.createConsultation(
+        accessToken: accessToken,
+        patientId: patientId,
+        receiverId: receiverId,
+        reason: reason,
+        priority: priority,
+        memo: memo,
+        referenceTypes: referenceTypes,
+        examId: examId,
+      );
+    } on ConsultationServiceException catch (error) {
+      throw ConsultationRepositoryException(error.message);
+    }
+  }
+
+  Future<List<ConsultationRequest>> fetchReceivedConsultations() async {
+    final accessToken = await _secureStorage.readAccessToken();
+
+    if (accessToken == null || accessToken.isEmpty) {
+      throw const ConsultationRepositoryException(
+        '로그인 정보가 없습니다. 다시 로그인해 주세요.',
+      );
+    }
+
+    try {
+      return await _consultationService.fetchReceivedConsultations(
+        accessToken: accessToken,
+      );
+    } on ConsultationServiceException catch (error) {
+      throw ConsultationRepositoryException(error.message);
+    }
+  }
+
+  Future<ConsultationRequest> updateConsultationStatus({
+    required String consultationId,
+    required String status,
+  }) async {
+    final accessToken = await _secureStorage.readAccessToken();
+
+    if (accessToken == null || accessToken.isEmpty) {
+      throw const ConsultationRepositoryException(
+        '로그인 정보가 없습니다. 다시 로그인해 주세요.',
+      );
+    }
+
+    try {
+      return await _consultationService.updateConsultationStatus(
+        accessToken: accessToken,
+        consultationId: consultationId,
+        status: status,
+      );
+    } on ConsultationServiceException catch (error) {
+      throw ConsultationRepositoryException(error.message);
     }
   }
 }

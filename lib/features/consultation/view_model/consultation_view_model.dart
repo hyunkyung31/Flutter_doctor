@@ -1,6 +1,7 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 
 import '../model/consultation_doctor.dart';
+import '../model/consultation_request.dart';
 import '../repository/consultation_repository.dart';
 
 final class ConsultationViewModel extends ChangeNotifier {
@@ -10,18 +11,36 @@ final class ConsultationViewModel extends ChangeNotifier {
 
   final ConsultationRepository _consultationRepository;
 
-  final List<ConsultationDoctor> _doctors = [];
+  List<ConsultationDoctor> _doctors =
+      <ConsultationDoctor>[];
+  List<ConsultationRequest> _receivedRequests = <ConsultationRequest>[];
 
   bool _isLoading = false;
+  bool _isRequestsLoading = false;
+  bool _isSubmitting = false;
+
   String? _errorMessage;
 
-  List<ConsultationDoctor> get doctors {
-    return List.unmodifiable(_doctors);
-  }
+  List<ConsultationDoctor> get doctors =>
+      List.unmodifiable(_doctors);
+  List<ConsultationRequest> get receivedRequests =>
+      List.unmodifiable(_receivedRequests);
 
   bool get isLoading => _isLoading;
-
+  bool get isRequestsLoading => _isRequestsLoading;
+  bool get isSubmitting => _isSubmitting;
   String? get errorMessage => _errorMessage;
+  int get pendingCount =>
+      _receivedRequests.where((request) => request.isPending).length;
+  ConsultationRequest? requestById(String consultationId) {
+    for (final request in _receivedRequests) {
+      if (request.consultationId == consultationId) {
+        return request;
+      }
+    }
+
+    return null;
+  }
 
   List<String> get departments {
     final values = _doctors
@@ -35,10 +54,14 @@ final class ConsultationViewModel extends ChangeNotifier {
     return values;
   }
 
-  List<ConsultationDoctor> doctorsByDepartment(String department) {
-    return _doctors.where((doctor) {
-      return doctor.department.trim() == department.trim();
-    }).toList();
+  List<ConsultationDoctor> doctorsByDepartment(
+    String department,
+  ) {
+    return _doctors
+        .where(
+          (doctor) => doctor.department == department,
+        )
+        .toList();
   }
 
   Future<void> loadDoctors() async {
@@ -51,13 +74,12 @@ final class ConsultationViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final doctors = await _consultationRepository.getDoctors();
-
-      _doctors
-        ..clear()
-        ..addAll(doctors);
-    } catch (error) {
-      _errorMessage = _cleanErrorMessage(error);
+      _doctors =
+          await _consultationRepository.fetchDoctors();
+    } on ConsultationRepositoryException catch (error) {
+      _errorMessage = error.message;
+    } catch (_) {
+      _errorMessage = '의사 목록을 불러오지 못했습니다.';
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -65,26 +87,136 @@ final class ConsultationViewModel extends ChangeNotifier {
   }
 
   Future<void> refreshDoctors() async {
+    await loadDoctors();
+  }
+
+  Future<void> loadReceivedRequests() async {
+    if (_isRequestsLoading) {
+      return;
+    }
+
+    _isRequestsLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      _receivedRequests =
+          await _consultationRepository.fetchReceivedConsultations();
+    } on ConsultationRepositoryException catch (error) {
+      _errorMessage = error.message;
+    } catch (_) {
+      _errorMessage = '받은 협진 요청을 불러오지 못했습니다.';
+    } finally {
+      _isRequestsLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> refreshReceivedRequests() async {
+    await loadReceivedRequests();
+  }
+
+  Future<ConsultationRequest?> markAsReviewing(
+    String consultationId,
+  ) async {
+    final request = requestById(consultationId);
+
+    if (request == null) {
+      return null;
+    }
+
+    if (!request.isPending) {
+      return request;
+    }
+
+    final success = await updateStatus(
+      consultationId: consultationId,
+      status: 'in_progress',
+    );
+
+    return success ? requestById(consultationId) : null;
+  }
+
+  Future<bool> updateStatus({
+    required String consultationId,
+    required String status,
+  }) async {
+    final index = _receivedRequests.indexWhere(
+      (request) => request.consultationId == consultationId,
+    );
+
+    if (index == -1) {
+      _errorMessage = '협진 요청을 찾을 수 없습니다.';
+      notifyListeners();
+      return false;
+    }
+
     _errorMessage = null;
 
     try {
-      final doctors = await _consultationRepository.getDoctors();
+      final updatedRequest =
+          await _consultationRepository.updateConsultationStatus(
+        consultationId: consultationId,
+        status: status,
+      );
 
-      _doctors
-        ..clear()
-        ..addAll(doctors);
-    } catch (error) {
-      _errorMessage = _cleanErrorMessage(error);
+      _receivedRequests[index] = updatedRequest;
+      notifyListeners();
+      return true;
+    } on ConsultationRepositoryException catch (error) {
+      _errorMessage = error.message;
+      notifyListeners();
+      return false;
+    } catch (_) {
+      _errorMessage = '협진 상태를 변경하지 못했습니다.';
+      notifyListeners();
+      return false;
     }
-
-    notifyListeners();
   }
 
-  String _cleanErrorMessage(Object error) {
-    return error
-        .toString()
-        .replaceFirst('ConsultationRepositoryException: ', '')
-        .replaceFirst('Exception: ', '')
-        .trim();
+  Future<bool> createConsultation({
+    required String patientId,
+    required String receiverId,
+    required String reason,
+    required String priority,
+    required String memo,
+    required List<String> referenceTypes,
+    String? examId,
+  }) async {
+    if (_isSubmitting) {
+      return false;
+    }
+
+    _isSubmitting = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      await _consultationRepository.createConsultation(
+        patientId: patientId,
+        receiverId: receiverId,
+        reason: reason,
+        priority: priority,
+        memo: memo,
+        referenceTypes: referenceTypes,
+        examId: examId,
+      );
+
+      return true;
+    } on ConsultationRepositoryException catch (error) {
+      _errorMessage = error.message;
+      return false;
+    } catch (_) {
+      _errorMessage = '협진 요청 전송에 실패했습니다.';
+      return false;
+    } finally {
+      _isSubmitting = false;
+      notifyListeners();
+    }
+  }
+
+  void clearError() {
+    _errorMessage = null;
+    notifyListeners();
   }
 }
