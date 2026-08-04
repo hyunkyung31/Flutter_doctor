@@ -7,6 +7,7 @@ import '../../patient/view_model/patient_list_view_model.dart';
 import '../model/ai_analysis_type.dart';
 import '../model/diagnosis_examination.dart';
 import '../view_model/diagnosis_view_model.dart';
+import '../../ai_result/widgets/ai_result_media_viewer.dart';
 
 final class DiagnosisView extends StatefulWidget {
   const DiagnosisView({
@@ -216,17 +217,12 @@ final class _DiagnosisViewState
                                 .runAnalysis();
                           }
                         : null,
-                icon: diagnosisViewModel.isBusy
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                        ),
-                      )
-                    : const Icon(
-                        Icons.auto_awesome,
-                      ),
+                icon: Icon(
+                  diagnosisViewModel.isBusy
+                      ? Icons.hourglass_top_rounded
+                      : Icons.auto_awesome,
+                ),
+
                 label: Text(
                   diagnosisViewModel.isBusy
                       ? 'AI 분석 중'
@@ -1079,34 +1075,102 @@ final class _AnalysisTypeCard
     }
   }
 }
-// 진행상태 표시
+// 진행 상태 표시
 final class _AnalysisProgressCard
     extends StatelessWidget {
   const _AnalysisProgressCard();
 
   @override
   Widget build(BuildContext context) {
-    return const Card(
-      margin: EdgeInsets.zero,
-      child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Row(
-          children: [
-            SizedBox(
-              width: 22,
-              height: 22,
-              child:
-                  CircularProgressIndicator(
-                strokeWidth: 2.5,
+    final theme = Theme.of(context);
+    final colorScheme =
+        theme.colorScheme;
+
+    return Semantics(
+      liveRegion: true,
+      label: 'AI 분석 진행 중',
+      child: Card(
+        margin: EdgeInsets.zero,
+        elevation: 0,
+        color: colorScheme
+            .primaryContainer
+            .withAlpha(90),
+        shape: RoundedRectangleBorder(
+          borderRadius:
+              BorderRadius.circular(18),
+          side: BorderSide(
+            color: colorScheme.primary
+                .withAlpha(45),
+          ),
+        ),
+        child: Padding(
+          padding:
+              const EdgeInsets.symmetric(
+            horizontal: 18,
+            vertical: 18,
+          ),
+          child: Row(
+            crossAxisAlignment:
+                CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 46,
+                height: 46,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: colorScheme.surface,
+                  borderRadius:
+                      BorderRadius.circular(
+                    14,
+                  ),
+                ),
+                child: SizedBox(
+                  width: 24,
+                  height: 24,
+                  child:
+                      CircularProgressIndicator(
+                    strokeWidth: 2.6,
+                    color:
+                        colorScheme.primary,
+                  ),
+                ),
               ),
-            ),
-            SizedBox(width: 14),
-            Expanded(
-              child: Text(
-                'YOLOv11, InceptionV3와 Grad-CAM 통합 분석을 진행하고 있습니다.',
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment:
+                      CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '통합 AI 분석을 진행하고 있습니다',
+                      style: theme
+                          .textTheme
+                          .titleSmall
+                          ?.copyWith(
+                        color: colorScheme
+                            .onSurface,
+                        fontWeight:
+                            FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'YOLOv11 병변 탐지와 InceptionV3 분류, '
+                      'Grad-CAM 생성을 순차적으로 처리합니다.',
+                      style: theme
+                          .textTheme
+                          .bodySmall
+                          ?.copyWith(
+                        color: colorScheme
+                            .onSurfaceVariant,
+                        height: 1.45,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -1137,9 +1201,34 @@ final class _AnalysisCompletedCard
       result.confidenceScore,
     );
 
+
+    final resultKeyFrame =
+        result.keyFramePath;
+
+    final selectedKeyFrame =
+        viewModel.selectedExamination?.keyFrameUrl;
+
+    final keyFrameSource =
+        resultKeyFrame != null &&
+                resultKeyFrame.trim().isNotEmpty
+            ? resultKeyFrame
+            : selectedKeyFrame;
+
+
+    final gradcamUrl = result.gradcamUrl;
+
+    final gradcamSource =
+        gradcamUrl != null &&
+                gradcamUrl.trim().isNotEmpty
+          ? gradcamUrl
+          : result.gradcamPath;
+
+    late final Widget resultCard;
+
+
     switch (analysisType) {
       case AiAnalysisType.detection:
-        return _ResultCard(
+        resultCard = _ResultCard(
           icon: Icons.crop_free,
           title: 'YOLOv11 병변 탐지 결과',
           summary:
@@ -1164,9 +1253,10 @@ final class _AnalysisCompletedCard
           notice:
               '탐지 결과는 협착 의심 영역의 위치를 나타내며 정상·협착 분류 결과와는 별개의 모델 출력입니다.',
         );
+        break;
 
       case AiAnalysisType.classification:
-        return _ResultCard(
+        resultCard = _ResultCard(
           icon: Icons.gradient,
           title:
               'InceptionV3 정상·협착 분류 결과',
@@ -1195,9 +1285,10 @@ final class _AnalysisCompletedCard
           notice:
               '분류 결과는 영상 전체의 정상·협착 가능성을 나타내며 병변 위치를 직접 표시하지 않습니다.',
         );
+        break;
 
       case AiAnalysisType.integrated:
-        return _ResultCard(
+        resultCard = _ResultCard(
           icon: Icons.layers_outlined,
           title: '통합 AI 분석 결과',
           summary:
@@ -1237,9 +1328,45 @@ final class _AnalysisCompletedCard
           notice:
               '탐지와 분류는 서로 다른 모델의 결과이므로 두 결과가 일치하지 않을 수도 있습니다.',
         );
+        break;
     }
-  }
+    return Column(
+      crossAxisAlignment:
+          CrossAxisAlignment.stretch,
+      children: [
+        AiResultMediaViewer(
+          keyFrameSource: keyFrameSource,
+          gradcamSource: gradcamSource,
+          headers: viewModel.mediaHeaders,
+          resolveMediaUrl:
+              viewModel.resolveMediaUrl,
+          showHeatmap:
+              analysisType.supportsHeatmap &&
+              viewModel.showHeatmap,
+          canShowHeatmap:
+              analysisType.supportsHeatmap &&
+              result.canShowHeatmap,
+          boundingBoxData:
+              result.boundingBoxData,
+          showBoundingBox:
+              analysisType.supportsBoundingBox &&
+              viewModel.showBoundingBox,
+          canShowBoundingBox:
+              analysisType.supportsBoundingBox &&
+              result.canShowBoundingBox,
+          onOriginalSelected:
+              viewModel.showOriginalMedia,
+          onBoundingBoxChanged:
+              viewModel.setBoundingBoxVisible,
+          onHeatmapChanged:
+              viewModel.setHeatmapVisible,
+        ),
 
+        const SizedBox(height: 12),
+        resultCard,
+      ],
+    );
+  }
   String _detectionSummary(
     int detectionCount,
   ) {

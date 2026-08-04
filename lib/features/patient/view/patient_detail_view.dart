@@ -5,6 +5,8 @@ import 'package:provider/provider.dart';
 import '../model/patient_detail.dart';
 import '../view_model/patient_detail_view_model.dart';
 import 'package:go_router/go_router.dart';
+import '../../diagnosis/diagnosis_routes.dart'; // 추가
+import '../../diagnosis/model/diagnosis_entry_args.dart'; // 추가 
 
 final class PatientDetailView extends StatefulWidget {
   const PatientDetailView({super.key, required this.patientId});
@@ -195,21 +197,28 @@ final class _AiAnalysisRequestButton extends StatelessWidget {
   const _AiAnalysisRequestButton({required this.patientId});
 
   final String patientId;
-
-  void _showNotConnectedMessage(BuildContext context) {
+// 추가 : AI 분석 화면 연결
+  void _openDiagnosisView(BuildContext context) {
     final normalizedPatientId = patientId.trim();
 
     if (normalizedPatientId.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('환자 ID가 없어 AI 분석을 요청할 수 없습니다.')),
+        const SnackBar(
+          content: Text(
+            '환자 ID가 없어 AI 분석을 요청할 수 없습니다.',
+          ),
+        ),
       );
 
       return;
     }
 
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('AI 분석 요청 화면은 연결 예정입니다.')));
+    context.pushNamed(
+      DiagnosisRoute.name,
+      extra: DiagnosisEntryArgs(
+        patientId: normalizedPatientId,
+      ),
+    );
   }
 
   @override
@@ -221,7 +230,7 @@ final class _AiAnalysisRequestButton extends StatelessWidget {
       height: 54,
       child: FilledButton.icon(
         onPressed: () {
-          _showNotConnectedMessage(context);
+          _openDiagnosisView(context);  // 추가 - ai 버튼
         },
         icon: const Icon(Icons.analytics_outlined),
         label: const Text(

@@ -14,6 +14,7 @@ import '../../calendar/widgets/schedule_bottom_sheet.dart';
 import '../../consultation/view_model/consultation_view_model.dart';
 import '../widgets/Doctor_briefing_card.dart';
 import '../widgets/patient_status_card.dart';
+import '../../diagnosis/diagnosis_routes.dart'; // 추가
 // import '../widgets/recent_patient_section.dart';
 // import '../widgets/today_schedule_section.dart';
 // import '../widgets/today_todo_section.dart';
@@ -333,8 +334,9 @@ final class _HomeViewState extends State<HomeView> {
                     count: originalVideoCount,
                     unit: '건',
                     onTap: () {
-                      // 추후 ai 분석 요청 화면으로 연결
-                      _showPreparingMessage(context);
+                      // 추가 - ai 분석
+                      context.pushNamed(
+                        DiagnosisRoute.name,);
                     },
                   ),
                   _QuickMenuCard(
