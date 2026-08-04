@@ -7,6 +7,7 @@ import '../features/splash/view/splash_screen.dart';
 import '../features/calendar/calendar_routes.dart';
 import '../features/consultation/consultation_routes.dart';
 import '../features/diagnosis/diagnosis_routes.dart';
+import '../features/chat/chat_routes.dart';
 import '../features/mypage/mypage_routes.dart';
 import 'app_shell.dart';
 import 'route_names.dart';
@@ -35,6 +36,7 @@ class AppRouter {
           ...calendarRoutes,
           ...consultationRoutes,
           ...diagnosisRoutes,
+          ...chatRoutes,
           ...myPageRoutes,
         ],
       ),

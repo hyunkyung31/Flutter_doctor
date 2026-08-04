@@ -15,12 +15,15 @@ final class AppShell extends StatelessWidget {
     final path = GoRouterState.of(context).uri.path;
     final selectedIndex = path.startsWith('/mypage')
         ? 3
-        : path.startsWith('/patient')
-            ? 1
-            : 0;
+        : path.startsWith('/chat')
+            ? 2
+            : path.startsWith('/patient')
+                ? 1
+                : 0;
     final colorScheme = Theme.of(context).colorScheme;
-    final hidesTopBar =
-        path.startsWith('/mypage') || path.startsWith('/settings');
+    final hidesTopBar = path.startsWith('/mypage') ||
+        path.startsWith('/settings') ||
+        path.startsWith('/chat');
 
     return Scaffold(
       appBar: hidesTopBar ? null : _buildTopBar(context),
@@ -30,22 +33,20 @@ final class AppShell extends StatelessWidget {
           backgroundColor: colorScheme.surface,
           indicatorColor: colorScheme.primary,
           iconTheme: WidgetStateProperty.resolveWith<IconThemeData>((states) {
-            final isSelected = states.contains(WidgetState.selected);
+            final selected = states.contains(WidgetState.selected);
             return IconThemeData(
-              color: isSelected
+              color: selected
                   ? colorScheme.onPrimary
-                  : colorScheme.onSurface.withValues(alpha: 0.90),
-              size: isSelected ? 25 : 23,
+                  : colorScheme.onSurface.withValues(alpha: 0.9),
+              size: selected ? 25 : 23,
             );
           }),
           labelTextStyle: WidgetStateProperty.resolveWith<TextStyle>((states) {
-            final isSelected = states.contains(WidgetState.selected);
+            final selected = states.contains(WidgetState.selected);
             return TextStyle(
-              color: isSelected
-                  ? colorScheme.primary
-                  : colorScheme.onSurface.withValues(alpha: 0.90),
+              color: selected ? colorScheme.primary : colorScheme.onSurface,
               fontSize: 12,
-              fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+              fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
             );
           }),
         ),
@@ -62,7 +63,7 @@ final class AppShell extends StatelessWidget {
                 context.go('/patient');
                 return;
               case 2:
-                _showPreparingMessage(context, '채팅');
+                context.go('/chat');
                 return;
               case 3:
                 context.go('/mypage');
@@ -98,18 +99,14 @@ final class AppShell extends StatelessWidget {
 
   PreferredSizeWidget _buildTopBar(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final settingsViewModel = context.watch<SettingsViewModel>();
-
+    final settings = context.watch<SettingsViewModel>();
     return AppBar(
       backgroundColor: colorScheme.surface,
       surfaceTintColor: colorScheme.surface,
       foregroundColor: colorScheme.primary,
       title: Text(
         'VENA',
-        style: TextStyle(
-          color: colorScheme.primary,
-          fontWeight: FontWeight.bold,
-        ),
+        style: TextStyle(color: colorScheme.primary, fontWeight: FontWeight.bold),
       ),
       actions: [
         Stack(
@@ -117,7 +114,7 @@ final class AppShell extends StatelessWidget {
           children: [
             IconButton(
               tooltip: '채팅',
-              onPressed: () => _showPreparingMessage(context, '채팅'),
+              onPressed: () => context.go('/chat'),
               icon: const Icon(Icons.chat_bubble_outline),
             ),
             Positioned(
@@ -165,12 +162,10 @@ final class AppShell extends StatelessWidget {
           ],
         ),
         IconButton(
-          tooltip: settingsViewModel.isDarkMode
-              ? '라이트 모드로 변경'
-              : '다크 모드로 변경',
-          onPressed: settingsViewModel.toggleTheme,
+          tooltip: settings.isDarkMode ? '라이트 모드로 변경' : '다크 모드로 변경',
+          onPressed: settings.toggleTheme,
           icon: Icon(
-            settingsViewModel.isDarkMode
+            settings.isDarkMode
                 ? Icons.light_mode_outlined
                 : Icons.dark_mode_outlined,
           ),
@@ -182,8 +177,6 @@ final class AppShell extends StatelessWidget {
   void _showPreparingMessage(BuildContext context, String feature) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(content: Text('$feature 기능은 현재 준비 중입니다.')),
-      );
+      ..showSnackBar(SnackBar(content: Text('$feature 기능은 현재 준비 중입니다.')));
   }
 }
