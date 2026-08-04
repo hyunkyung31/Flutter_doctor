@@ -6,6 +6,7 @@ import 'model/diagnosis_entry_args.dart';
 import 'repository/diagnosis_repository.dart';
 import 'view/diagnosis_view.dart';
 import 'view_model/diagnosis_view_model.dart';
+import '../../core/storage/secure_storage.dart';
 
 // AI 분석 요청 화면의 Route 이름과 경로를 기능 내부에서 관리
 abstract final class DiagnosisRoute {
@@ -35,6 +36,7 @@ final List<RouteBase> diagnosisRoutes = [
               DiagnosisRepository>(),
           context.read<
               PatientRepository>(),
+          secureStorage: context.read<SecureStorage>(),
           entryArgs: entryArgs,
         ),
         child: const DiagnosisView(),
