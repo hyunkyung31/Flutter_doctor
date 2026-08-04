@@ -401,26 +401,28 @@ final class _HomeViewState extends State<HomeView> {
                     count: consultationCount,
                     unit: '건',
                     onTap: () {
-                      _showPreparingMessage(context);
+                      context.pushNamed('consultationRequest');
                     },
                   ),
                   _QuickMenuCard(
-                    title: '원본 영상 확인',
+                    title: '새로운 분석',
                     icon: Icons.video_library_outlined,
                     iconColor: AppColors.primary,
                     count: originalVideoCount,
                     unit: '건',
                     onTap: () {
+                      // 추후 ai 분석 요청 화면으로 연결
                       _showPreparingMessage(context);
                     },
                   ),
                   _QuickMenuCard(
-                    title: 'AI 분석 환자',
+                    title: '분석 완료',
                     icon: Icons.analytics_outlined,
                     iconColor: AppColors.secondary,
                     count: analyzedPatientCount,
                     unit: '명',
                     onTap: () {
+                      // 추후 분석 완료 화면으로 연결
                       _showPreparingMessage(context);
                     },
                   ),
@@ -566,8 +568,8 @@ final class _HomeViewState extends State<HomeView> {
             ),
             NavigationDestination(
               icon: Icon(Icons.analytics_outlined),
-              selectedIcon: Icon(Icons.analytics),
-              label: '분석',
+              selectedIcon: Icon(Icons.chat_bubble),
+              label: '채팅',
             ),
             NavigationDestination(
               icon: Icon(Icons.person_outline),
