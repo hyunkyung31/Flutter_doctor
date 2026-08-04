@@ -416,7 +416,7 @@ final class _HomeViewState extends State<HomeView> {
                     },
                   ),
                   _QuickMenuCard(
-                    title: '분석완료',
+                    title: '분석 완료',
                     icon: Icons.analytics_outlined,
                     iconColor: AppColors.secondary,
                     count: analyzedPatientCount,
