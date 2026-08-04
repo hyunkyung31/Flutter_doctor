@@ -18,6 +18,9 @@ import 'features/patient/repository/patient_repository.dart';
 import 'features/patient/service/patient_service.dart';
 import 'features/patient/view_model/patient_list_view_model.dart';
 
+import 'features/diagnosis/repository/diagnosis_repository.dart';
+import 'features/diagnosis/service/diagnosis_service.dart';
+
 import 'features/settings/view_model/settings_view_model.dart';
 import 'features/calendar/view_model/calendar_view_model.dart';
 
@@ -73,6 +76,16 @@ class MyApp extends StatelessWidget {
           ),
         ),
 
+        Provider<DiagnosisService>(
+          create: (context) => DiagnosisService(context.read<ApiClient>()),
+        ),
+
+        Provider<DiagnosisRepository>(
+          create: (context) => DiagnosisRepository(
+            context.read<DiagnosisService>(),
+            context.read<SecureStorage>(),
+          ),
+        ),
         ChangeNotifierProvider<PatientListViewModel>(
           create: (context) => PatientListViewModel(
             patientRepository: context.read<PatientRepository>(),

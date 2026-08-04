@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-
 import '../../ai_result/model/integrated_analysis_result.dart';
+import '../../patient/model/patient.dart';
+import '../../patient/repository/patient_repository.dart';
 import '../model/ai_analysis_type.dart';
 import '../model/diagnosis_entry_args.dart';
 import '../model/diagnosis_examination.dart';
@@ -9,29 +10,58 @@ import '../repository/diagnosis_repository.dart';
 
 final class DiagnosisViewModel extends ChangeNotifier {
   DiagnosisViewModel(
-    this._diagnosisRepository, {
-      DiagnosisEntryArgs entryArgs =
-          const DiagnosisEntryArgs(),
-  })  : _patientId = entryArgs.normalizedPatientId,
-        _initialExamId = entryArgs.examId;
+    this._diagnosisRepository,
+    this._patientRepository, {
+    DiagnosisEntryArgs entryArgs =
+        const DiagnosisEntryArgs(),
+  })  : _initialPatientId =
+            entryArgs.normalizedPatientId,
+        _patientId =
+            entryArgs.normalizedPatientId,
+        _initialExamId =
+            entryArgs.examId;
 
   final DiagnosisRepository _diagnosisRepository;
+  final PatientRepository _patientRepository;
+
+  final String? _initialPatientId;
   final int? _initialExamId;
 
   String? _patientId;
+  Patient? _selectedPatient;
+
   List<DiagnosisExamination> _examinations =
       const <DiagnosisExamination>[];
+
   DiagnosisExamination? _selectedExamination;
   AiAnalysisType? _selectedAnalysisType;
   DiagnosisPhase _phase = DiagnosisPhase.idle;
   IntegratedAnalysisResult? _analysisResult;
   String? _errorMessage;
+
   bool _showBoundingBox = false;
   bool _showHeatmap = false;
+  bool _isLoadingExaminations = false;
   bool _isDisposed = false;
+
+  int _patientLoadRequestId = 0;
+  bool _hasAppliedInitialExamId = false;
 
   String? get patientId {
     return _patientId;
+  }
+
+  Patient? get selectedPatient {
+    return _selectedPatient;
+  }
+
+  bool get hasSelectedPatient {
+    return _selectedPatient != null &&
+        _patientId != null;
+  }
+
+  bool get isLoadingExaminations {
+    return _isLoadingExaminations;
   }
 
   int? get initialExamId {
@@ -83,21 +113,40 @@ final class DiagnosisViewModel extends ChangeNotifier {
     final examination = _selectedExamination;
 
     return !isBusy &&
+        !_isLoadingExaminations &&
         examination != null &&
         examination.canRunIntegratedAnalysis &&
         _selectedAnalysisType != null;
   }
 
-  void initialize() {
+  Future<void> initialize() async {
     if (_phase != DiagnosisPhase.idle) {
       return;
     }
 
     _phase = DiagnosisPhase.selecting;
     _notifyListeners();
+
+    final initialPatientId = _initialPatientId;
+
+    if (initialPatientId != null) {
+      await loadPatient(initialPatientId);
+    }
   }
 
-  void setPatientId(String? patientId) {
+  Future<void> selectPatient(
+    Patient patient,
+  ) async {
+    await loadPatient(
+      patient.patientId,
+      patient: patient,
+    );
+  }
+
+  Future<void> loadPatient(
+    String patientId, {
+    Patient? patient,
+  }) async {
     if (isBusy) {
       return;
     }
@@ -105,18 +154,102 @@ final class DiagnosisViewModel extends ChangeNotifier {
     final normalizedPatientId =
         _normalizeString(patientId);
 
-    if (_patientId == normalizedPatientId) {
+    if (normalizedPatientId == null) {
+      _setFailure(
+        '환자 ID가 올바르지 않습니다.',
+      );
       return;
     }
 
+    final requestId =
+        ++_patientLoadRequestId;
+
     _patientId = normalizedPatientId;
+    _selectedPatient = patient;
+    _isLoadingExaminations = true;
     _examinations =
         const <DiagnosisExamination>[];
     _selectedExamination = null;
 
     _clearAnalysisState();
-    _updateSelectionPhase();
+    _phase = DiagnosisPhase.selecting;
     _notifyListeners();
+
+    try {
+      final patientDetail =
+          await _patientRepository
+              .getPatientDetail(
+        normalizedPatientId,
+      );
+
+      if (_isDisposed ||
+          requestId !=
+              _patientLoadRequestId) {
+        return;
+      }
+
+      final resolvedPatientId =
+          _normalizeString(
+            patientDetail.patient.patientId,
+          ) ??
+          normalizedPatientId;
+
+      final examinations =
+          _convertExaminations(
+        patientDetail.examinations,
+        patientId: resolvedPatientId,
+      );
+
+      _patientId = resolvedPatientId;
+      _selectedPatient =
+          patientDetail.patient;
+      _examinations =
+          List<DiagnosisExamination>
+              .unmodifiable(
+        examinations,
+      );
+
+      _applyInitialExamination();
+      _updateSelectionPhase();
+    } catch (error) {
+      if (_isDisposed ||
+          requestId !=
+              _patientLoadRequestId) {
+        return;
+      }
+
+      _examinations =
+          const <DiagnosisExamination>[];
+      _selectedExamination = null;
+      _analysisResult = null;
+      _errorMessage =
+          _cleanErrorMessage(error);
+      _phase = DiagnosisPhase.failed;
+    } finally {
+      if (!_isDisposed &&
+          requestId ==
+              _patientLoadRequestId) {
+        _isLoadingExaminations = false;
+        _notifyListeners();
+      }
+    }
+  }
+
+  Future<void> refreshSelectedPatient() async {
+    final currentPatientId =
+        _patientId;
+
+    if (currentPatientId == null) {
+      _setFailure(
+        '선택된 환자가 없습니다.',
+      );
+      return;
+    }
+
+    await loadPatient(
+      currentPatientId,
+      patient: _selectedPatient,
+    );
   }
 
   void setExaminations(
@@ -126,21 +259,24 @@ final class DiagnosisViewModel extends ChangeNotifier {
       return;
     }
 
-    _examinations = List<DiagnosisExamination>
-        .unmodifiable(examinations);
+    _examinations =
+        List<DiagnosisExamination>
+            .unmodifiable(
+      examinations,
+    );
 
     final currentExamId =
         _selectedExamination?.examId;
 
     if (currentExamId != null) {
       _selectedExamination =
-          _findExamination(currentExamId);
+          _findExamination(
+        currentExamId,
+      );
     }
 
-    if (_selectedExamination == null &&
-        _initialExamId != null) {
-      _selectedExamination =
-          _findExamination(_initialExamId);
+    if (_selectedExamination == null) {
+      _applyInitialExamination();
     }
 
     _clearAnalysisState();
@@ -159,8 +295,13 @@ final class DiagnosisViewModel extends ChangeNotifier {
 
     _selectedExamination = examination;
 
-    if (examination?.patientId != null) {
-      _patientId = examination!.patientId!.trim();
+    final examinationPatientId =
+        _normalizeString(
+      examination?.patientId,
+    );
+
+    if (examinationPatientId != null) {
+      _patientId = examinationPatientId;
     }
 
     _clearAnalysisState();
@@ -172,14 +313,14 @@ final class DiagnosisViewModel extends ChangeNotifier {
     AiAnalysisType analysisType,
   ) {
     if (isBusy ||
-        _selectedAnalysisType == analysisType) {
+        _selectedAnalysisType ==
+            analysisType) {
       return;
     }
 
     _selectedAnalysisType = analysisType;
 
     _clearAnalysisState();
-    _applyDefaultOverlayState();
     _updateSelectionPhase();
     _notifyListeners();
   }
@@ -189,8 +330,10 @@ final class DiagnosisViewModel extends ChangeNotifier {
       return;
     }
 
-    final examination = _selectedExamination;
-    final analysisType = _selectedAnalysisType;
+    final examination =
+        _selectedExamination;
+    final analysisType =
+        _selectedAnalysisType;
 
     if (examination == null) {
       _setFailure(
@@ -206,7 +349,8 @@ final class DiagnosisViewModel extends ChangeNotifier {
       return;
     }
 
-    if (!examination.canRunIntegratedAnalysis) {
+    if (!examination
+        .canRunIntegratedAnalysis) {
       _setFailure(
         '키프레임이 있는 검사만 AI 분석을 실행할 수 있습니다.',
       );
@@ -220,8 +364,9 @@ final class DiagnosisViewModel extends ChangeNotifier {
     _notifyListeners();
 
     try {
-      final result = await _diagnosisRepository
-          .runIntegratedAnalysis(
+      final result =
+          await _diagnosisRepository
+              .runIntegratedAnalysis(
         examId: examination.examId,
       );
 
@@ -230,12 +375,15 @@ final class DiagnosisViewModel extends ChangeNotifier {
       }
 
       _analysisResult = result;
+
       _showBoundingBox =
           analysisType.supportsBoundingBox &&
               result.canShowBoundingBox;
+
       _showHeatmap =
           analysisType.supportsHeatmap &&
               result.canShowHeatmap;
+
       _phase = DiagnosisPhase.completed;
     } catch (error) {
       if (_isDisposed) {
@@ -255,8 +403,11 @@ final class DiagnosisViewModel extends ChangeNotifier {
     await runAnalysis();
   }
 
-  void setBoundingBoxVisible(bool visible) {
-    final analysisType = _selectedAnalysisType;
+  void setBoundingBoxVisible(
+    bool visible,
+  ) {
+    final analysisType =
+        _selectedAnalysisType;
     final result = _analysisResult;
 
     if (analysisType == null ||
@@ -278,8 +429,11 @@ final class DiagnosisViewModel extends ChangeNotifier {
     _notifyListeners();
   }
 
-  void setHeatmapVisible(bool visible) {
-    final analysisType = _selectedAnalysisType;
+  void setHeatmapVisible(
+    bool visible,
+  ) {
+    final analysisType =
+        _selectedAnalysisType;
     final result = _analysisResult;
 
     if (analysisType == null ||
@@ -330,21 +484,98 @@ final class DiagnosisViewModel extends ChangeNotifier {
       return;
     }
 
+    ++_patientLoadRequestId;
+
+    _patientId = null;
+    _selectedPatient = null;
+    _examinations =
+        const <DiagnosisExamination>[];
     _selectedExamination = null;
     _selectedAnalysisType = null;
     _analysisResult = null;
     _errorMessage = null;
     _showBoundingBox = false;
     _showHeatmap = false;
+    _isLoadingExaminations = false;
+    _hasAppliedInitialExamId = true;
     _phase = DiagnosisPhase.selecting;
 
     _notifyListeners();
   }
 
+  List<DiagnosisExamination>
+      _convertExaminations(
+    List<Map<String, dynamic>> values, {
+    required String patientId,
+  }) {
+    final examinations =
+        <DiagnosisExamination>[];
+
+    for (var index = 0;
+        index < values.length;
+        index++) {
+      final data =
+          Map<String, dynamic>.from(
+        values[index],
+      );
+
+      final examinationPatientId =
+          _normalizeString(
+        data['patient_id']?.toString() ??
+            data['patientId']?.toString(),
+      );
+
+      if (examinationPatientId == null) {
+        data['patient_id'] = patientId;
+      }
+
+      try {
+        examinations.add(
+          DiagnosisExamination.fromJson(
+            data,
+          ),
+        );
+      } on FormatException catch (error) {
+        throw DiagnosisViewModelException(
+          '검사 목록의 ${index + 1}번째 데이터가 올바르지 않습니다. '
+          '${error.message}',
+        );
+      }
+    }
+
+    return examinations;
+  }
+
+  void _applyInitialExamination() {
+    if (_hasAppliedInitialExamId ||
+        _initialExamId == null) {
+      return;
+    }
+
+    if (_initialPatientId != null &&
+        _patientId !=
+            _initialPatientId) {
+      return;
+    }
+
+    final examination =
+        _findExamination(
+      _initialExamId,
+    );
+
+    if (examination == null) {
+      return;
+    }
+
+    _selectedExamination = examination;
+    _hasAppliedInitialExamId = true;
+  }
+
   DiagnosisExamination? _findExamination(
     int examId,
   ) {
-    for (final examination in _examinations) {
+    for (final examination
+        in _examinations) {
       if (examination.examId == examId) {
         return examination;
       }
@@ -360,12 +591,16 @@ final class DiagnosisViewModel extends ChangeNotifier {
   }
 
   void _applyDefaultOverlayState() {
-    final analysisType = _selectedAnalysisType;
+    final analysisType =
+        _selectedAnalysisType;
 
     _showBoundingBox =
-        analysisType?.supportsBoundingBox ?? false;
+        analysisType?.supportsBoundingBox ??
+            false;
+
     _showHeatmap =
-        analysisType?.supportsHeatmap ?? false;
+        analysisType?.supportsHeatmap ??
+            false;
   }
 
   void _updateSelectionPhase() {
@@ -382,23 +617,36 @@ final class DiagnosisViewModel extends ChangeNotifier {
     _phase = DiagnosisPhase.selecting;
   }
 
-  void _setFailure(String message) {
+  void _setFailure(
+    String message,
+  ) {
     _analysisResult = null;
     _errorMessage = message;
     _phase = DiagnosisPhase.failed;
     _notifyListeners();
   }
 
-  String _cleanErrorMessage(Object error) {
-    final message = error.toString().trim();
+  String _cleanErrorMessage(
+    Object error,
+  ) {
+    final message =
+        error.toString().trim();
 
     if (message.isEmpty) {
-      return '통합 AI 분석 중 오류가 발생했습니다.';
+      return 'AI 분석 화면 데이터를 불러오는 중 오류가 발생했습니다.';
     }
 
     return message
         .replaceFirst(
           'DiagnosisRepositoryException: ',
+          '',
+        )
+        .replaceFirst(
+          'PatientRepositoryException: ',
+          '',
+        )
+        .replaceFirst(
+          'DiagnosisViewModelException: ',
           '',
         )
         .replaceFirst(
@@ -408,8 +656,11 @@ final class DiagnosisViewModel extends ChangeNotifier {
         .trim();
   }
 
-  String? _normalizeString(String? value) {
-    final normalizedValue = value?.trim();
+  String? _normalizeString(
+    String? value,
+  ) {
+    final normalizedValue =
+        value?.trim();
 
     if (normalizedValue == null ||
         normalizedValue.isEmpty) {
@@ -429,5 +680,19 @@ final class DiagnosisViewModel extends ChangeNotifier {
   void dispose() {
     _isDisposed = true;
     super.dispose();
+  }
+}
+
+final class DiagnosisViewModelException
+    implements Exception {
+  const DiagnosisViewModelException(
+    this.message,
+  );
+
+  final String message;
+
+  @override
+  String toString() {
+    return message;
   }
 }

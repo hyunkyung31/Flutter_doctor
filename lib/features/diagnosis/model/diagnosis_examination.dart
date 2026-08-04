@@ -76,10 +76,12 @@ final class DiagnosisExamination {
         json['key_frame_url'] ??
             json['image_url'] ??
             json['frame_url'] ??
-            json['thumbnail_url'],
+            json['thumbnail_url'] ??
+            json['key_frame_path'],
       ),
       videoUrl: _nullableString(
-        json['video_url'],
+        json['video_url'] ??
+            json['video_path'],
       ),
     );
   }
