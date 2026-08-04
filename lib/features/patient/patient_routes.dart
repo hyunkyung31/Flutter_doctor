@@ -7,6 +7,8 @@ import 'repository/patient_repository.dart';
 import 'view/patient_detail_view.dart';
 import 'view/patient_list_view.dart';
 import 'view_model/patient_detail_view_model.dart';
+import '../auth/view/sensitive_access_gate.dart';// 추가 - 민감정보 재인증
+import '../../core/security/screen_protection/screen_capture_guard.dart';// 추가 - 캡처방지
 
 final List<RouteBase> patientRoutes = [
   GoRoute(
@@ -33,7 +35,7 @@ final List<RouteBase> patientRoutes = [
           patientId.trim().isEmpty) {
         return const _PatientNotFoundView();
       }
-
+// 수정 - 민감정보 재인증, 캡처 방지 추가
       return ChangeNotifierProvider<
           PatientDetailViewModel>(
         create: (context) {
@@ -46,11 +48,17 @@ final List<RouteBase> patientRoutes = [
                     SecureStorage>(),
           );
         },
-        child: PatientDetailView(
-          patientId: patientId,
+        child: SensitiveAccessGate(
+          localizedReason:
+          "환자 상세정보와 의료영상을 확인하려면 본인 인증이 필요합니다.",
+          child: ScreenCaptureGuard(
+            child: PatientDetailView(
+              patientId: patientId,
         ),
-      );
-    },
+      ),
+    ),
+   );
+  },
   ),
 ];
 

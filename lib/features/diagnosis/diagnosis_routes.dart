@@ -7,6 +7,8 @@ import 'repository/diagnosis_repository.dart';
 import 'view/diagnosis_view.dart';
 import 'view_model/diagnosis_view_model.dart';
 import '../../core/storage/secure_storage.dart';
+import '../auth/view/sensitive_access_gate.dart';
+import '../../core/security/screen_protection/screen_capture_guard.dart';
 
 // AI 분석 요청 화면의 Route 이름과 경로를 기능 내부에서 관리
 abstract final class DiagnosisRoute {
@@ -36,11 +38,19 @@ final List<RouteBase> diagnosisRoutes = [
               DiagnosisRepository>(),
           context.read<
               PatientRepository>(),
-          secureStorage: context.read<SecureStorage>(),
+          secureStorage:
+              context.read<SecureStorage>(),
           entryArgs: entryArgs,
         ),
-        child: const DiagnosisView(),
+        child: const SensitiveAccessGate(
+          localizedReason:
+              '환자 의료영상과 AI 분석 결과를 확인하려면 본인 인증이 필요합니다.',
+          child: ScreenCaptureGuard(
+            child:DiagnosisView(),
+          ),
+        ),
       );
+
     },
   ),
 ];
