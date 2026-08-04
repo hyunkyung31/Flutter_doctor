@@ -23,6 +23,13 @@ abstract final class ApiEndpoints {
   // 환자 검색
   static const String patientSearch = '/api/patients/search/';
 
+  // 협진 요청
+  static const String consultations = '/api/consultations/';
+
+  static String consultationStatus(String consultationId) {
+    return '/api/consultations/$consultationId/status/';
+  }
+
   // 환자 상세 조회
   static String patientDetail(String patientId) {
     return '/api/patients/$patientId/';
