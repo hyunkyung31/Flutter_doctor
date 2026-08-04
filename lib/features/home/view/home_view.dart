@@ -401,7 +401,7 @@ final class _HomeViewState extends State<HomeView> {
                     count: consultationCount,
                     unit: '건',
                     onTap: () {
-                      _showPreparingMessage(context);
+                      context.pushNamed('consultationRequest');
                     },
                   ),
                   _QuickMenuCard(
