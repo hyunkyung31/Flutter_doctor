@@ -14,11 +14,12 @@ import '../../calendar/widgets/schedule_bottom_sheet.dart';
 import '../../settings/view_model/settings_view_model.dart';
 import '../widgets/Doctor_briefing_card.dart';
 import '../widgets/patient_status_card.dart';
+// import '../widgets/recent_patient_section.dart';
+// import '../widgets/today_schedule_section.dart';
+// import '../widgets/today_todo_section.dart';
 
 final class HomeView extends StatefulWidget {
-  const HomeView({
-    super.key,
-  });
+  const HomeView({super.key});
 
   @override
   State<HomeView> createState() => _HomeViewState();
@@ -40,9 +41,7 @@ final class _HomeViewState extends State<HomeView> {
   Future<void> _loadTodoItems() async {
     final preferences = SharedPreferencesAsync();
 
-    final savedJson = await preferences.getString(
-      _todoStorageKey,
-    );
+    final savedJson = await preferences.getString(_todoStorageKey);
 
     if (!mounted) {
       return;
@@ -56,19 +55,14 @@ final class _HomeViewState extends State<HomeView> {
     }
 
     try {
-      final decodedData = jsonDecode(
-        savedJson,
-      ) as List<dynamic>;
+      final decodedData = jsonDecode(savedJson) as List<dynamic>;
 
       final loadedItems = decodedData.map((item) {
-        final map = Map<String, dynamic>.from(
-          item as Map,
-        );
+        final map = Map<String, dynamic>.from(item as Map);
 
         return <String, dynamic>{
           'title': map['title']?.toString() ?? '',
-          'isCompleted':
-              map['isCompleted'] as bool? ?? false,
+          'isCompleted': map['isCompleted'] as bool? ?? false,
         };
       }).toList();
 
@@ -85,20 +79,13 @@ final class _HomeViewState extends State<HomeView> {
   Future<void> _saveTodoItems() async {
     final preferences = SharedPreferencesAsync();
 
-    await preferences.setString(
-      _todoStorageKey,
-      jsonEncode(_todoItems),
-    );
+    await preferences.setString(_todoStorageKey, jsonEncode(_todoItems));
   }
 
-  Future<void> _logout(
-    BuildContext context,
-  ) async {
-    final authViewModel =
-        context.read<AuthViewModel>();
+  Future<void> _logout(BuildContext context) async {
+    final authViewModel = context.read<AuthViewModel>();
 
-    final isSuccess =
-        await authViewModel.logout();
+    final isSuccess = await authViewModel.logout();
 
     if (!context.mounted) {
       return;
@@ -109,16 +96,10 @@ final class _HomeViewState extends State<HomeView> {
     }
   }
 
-  void _showPreparingMessage(
-    BuildContext context,
-  ) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          '현재 준비 중인 기능입니다.',
-        ),
-      ),
-    );
+  void _showPreparingMessage(BuildContext context) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('현재 준비 중인 기능입니다.')));
   }
 
   Future<void> _addTodoItem() async {
@@ -131,9 +112,7 @@ final class _HomeViewState extends State<HomeView> {
           title: Text(
             '할 일 추가',
             style: TextStyle(
-              color: Theme.of(
-                dialogContext,
-              ).colorScheme.onSurface,
+              color: Theme.of(dialogContext).colorScheme.onSurface,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -149,21 +128,17 @@ final class _HomeViewState extends State<HomeView> {
             onSubmitted: (value) {
               final todo = value.trim();
 
-              if (todo.isEmpty) {
-                return;
+              if (todo.isNotEmpty) {
+                Navigator.of(dialogContext).pop(todo);
               }
 
-              Navigator.of(
-                dialogContext,
-              ).pop(todo);
+              Navigator.of(dialogContext).pop(todo);
             },
           ),
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.of(
-                  dialogContext,
-                ).pop();
+                Navigator.of(dialogContext).pop();
               },
               child: const Text('취소'),
             ),
@@ -173,14 +148,9 @@ final class _HomeViewState extends State<HomeView> {
                   return;
                 }
 
-                Navigator.of(
-                  dialogContext,
-                ).pop(todoTitle);
+                Navigator.of(dialogContext).pop(todoTitle);
               },
-              style: FilledButton.styleFrom(
-                backgroundColor:
-                    AppColors.primary,
-              ),
+              style: FilledButton.styleFrom(backgroundColor: AppColors.primary),
               child: const Text('추가'),
             ),
           ],
@@ -188,9 +158,7 @@ final class _HomeViewState extends State<HomeView> {
       },
     );
 
-    if (!mounted ||
-        result == null ||
-        result.trim().isEmpty) {
+    if (!mounted || result == null || result.trim().isEmpty) {
       return;
     }
 
@@ -201,34 +169,22 @@ final class _HomeViewState extends State<HomeView> {
     }
 
     setState(() {
-      _todoItems.add({
-        'title': result.trim(),
-        'isCompleted': false,
-      });
+      _todoItems.add({'title': result.trim(), 'isCompleted': false});
     });
 
     await _saveTodoItems();
   }
 
-  Future<void> _toggleTodoItem(
-    int index,
-    bool? value,
-  ) async {
+  Future<void> _toggleTodoItem(int index, bool? value) async {
     setState(() {
-      _todoItems[index]['isCompleted'] =
-          value ?? false;
+      _todoItems[index]['isCompleted'] = value ?? false;
     });
 
     await _saveTodoItems();
   }
 
-  Future<void> _removeTodoItem(
-    int index,
-  ) async {
-    final removedItem =
-        Map<String, dynamic>.from(
-      _todoItems[index],
-    );
+  Future<void> _removeTodoItem(int index) async {
+    final removedItem = Map<String, dynamic>.from(_todoItems[index]);
 
     setState(() {
       _todoItems.removeAt(index);
@@ -244,13 +200,9 @@ final class _HomeViewState extends State<HomeView> {
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
-          duration: const Duration(
-            seconds: 2,
-          ),
+          duration: const Duration(seconds: 2),
           persist: false,
-          content: Text(
-            '${removedItem['title']} 항목을 삭제했습니다.',
-          ),
+          content: Text('${removedItem['title']} 항목을 삭제했습니다.'),
           action: SnackBarAction(
             label: '되돌리기',
             onPressed: () async {
@@ -258,16 +210,10 @@ final class _HomeViewState extends State<HomeView> {
                 return;
               }
 
-              final insertIndex = index.clamp(
-                0,
-                _todoItems.length,
-              );
+              final insertIndex = index.clamp(0, _todoItems.length);
 
               setState(() {
-                _todoItems.insert(
-                  insertIndex,
-                  removedItem,
-                );
+                _todoItems.insert(insertIndex, removedItem);
               });
 
               await _saveTodoItems();
@@ -279,23 +225,17 @@ final class _HomeViewState extends State<HomeView> {
 
   @override
   Widget build(BuildContext context) {
-    final authViewModel =
-        context.watch<AuthViewModel>();
+    final authViewModel = context.watch<AuthViewModel>();
 
-    final settingsViewModel =
-        context.watch<SettingsViewModel>();
+    final settingsViewModel = context.watch<SettingsViewModel>();
 
-    final calendarViewModel =
-        context.watch<CalendarViewModel>();
-    
-    final patientListViewModel = 
-        context.watch<PatientListViewModel>();
-    
-    final patientCount =
-        patientListViewModel.patientCount;
+    final calendarViewModel = context.watch<CalendarViewModel>();
 
-    final doctorName =
-        authViewModel.doctorName ?? '의료진';
+    final patientListViewModel = context.watch<PatientListViewModel>();
+
+    final patientCount = patientListViewModel.patientCount;
+
+    final doctorName = authViewModel.doctorName ?? '의료진';
 
     // 실제 데이터 ViewModel을 연결하면 아래 값을 변경하면 됨.
     const consultationCount = 0;
@@ -311,8 +251,8 @@ final class _HomeViewState extends State<HomeView> {
     final textTheme = theme.textTheme;
 
     return Scaffold(
-      backgroundColor:
-          theme.scaffoldBackgroundColor,
+      backgroundColor: theme.scaffoldBackgroundColor,
+
       appBar: AppBar(
         backgroundColor: colorScheme.surface,
         surfaceTintColor: colorScheme.surface,
@@ -331,31 +271,24 @@ final class _HomeViewState extends State<HomeView> {
               IconButton(
                 tooltip: '채팅',
                 onPressed: () {
-                  _showPreparingMessage(
-                    context,
-                  );
+                  _showPreparingMessage(context);
                 },
-                icon: const Icon(
-                  Icons.chat_bubble_outline,
-                ),
+                icon: const Icon(Icons.chat_bubble_outline),
               ),
               Positioned(
                 right: 6,
                 top: 5,
                 child: Container(
-                  constraints:
-                      const BoxConstraints(
+                  constraints: const BoxConstraints(
                     minWidth: 18,
                     minHeight: 18,
                   ),
-                  padding:
-                      const EdgeInsets.symmetric(
+                  padding: const EdgeInsets.symmetric(
                     horizontal: 5,
                     vertical: 1,
                   ),
                   alignment: Alignment.center,
-                  decoration:
-                      const BoxDecoration(
+                  decoration: const BoxDecoration(
                     color: AppColors.accent,
                     shape: BoxShape.circle,
                   ),
@@ -364,8 +297,7 @@ final class _HomeViewState extends State<HomeView> {
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 10,
-                      fontWeight:
-                          FontWeight.bold,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
@@ -378,13 +310,9 @@ final class _HomeViewState extends State<HomeView> {
               IconButton(
                 tooltip: '알림',
                 onPressed: () {
-                  _showPreparingMessage(
-                    context,
-                  );
+                  _showPreparingMessage(context);
                 },
-                icon: const Icon(
-                  Icons.notifications_none,
-                ),
+                icon: const Icon(Icons.notifications_none),
               ),
               const Positioned(
                 right: 10,
@@ -394,21 +322,14 @@ final class _HomeViewState extends State<HomeView> {
                     color: AppColors.accent,
                     shape: BoxShape.circle,
                   ),
-                  child: SizedBox(
-                    width: 8,
-                    height: 8,
-                  ),
+                  child: SizedBox(width: 8, height: 8),
                 ),
               ),
             ],
           ),
           IconButton(
-            tooltip:
-                settingsViewModel.isDarkMode
-                    ? '라이트 모드로 변경'
-                    : '다크 모드로 변경',
-            onPressed:
-                settingsViewModel.toggleTheme,
+            tooltip: settingsViewModel.isDarkMode ? '라이트 모드로 변경' : '다크 모드로 변경',
+            onPressed: settingsViewModel.toggleTheme,
             icon: Icon(
               settingsViewModel.isDarkMode
                   ? Icons.light_mode_outlined
@@ -417,48 +338,41 @@ final class _HomeViewState extends State<HomeView> {
           ),
         ],
       ),
+
       body: SafeArea(
         child: RefreshIndicator(
           color: AppColors.primary,
           onRefresh: () async {},
           child: ListView(
-            physics:
-                const AlwaysScrollableScrollPhysics(),
+            physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.all(20),
             children: [
               DoctorBriefingCard(
                 doctorName: doctorName,
-                schedules:
-                    calendarViewModel.schedules,
+                schedules: calendarViewModel.schedules,
                 todoItems: _todoItems,
               ),
               const SizedBox(height: 20),
               PatientStatusSection(
-                reservationCount:
-                    reservationCount,
+                reservationCount: reservationCount,
                 waitingCount: waitingCount,
                 onReservationTap: () {
-                  _showPreparingMessage(
-                    context,
-                  );
+                  _showPreparingMessage(context);
                 },
                 onWaitingTap: () {
-                  _showPreparingMessage(
-                    context,
-                  );
+                  _showPreparingMessage(context);
                 },
               ),
               const SizedBox(height: 26),
               Text(
                 '메인 메뉴',
-                style:
-                    textTheme.titleLarge?.copyWith(
+                style: textTheme.titleLarge?.copyWith(
                   color: colorScheme.onSurface,
                   fontWeight: FontWeight.bold,
                 ),
               ),
               const SizedBox(height: 14),
-              
+
               GridView.count(
                 crossAxisCount: 2,
                 shrinkWrap: true,
@@ -519,55 +433,39 @@ final class _HomeViewState extends State<HomeView> {
                   Expanded(
                     child: Text(
                       '캘린더',
-                      style: textTheme
-                          .titleLarge
-                          ?.copyWith(
-                        color:
-                            colorScheme.onSurface,
-                        fontWeight:
-                            FontWeight.bold,
+                      style: textTheme.titleLarge?.copyWith(
+                        color: colorScheme.onSurface,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
                   TextButton.icon(
                     onPressed: () {
-                      context.pushNamed(
-                        'calendar',
-                      );
+                      context.pushNamed('calendar');
                     },
-                    style:
-                        TextButton.styleFrom(
-                      foregroundColor:
-                          colorScheme.primary,
+                    style: TextButton.styleFrom(
+                      foregroundColor: colorScheme.primary,
                     ),
-                    icon: const Icon(
-                      Icons
-                          .calendar_month_outlined,
-                      size: 19,
-                    ),
+                    icon: const Icon(Icons.calendar_month_outlined, size: 19),
                     label: const Text(
                       '전체보기',
-                      style: TextStyle(
-                        fontWeight:
-                            FontWeight.w600,
-                      ),
+                      style: TextStyle(fontWeight: FontWeight.w600),
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 12),
+
+              // 홈 미니 캘린더
               _HomeCalendar(
                 selectedDate: _selectedDate,
-                schedules:
-                    calendarViewModel.schedules,
+                schedules: calendarViewModel.schedules,
                 onDateChanged: (date) {
                   setState(() {
                     _selectedDate = date;
                   });
 
-                  calendarViewModel.selectDate(
-                    date,
-                  );
+                  calendarViewModel.selectDate(date);
                 },
               ),
               const SizedBox(height: 30),
@@ -576,27 +474,18 @@ final class _HomeViewState extends State<HomeView> {
                   Expanded(
                     child: Text(
                       'To-do List',
-                      style: textTheme
-                          .titleLarge
-                          ?.copyWith(
-                        color:
-                            colorScheme.onSurface,
-                        fontWeight:
-                            FontWeight.bold,
+                      style: textTheme.titleLarge?.copyWith(
+                        color: colorScheme.onSurface,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
                   TextButton.icon(
                     onPressed: _addTodoItem,
-                    style:
-                        TextButton.styleFrom(
-                      foregroundColor:
-                          AppColors.secondary,
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColors.secondary,
                     ),
-                    icon: const Icon(
-                      Icons.add,
-                      size: 20,
-                    ),
+                    icon: const Icon(Icons.add, size: 20),
                     label: const Text('추가'),
                   ),
                 ],
@@ -618,50 +507,33 @@ final class _HomeViewState extends State<HomeView> {
           // 선택된 메뉴의 둥근 배경
           indicatorColor: colorScheme.primary,
 
-          iconTheme:
-              WidgetStateProperty.resolveWith<IconThemeData>(
-            (states) {
-              final isSelected = states.contains(
-                WidgetState.selected,
-              );
+          iconTheme: WidgetStateProperty.resolveWith<IconThemeData>((states) {
+            final isSelected = states.contains(WidgetState.selected);
 
-              return IconThemeData(
-                color: isSelected
-                    ? colorScheme.onPrimary
-                    : colorScheme.onSurface.withValues(
-                        alpha: 0.90,
-                      ),
-                size: isSelected ? 25 : 23,
-              );
-            },
-          ),
+            return IconThemeData(
+              color: isSelected
+                  ? colorScheme.onPrimary
+                  : colorScheme.onSurface.withValues(alpha: 0.90),
+              size: isSelected ? 25 : 23,
+            );
+          }),
 
-          labelTextStyle:
-              WidgetStateProperty.resolveWith<TextStyle>(
-            (states) {
-              final isSelected = states.contains(
-                WidgetState.selected,
-              );
+          labelTextStyle: WidgetStateProperty.resolveWith<TextStyle>((states) {
+            final isSelected = states.contains(WidgetState.selected);
 
-              return TextStyle(
-                color: isSelected
-                    ? colorScheme.primary
-                    : colorScheme.onSurface.withValues(
-                        alpha: 0.90,
-                      ),
-                fontSize: 12,
-                fontWeight: isSelected
-                    ? FontWeight.w800
-                    : FontWeight.w600,
-              );
-            },
-          ),
+            return TextStyle(
+              color: isSelected
+                  ? colorScheme.primary
+                  : colorScheme.onSurface.withValues(alpha: 0.90),
+              fontSize: 12,
+              fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+            );
+          }),
         ),
         child: NavigationBar(
           selectedIndex: 0,
           height: 72,
-          labelBehavior:
-              NavigationDestinationLabelBehavior.alwaysShow,
+          labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
           onDestinationSelected: (index) {
             switch (index) {
               case 0:
@@ -673,53 +545,33 @@ final class _HomeViewState extends State<HomeView> {
                 break;
 
               case 2:
-                _showPreparingMessage(
-                  context,
-                );
+                _showPreparingMessage(context);
                 break;
 
               case 3:
-                _showPreparingMessage(
-                  context,
-                );
+                _showPreparingMessage(context);
                 break;
             }
           },
           destinations: const [
             NavigationDestination(
-              icon: Icon(
-                Icons.home_outlined,
-              ),
-              selectedIcon: Icon(
-                Icons.home,
-              ),
+              icon: Icon(Icons.home_outlined),
+              selectedIcon: Icon(Icons.home),
               label: '홈',
             ),
             NavigationDestination(
-              icon: Icon(
-                Icons.people_outline,
-              ),
-              selectedIcon: Icon(
-                Icons.people,
-              ),
+              icon: Icon(Icons.people_outline),
+              selectedIcon: Icon(Icons.people),
               label: '환자',
             ),
             NavigationDestination(
-              icon: Icon(
-                Icons.analytics_outlined,
-              ),
-              selectedIcon: Icon(
-                Icons.analytics,
-              ),
+              icon: Icon(Icons.analytics_outlined),
+              selectedIcon: Icon(Icons.analytics),
               label: '분석',
             ),
             NavigationDestination(
-              icon: Icon(
-                Icons.person_outline,
-              ),
-              selectedIcon: Icon(
-                Icons.person,
-              ),
+              icon: Icon(Icons.person_outline),
+              selectedIcon: Icon(Icons.person),
               label: '마이페이지',
             ),
           ],
@@ -752,15 +604,10 @@ final class _QuickMenuCard extends StatelessWidget {
     final colorScheme = theme.colorScheme;
     final textTheme = theme.textTheme;
 
-    final isDarkMode =
-    theme.brightness == Brightness.dark;
+    final isDarkMode = theme.brightness == Brightness.dark;
 
     final effectiveIconColor = isDarkMode
-        ? Color.lerp(
-            iconColor,
-            Colors.white,
-            0.35,
-          )!
+        ? Color.lerp(iconColor, Colors.white, 0.35)!
         : iconColor;
 
     return Card(
@@ -769,18 +616,15 @@ final class _QuickMenuCard extends StatelessWidget {
       color: colorScheme.surface,
       elevation: 1,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
-        side: BorderSide(
-          color: theme.dividerColor,
-        ),
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: theme.dividerColor),
       ),
       child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(16),
           child: Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
@@ -792,14 +636,9 @@ final class _QuickMenuCard extends StatelessWidget {
                       color: effectiveIconColor.withValues(
                         alpha: isDarkMode ? 0.20 : 0.10,
                       ),
-                      borderRadius:
-                          BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Icon(
-                      icon,
-                      size: 19,
-                      color: effectiveIconColor,
-                    ),
+                    child: Icon(icon, size: 19, color: effectiveIconColor),
                   ),
 
                   const SizedBox(width: 10),
@@ -808,16 +647,11 @@ final class _QuickMenuCard extends StatelessWidget {
                     child: Text(
                       title,
                       maxLines: 1,
-                      overflow:
-                          TextOverflow.ellipsis,
-                      style: textTheme
-                          .titleSmall
-                          ?.copyWith(
-                        color:
-                            colorScheme.onSurface,
+                      overflow: TextOverflow.ellipsis,
+                      style: textTheme.titleSmall?.copyWith(
+                        color: colorScheme.onSurface,
                         fontSize: 15,
-                        fontWeight:
-                            FontWeight.w700,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                   ),
@@ -840,8 +674,7 @@ final class _QuickMenuCard extends StatelessWidget {
                 alignment: Alignment.centerRight,
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment:
-                      CrossAxisAlignment.end,
+                  crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
                       '$count',
@@ -849,16 +682,12 @@ final class _QuickMenuCard extends StatelessWidget {
                         color: effectiveIconColor,
                         fontSize: 20,
                         height: 1,
-                        fontWeight:
-                            FontWeight.w800,
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
                     const SizedBox(width: 3),
                     Padding(
-                      padding:
-                          const EdgeInsets.only(
-                        bottom: 1,
-                      ),
+                      padding: const EdgeInsets.only(bottom: 1),
                       child: Text(
                         unit,
                         style: TextStyle(
@@ -866,8 +695,7 @@ final class _QuickMenuCard extends StatelessWidget {
                             alpha: isDarkMode ? 0.85 : 0.68,
                           ),
                           fontSize: 11,
-                          fontWeight:
-                              FontWeight.w600,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),
@@ -882,8 +710,7 @@ final class _QuickMenuCard extends StatelessWidget {
   }
 }
 
-final class _HomeCalendar
-    extends StatefulWidget {
+final class _HomeCalendar extends StatefulWidget {
   const _HomeCalendar({
     required this.selectedDate,
     required this.schedules,
@@ -892,17 +719,13 @@ final class _HomeCalendar
 
   final DateTime selectedDate;
   final List<ScheduleItem> schedules;
-  final ValueChanged<DateTime>
-      onDateChanged;
+  final ValueChanged<DateTime> onDateChanged;
 
   @override
-  State<_HomeCalendar> createState() {
-    return _HomeCalendarState();
-  }
+  State<_HomeCalendar> createState() => _HomeCalendarState();
 }
 
-final class _HomeCalendarState
-    extends State<_HomeCalendar> {
+final class _HomeCalendarState extends State<_HomeCalendar> {
   late DateTime _focusedDate;
 
   @override
@@ -912,15 +735,10 @@ final class _HomeCalendarState
   }
 
   @override
-  void didUpdateWidget(
-    covariant _HomeCalendar oldWidget,
-  ) {
+  void didUpdateWidget(covariant _HomeCalendar oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    if (!isSameDay(
-      oldWidget.selectedDate,
-      widget.selectedDate,
-    )) {
+    if (!isSameDay(oldWidget.selectedDate, widget.selectedDate)) {
       _focusedDate = widget.selectedDate;
     }
   }
@@ -935,25 +753,14 @@ final class _HomeCalendarState
     final colorScheme = theme.colorScheme;
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(
-        8,
-        8,
-        8,
-        12,
-      ),
+      padding: const EdgeInsets.fromLTRB(8, 8, 8, 12),
       decoration: BoxDecoration(
         color: colorScheme.surface,
-        borderRadius:
-            BorderRadius.circular(20),
-        border: Border.all(
-          color: theme.dividerColor,
-        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: theme.dividerColor),
         boxShadow: [
           BoxShadow(
-            color:
-                AppColors.primary.withValues(
-              alpha: 0.05,
-            ),
+            color: AppColors.primary.withValues(alpha: 0.05),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -961,50 +768,37 @@ final class _HomeCalendarState
       ),
       child: TableCalendar<ScheduleItem>(
         firstDay: DateTime(2020, 1, 1),
-        lastDay:
-            DateTime(2035, 12, 31),
+        lastDay: DateTime(2035, 12, 31),
         focusedDay: _focusedDate,
+
         locale: 'ko_KR',
-        startingDayOfWeek:
-            StartingDayOfWeek.sunday,
-        calendarFormat:
-            CalendarFormat.month,
-        availableCalendarFormats:
-            const {
-          CalendarFormat.month: '월',
-        },
-        weekendDays: const [
-          DateTime.sunday,
-        ],
+
+        startingDayOfWeek: StartingDayOfWeek.sunday,
+
+        calendarFormat: CalendarFormat.month,
+
+        availableCalendarFormats: const {CalendarFormat.month: '월'},
+
+        /// 일요일만 주말로 지정
+        weekendDays: const [DateTime.sunday],
+
         selectedDayPredicate: (day) {
-          return isSameDay(
-            widget.selectedDate,
-            day,
-          );
+          return isSameDay(widget.selectedDate, day);
         },
+
         eventLoader: (day) {
-          return widget.schedules.where(
-            (schedule) {
-              return schedule.date.year ==
-                      day.year &&
-                  schedule.date.month ==
-                      day.month &&
-                  schedule.date.day ==
-                      day.day;
-            },
-          ).toList();
+          return widget.schedules.where((schedule) {
+            return schedule.date.year == day.year &&
+                schedule.date.month == day.month &&
+                schedule.date.day == day.day;
+          }).toList();
         },
-        onDaySelected: (
-          selectedDay,
-          focusedDay,
-        ) {
+        onDaySelected: (selectedDay, focusedDay) {
           setState(() {
             _focusedDate = focusedDay;
           });
 
-          widget.onDateChanged(
-            selectedDay,
-          );
+          widget.onDateChanged(selectedDay);
         },
         onPageChanged: (focusedDay) {
           setState(() {
@@ -1014,10 +808,7 @@ final class _HomeCalendarState
         headerStyle: HeaderStyle(
           formatButtonVisible: false,
           titleCentered: true,
-          headerPadding:
-              const EdgeInsets.symmetric(
-            vertical: 10,
-          ),
+          headerPadding: const EdgeInsets.symmetric(vertical: 10),
           leftChevronIcon: Icon(
             Icons.chevron_left,
             color: colorScheme.onSurface,
@@ -1032,110 +823,67 @@ final class _HomeCalendarState
             fontWeight: FontWeight.bold,
           ),
         ),
-        daysOfWeekStyle:
-            DaysOfWeekStyle(
+        daysOfWeekStyle: DaysOfWeekStyle(
           weekdayStyle: TextStyle(
-            color: colorScheme.onSurface
-                .withValues(
-              alpha: 0.7,
-            ),
-            fontWeight:
-                FontWeight.w600,
+            color: colorScheme.onSurface.withValues(alpha: 0.7),
+            fontWeight: FontWeight.w600,
           ),
-          weekendStyle:
-              const TextStyle(
+          weekendStyle: const TextStyle(
             color: Colors.red,
-            fontWeight:
-                FontWeight.w700,
+            fontWeight: FontWeight.w700,
           ),
         ),
-        calendarBuilders:
-            CalendarBuilders<
-                ScheduleItem>(
-          defaultBuilder: (
-            context,
-            day,
-            focusedDay,
-          ) {
-            final isSunday =
-                _isSunday(day);
+        calendarBuilders: CalendarBuilders<ScheduleItem>(
+          defaultBuilder: (context, day, focusedDay) {
+            final isSunday = _isSunday(day);
+
+            return Center(
+              child: Text(
+                '${day.day}',
+                style: TextStyle(
+                  color: isSunday ? Colors.red : colorScheme.onSurface,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            );
+          },
+          outsideBuilder: (context, day, focusedDay) {
+            final isSunday = _isSunday(day);
 
             return Center(
               child: Text(
                 '${day.day}',
                 style: TextStyle(
                   color: isSunday
-                      ? Colors.red
-                      : colorScheme
-                          .onSurface,
-                  fontWeight:
-                      FontWeight.w500,
+                      ? Colors.red.withValues(alpha: 0.3)
+                      : colorScheme.onSurface.withValues(alpha: 0.25),
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             );
           },
-          outsideBuilder: (
-            context,
-            day,
-            focusedDay,
-          ) {
-            final isSunday =
-                _isSunday(day);
-
-            return Center(
-              child: Text(
-                '${day.day}',
-                style: TextStyle(
-                  color: isSunday
-                      ? Colors.red
-                          .withValues(
-                          alpha: 0.3,
-                        )
-                      : colorScheme
-                          .onSurface
-                          .withValues(
-                          alpha: 0.25,
-                        ),
-                  fontWeight:
-                      FontWeight.w500,
-                ),
-              ),
-            );
-          },
-          selectedBuilder: (
-            context,
-            day,
-            focusedDay,
-          ) {
+          selectedBuilder: (context, day, focusedDay) {
             return Center(
               child: Container(
                 width: 38,
                 height: 38,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color:
-                      colorScheme.primary,
+                  color: colorScheme.primary,
                   shape: BoxShape.circle,
                 ),
                 child: Text(
                   '${day.day}',
                   style: TextStyle(
-                    color: colorScheme
-                        .onPrimary,
-                    fontWeight:
-                        FontWeight.bold,
+                    color: colorScheme.onPrimary,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
             );
           },
-          todayBuilder: (
-            context,
-            day,
-            focusedDay,
-          ) {
-            final isSunday =
-                _isSunday(day);
+          todayBuilder: (context, day, focusedDay) {
+            final isSunday = _isSunday(day);
 
             return Center(
               child: Container(
@@ -1143,26 +891,15 @@ final class _HomeCalendarState
                 height: 38,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: AppColors.secondary
-                      .withValues(
-                    alpha: 0.16,
-                  ),
+                  color: AppColors.secondary.withValues(alpha: 0.16),
                   shape: BoxShape.circle,
-                  border: Border.all(
-                    color:
-                        AppColors.secondary,
-                    width: 1.5,
-                  ),
+                  border: Border.all(color: AppColors.secondary, width: 1.5),
                 ),
                 child: Text(
                   '${day.day}',
                   style: TextStyle(
-                    color: isSunday
-                        ? Colors.red
-                        : AppColors
-                            .secondary,
-                    fontWeight:
-                        FontWeight.bold,
+                    color: isSunday ? Colors.red : AppColors.secondary,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
@@ -1173,84 +910,57 @@ final class _HomeCalendarState
           outsideDaysVisible: true,
           markersMaxCount: 3,
           markerSize: 6,
-          markerMargin:
-              const EdgeInsets.symmetric(
-            horizontal: 1.5,
-          ),
-          markerDecoration:
-              const BoxDecoration(
+          markerMargin: const EdgeInsets.symmetric(horizontal: 1.5),
+          markerDecoration: const BoxDecoration(
             color: Color(0xFFF0B52D),
             shape: BoxShape.circle,
           ),
-          defaultTextStyle:
-              TextStyle(
+          defaultTextStyle: TextStyle(
             color: colorScheme.onSurface,
-            fontWeight:
-                FontWeight.w500,
+            fontWeight: FontWeight.w500,
           ),
-          weekendTextStyle:
-              const TextStyle(
+          weekendTextStyle: const TextStyle(
             color: Colors.red,
-            fontWeight:
-                FontWeight.w500,
+            fontWeight: FontWeight.w500,
           ),
-          outsideTextStyle:
-              TextStyle(
-            color: colorScheme.onSurface
-                .withValues(
-              alpha: 0.25,
-            ),
+          outsideTextStyle: TextStyle(
+            color: colorScheme.onSurface.withValues(alpha: 0.25),
           ),
-          selectedDecoration:
-              BoxDecoration(
+          selectedDecoration: BoxDecoration(
             color: colorScheme.primary,
             shape: BoxShape.circle,
           ),
-          selectedTextStyle:
-              TextStyle(
+          selectedTextStyle: TextStyle(
             color: colorScheme.onPrimary,
             fontWeight: FontWeight.bold,
           ),
-          todayDecoration:
-              BoxDecoration(
-            color: AppColors.secondary
-                .withValues(
-              alpha: 0.16,
-            ),
+          todayDecoration: BoxDecoration(
+            color: AppColors.secondary.withValues(alpha: 0.16),
             shape: BoxShape.circle,
           ),
-          todayTextStyle:
-              const TextStyle(
+          todayTextStyle: const TextStyle(
             color: AppColors.secondary,
             fontWeight: FontWeight.bold,
           ),
-          cellMargin:
-              const EdgeInsets.all(4),
+          cellMargin: const EdgeInsets.all(4),
         ),
       ),
     );
   }
 }
 
-final class _TodoListSection
-    extends StatelessWidget {
+final class _TodoListSection extends StatelessWidget {
   const _TodoListSection({
     required this.todoItems,
     required this.onChanged,
     required this.onDelete,
   });
 
-  final List<Map<String, dynamic>>
-      todoItems;
+  final List<Map<String, dynamic>> todoItems;
 
-  final void Function(
-    int index,
-    bool? value,
-  ) onChanged;
+  final void Function(int index, bool? value) onChanged;
 
-  final void Function(
-    int index,
-  ) onDelete;
+  final void Function(int index) onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -1262,11 +972,8 @@ final class _TodoListSection
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
           color: colorScheme.surface,
-          borderRadius:
-              BorderRadius.circular(18),
-          border: Border.all(
-            color: theme.dividerColor,
-          ),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: theme.dividerColor),
         ),
         child: Column(
           children: [
@@ -1275,10 +982,7 @@ final class _TodoListSection
               height: 56,
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: AppColors.accent
-                    .withValues(
-                  alpha: 0.16,
-                ),
+                color: AppColors.accent.withValues(alpha: 0.16),
                 shape: BoxShape.circle,
               ),
               child: const Icon(
@@ -1287,14 +991,14 @@ final class _TodoListSection
                 size: 30,
               ),
             ),
+
             const SizedBox(height: 12),
+
             Text(
               '등록된 할 일이 없습니다.',
               style: TextStyle(
-                color:
-                    colorScheme.onSurface,
-                fontWeight:
-                    FontWeight.w600,
+                color: colorScheme.onSurface,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ],
@@ -1305,106 +1009,60 @@ final class _TodoListSection
     return Container(
       decoration: BoxDecoration(
         color: colorScheme.surface,
-        borderRadius:
-            BorderRadius.circular(18),
-        border: Border.all(
-          color: theme.dividerColor,
-        ),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: theme.dividerColor),
       ),
       child: ListView.separated(
         shrinkWrap: true,
-        physics:
-            const NeverScrollableScrollPhysics(),
+        physics: const NeverScrollableScrollPhysics(),
         itemCount: todoItems.length,
-        separatorBuilder: (
-          context,
-          index,
-        ) {
+        separatorBuilder: (context, index) {
           return Divider(
             height: 1,
             indent: 56,
-            color: colorScheme.onSurface
-                .withValues(
-              alpha: 0.08,
-            ),
+            color: colorScheme.onSurface.withValues(alpha: 0.08),
           );
         },
-        itemBuilder: (
-          context,
-          index,
-        ) {
+        itemBuilder: (context, index) {
           final item = todoItems[index];
 
-          final title =
-              item['title'] as String;
+          final title = item['title'] as String;
 
-          final isCompleted =
-              item['isCompleted'] as bool;
+          final isCompleted = item['isCompleted'] as bool;
 
           return Dismissible(
-            key: ValueKey(
-              '$title-$index',
-            ),
-            direction:
-                DismissDirection
-                    .endToStart,
+            key: ValueKey('$title-$index'),
+            direction: DismissDirection.endToStart,
             onDismissed: (_) {
               onDelete(index);
             },
             background: Container(
-              alignment:
-                  Alignment.centerRight,
-              padding:
-                  const EdgeInsets.only(
-                right: 22,
-              ),
+              alignment: Alignment.centerRight,
+              padding: const EdgeInsets.only(right: 22),
               decoration: BoxDecoration(
                 color: AppColors.accent,
-                borderRadius:
-                    BorderRadius.circular(
-                  18,
-                ),
+                borderRadius: BorderRadius.circular(18),
               ),
-              child: const Icon(
-                Icons.delete_outline,
-                color: Colors.white,
-              ),
+              child: const Icon(Icons.delete_outline, color: Colors.white),
             ),
             child: CheckboxListTile(
               value: isCompleted,
               onChanged: (value) {
-                onChanged(
-                  index,
-                  value,
-                );
+                onChanged(index, value);
               },
-              activeColor:
-                  AppColors.accent,
+              activeColor: AppColors.accent,
               checkColor: Colors.white,
-              controlAffinity:
-                  ListTileControlAffinity
-                      .leading,
-              contentPadding:
-                  const EdgeInsets.only(
-                left: 10,
-                right: 8,
-              ),
+              controlAffinity: ListTileControlAffinity.leading,
+              contentPadding: const EdgeInsets.only(left: 10, right: 8),
               title: Text(
                 title,
                 style: TextStyle(
                   color: isCompleted
-                      ? colorScheme
-                          .onSurface
-                          .withValues(
-                          alpha: 0.45,
-                        )
-                      : colorScheme
-                          .onSurface,
-                  fontWeight:
-                      FontWeight.w500,
+                      ? colorScheme.onSurface.withValues(alpha: 0.45)
+                      : colorScheme.onSurface,
+                  fontWeight: FontWeight.w500,
                   decoration: isCompleted
-                      ? TextDecoration
-                          .lineThrough
+                      ? TextDecoration.lineThrough
                       : TextDecoration.none,
                 ),
               ),
@@ -1416,11 +1074,7 @@ final class _TodoListSection
                 icon: Icon(
                   Icons.close,
                   size: 20,
-                  color: colorScheme
-                      .onSurface
-                      .withValues(
-                    alpha: 0.45,
-                  ),
+                  color: colorScheme.onSurface.withValues(alpha: 0.45),
                 ),
               ),
             ),
