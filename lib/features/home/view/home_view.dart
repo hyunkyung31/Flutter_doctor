@@ -12,7 +12,6 @@ import '../../patient/view_model/patient_list_view_model.dart';
 import '../../calendar/view_model/calendar_view_model.dart';
 import '../../calendar/widgets/schedule_bottom_sheet.dart';
 import '../../consultation/view_model/consultation_view_model.dart';
-import '../../settings/view_model/settings_view_model.dart';
 import '../widgets/Doctor_briefing_card.dart';
 import '../widgets/patient_status_card.dart';
 // import '../widgets/recent_patient_section.dart';
@@ -233,8 +232,6 @@ final class _HomeViewState extends State<HomeView> {
   Widget build(BuildContext context) {
     final authViewModel = context.watch<AuthViewModel>();
 
-    final settingsViewModel = context.watch<SettingsViewModel>();
-
     final calendarViewModel = context.watch<CalendarViewModel>();
 
     final patientListViewModel = context.watch<PatientListViewModel>();
@@ -258,92 +255,6 @@ final class _HomeViewState extends State<HomeView> {
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-
-      appBar: AppBar(
-        backgroundColor: colorScheme.surface,
-        surfaceTintColor: colorScheme.surface,
-        foregroundColor: colorScheme.primary,
-        title: Text(
-          'VENA',
-          style: TextStyle(
-            color: colorScheme.primary,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        actions: [
-          Stack(
-            clipBehavior: Clip.none,
-            children: [
-              IconButton(
-                tooltip: '채팅',
-                onPressed: () {
-                  _showPreparingMessage(context);
-                },
-                icon: const Icon(Icons.chat_bubble_outline),
-              ),
-              Positioned(
-                right: 6,
-                top: 5,
-                child: Container(
-                  constraints: const BoxConstraints(
-                    minWidth: 18,
-                    minHeight: 18,
-                  ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 5,
-                    vertical: 1,
-                  ),
-                  alignment: Alignment.center,
-                  decoration: const BoxDecoration(
-                    color: AppColors.accent,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Text(
-                    '3',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          Stack(
-            clipBehavior: Clip.none,
-            children: [
-              IconButton(
-                tooltip: '알림',
-                onPressed: () {
-                  _showPreparingMessage(context);
-                },
-                icon: const Icon(Icons.notifications_none),
-              ),
-              const Positioned(
-                right: 10,
-                top: 9,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: AppColors.accent,
-                    shape: BoxShape.circle,
-                  ),
-                  child: SizedBox(width: 8, height: 8),
-                ),
-              ),
-            ],
-          ),
-          IconButton(
-            tooltip: settingsViewModel.isDarkMode ? '라이트 모드로 변경' : '다크 모드로 변경',
-            onPressed: settingsViewModel.toggleTheme,
-            icon: Icon(
-              settingsViewModel.isDarkMode
-                  ? Icons.light_mode_outlined
-                  : Icons.dark_mode_outlined,
-            ),
-          ),
-        ],
-      ),
 
       body: SafeArea(
         child: RefreshIndicator(
@@ -406,7 +317,7 @@ final class _HomeViewState extends State<HomeView> {
                     },
                   ),
                   _QuickMenuCard(
-                    title: '협진 요청',
+                    title: '협진 목록',
                     icon: Icons.groups_outlined,
                     iconColor: AppColors.secondary,
                     count: consultationCount,
@@ -511,83 +422,6 @@ final class _HomeViewState extends State<HomeView> {
               ),
             ],
           ),
-        ),
-      ),
-      bottomNavigationBar: NavigationBarTheme(
-        data: NavigationBarThemeData(
-          backgroundColor: colorScheme.surface,
-
-          // 선택된 메뉴의 둥근 배경
-          indicatorColor: colorScheme.primary,
-
-          iconTheme: WidgetStateProperty.resolveWith<IconThemeData>((states) {
-            final isSelected = states.contains(WidgetState.selected);
-
-            return IconThemeData(
-              color: isSelected
-                  ? colorScheme.onPrimary
-                  : colorScheme.onSurface.withValues(alpha: 0.90),
-              size: isSelected ? 25 : 23,
-            );
-          }),
-
-          labelTextStyle: WidgetStateProperty.resolveWith<TextStyle>((states) {
-            final isSelected = states.contains(WidgetState.selected);
-
-            return TextStyle(
-              color: isSelected
-                  ? colorScheme.primary
-                  : colorScheme.onSurface.withValues(alpha: 0.90),
-              fontSize: 12,
-              fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-            );
-          }),
-        ),
-        child: NavigationBar(
-          selectedIndex: 0,
-          height: 72,
-          labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-          onDestinationSelected: (index) {
-            switch (index) {
-              case 0:
-                context.go('/home');
-                break;
-
-              case 1:
-                context.go('/patient');
-                break;
-
-              case 2:
-                _showPreparingMessage(context);
-                break;
-
-              case 3:
-                _showPreparingMessage(context);
-                break;
-            }
-          },
-          destinations: const [
-            NavigationDestination(
-              icon: Icon(Icons.home_outlined),
-              selectedIcon: Icon(Icons.home),
-              label: '홈',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.people_outline),
-              selectedIcon: Icon(Icons.people),
-              label: '환자',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.analytics_outlined),
-              selectedIcon: Icon(Icons.chat_bubble),
-              label: '채팅',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.person_outline),
-              selectedIcon: Icon(Icons.person),
-              label: '마이페이지',
-            ),
-          ],
         ),
       ),
     );

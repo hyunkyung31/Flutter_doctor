@@ -7,6 +7,8 @@ import '../features/splash/view/splash_screen.dart';
 import '../features/calendar/calendar_routes.dart';
 import '../features/consultation/consultation_routes.dart';
 import '../features/diagnosis/diagnosis_routes.dart';
+import '../features/mypage/mypage_routes.dart';
+import 'app_shell.dart';
 import 'route_names.dart';
 
 class AppRouter {
@@ -23,15 +25,19 @@ class AppRouter {
         },
       ),
 
-      ...homeRoutes,
-
-      ...patientRoutes,
-
-      ...calendarRoutes,
-
-      ...consultationRoutes,
-
-      ...diagnosisRoutes,
+      ShellRoute(
+        builder: (context, state, child) {
+          return AppShell(child: child);
+        },
+        routes: [
+          ...homeRoutes,
+          ...patientRoutes,
+          ...calendarRoutes,
+          ...consultationRoutes,
+          ...diagnosisRoutes,
+          ...myPageRoutes,
+        ],
+      ),
 
       GoRoute(
         path: RouteNames.loginPath,
