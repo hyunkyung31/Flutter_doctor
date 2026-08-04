@@ -18,35 +18,77 @@ final class PatientStatusSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: PatientStatusCard(
-            title: '오늘 예약 환자',
-            count: reservationCount,
-            icon: Icons.calendar_month_outlined,
-            color: AppColors.primary,
-            onTap: onReservationTap,
-          ),
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+
+    return Card(
+      margin: EdgeInsets.zero,
+      elevation: 1,
+      color: colorScheme.surface,
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(
+          color: theme.dividerColor,
         ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: PatientStatusCard(
-            title: '현재 대기 환자',
-            count: waitingCount,
-            icon: Icons.groups_outlined,
-            color: AppColors.secondary,
-            onTap: onWaitingTap,
-          ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: 10,
         ),
-      ],
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '오늘의 환자 현황',
+              style: textTheme.titleSmall?.copyWith(
+                color: colorScheme.onSurface,
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 7),
+            Row(
+              children: [
+                Expanded(
+                  child: _PatientStatusItem(
+                    title: '예약 환자',
+                    count: reservationCount,
+                    icon: Icons.calendar_month_outlined,
+                    color: AppColors.primary,
+                    onTap: onReservationTap,
+                  ),
+                ),
+                Container(
+                  width: 1,
+                  height: 42,
+                  margin: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                  ),
+                  color: colorScheme.outlineVariant,
+                ),
+                Expanded(
+                  child: _PatientStatusItem(
+                    title: '대기 환자',
+                    count: waitingCount,
+                    icon: Icons.groups_outlined,
+                    color: AppColors.secondary,
+                    onTap: onWaitingTap,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
 
-final class PatientStatusCard extends StatelessWidget {
-  const PatientStatusCard({
-    super.key,
+final class _PatientStatusItem extends StatelessWidget {
+  const _PatientStatusItem({
     required this.title,
     required this.count,
     required this.icon,
@@ -64,82 +106,85 @@ final class PatientStatusCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final textTheme = theme.textTheme;
+    final isDarkMode =
+        theme.brightness == Brightness.dark;
 
-    return Card(
-      margin: EdgeInsets.zero,
-      elevation: 1,
-      color: colorScheme.surface,
-      clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(18),
-        side: BorderSide(
-          color: theme.dividerColor,
+    final effectiveColor = isDarkMode
+        ? Color.lerp(
+            color,
+            Colors.white,
+            0.22,
+          )!
+        : color;
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: 2,
+          vertical: 4,
         ),
-      ),
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(12),
+        child: Row(
+          children: [
+            Container(
+              width: 32,
+              height: 32,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: effectiveColor.withValues(
+                  alpha: isDarkMode ? 0.22 : 0.12,
                 ),
-                child: Icon(
-                  icon,
-                  color: color,
-                  size: 26,
-                ),
+                borderRadius: BorderRadius.circular(8),
               ),
-              const SizedBox(height: 18),
-              Text(
-                title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: textTheme.bodyMedium?.copyWith(
-                  color: colorScheme.onSurface.withOpacity(0.72),
-                  fontWeight: FontWeight.w600,
-                ),
+              child: Icon(
+                icon,
+                color: effectiveColor,
+                size: 17,
               ),
-              const SizedBox(height: 6),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment:
+                    CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '$count',
-                    style: textTheme.headlineMedium?.copyWith(
-                      color: colorScheme.onSurface,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 3),
-                    child: Text(
-                      '명',
-                      style: textTheme.bodyMedium?.copyWith(
-                        color:
-                            colorScheme.onSurface.withOpacity(0.65),
-                        fontWeight: FontWeight.w600,
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: colorScheme.onSurface
+                          .withValues(
+                        alpha:
+                            isDarkMode ? 0.88 : 0.72,
                       ),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                  const Spacer(),
-                  Icon(
-                    Icons.chevron_right,
-                    color: colorScheme.onSurface.withOpacity(0.45),
+                  const SizedBox(height: 1),
+                  Text(
+                    '$count명',
+                    style: TextStyle(
+                      color: effectiveColor,
+                      fontSize: 16,
+                      height: 1.1,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ],
               ),
-            ],
-          ),
+            ),
+            Icon(
+              Icons.chevron_right,
+              size: 17,
+              color: colorScheme.onSurface.withValues(
+                alpha: isDarkMode ? 0.70 : 0.38,
+              ),
+            ),
+          ],
         ),
       ),
     );

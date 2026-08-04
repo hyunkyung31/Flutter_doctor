@@ -11,10 +11,12 @@ final class CalendarView extends StatefulWidget {
   });
 
   @override
-  State<CalendarView> createState() => _CalendarViewState();
+  State<CalendarView> createState() =>
+      _CalendarViewState();
 }
 
-final class _CalendarViewState extends State<CalendarView> {
+final class _CalendarViewState
+    extends State<CalendarView> {
   /// false: 축소형 달력 + 선택 날짜 일정
   /// true: 확장형 달력 + 날짜별 일정 표시
   bool _isCalendarExpanded = false;
@@ -22,20 +24,17 @@ final class _CalendarViewState extends State<CalendarView> {
   /// 세로 드래그 누적 거리
   double _verticalDragDistance = 0;
 
-  /// 손가락을 움직이는 동안 세로 이동 거리 누적
   void _handleVerticalDragUpdate(
     DragUpdateDetails details,
   ) {
     _verticalDragDistance += details.delta.dy;
   }
 
-  /// 손가락을 뗐을 때 달력 확장 또는 축소
   void _handleVerticalDragEnd(
     DragEndDetails details,
   ) {
     const dragThreshold = 40.0;
 
-    /// 아래로 드래그하면 달력 확장
     if (_verticalDragDistance > dragThreshold &&
         !_isCalendarExpanded) {
       setState(() {
@@ -43,7 +42,6 @@ final class _CalendarViewState extends State<CalendarView> {
       });
     }
 
-    /// 위로 드래그하면 달력 축소
     if (_verticalDragDistance < -dragThreshold &&
         _isCalendarExpanded) {
       setState(() {
@@ -54,27 +52,393 @@ final class _CalendarViewState extends State<CalendarView> {
     _verticalDragDistance = 0;
   }
 
-  /// 드래그가 취소된 경우 거리 초기화
   void _handleVerticalDragCancel() {
     _verticalDragDistance = 0;
   }
 
+  /// HH:mm 문자열을 TimeOfDay로 변환
+  TimeOfDay _parseTime(String time) {
+    final parts = time.split(':');
+
+    if (parts.length != 2) {
+      return TimeOfDay.now();
+    }
+
+    final hour = int.tryParse(parts[0]);
+    final minute = int.tryParse(parts[1]);
+
+    if (hour == null || minute == null) {
+      return TimeOfDay.now();
+    }
+
+    return TimeOfDay(
+      hour: hour,
+      minute: minute,
+    );
+  }
+
+  /// TimeOfDay를 HH:mm 문자열로 변환
+  String _formatTime(TimeOfDay time) {
+    return '${time.hour.toString().padLeft(2, '0')}:'
+        '${time.minute.toString().padLeft(2, '0')}';
+  }
+
+  /// 일정 추가
+  Future<void> _showAddScheduleDialog() async {
+    final calendarViewModel =
+        context.read<CalendarViewModel>();
+
+    final selectedDate =
+        calendarViewModel.selectedDate;
+
+    String title = '';
+    String description = '';
+    TimeOfDay selectedTime = TimeOfDay.now();
+
+    final result = await showDialog<ScheduleItem>(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (
+            context,
+            setDialogState,
+          ) {
+            return AlertDialog(
+              title: const Text(
+                '일정 추가',
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      autofocus: true,
+                      decoration:
+                          const InputDecoration(
+                        labelText: '일정 제목',
+                        hintText: '일정 제목을 입력하세요.',
+                        border: OutlineInputBorder(),
+                      ),
+                      onChanged: (value) {
+                        title = value.trim();
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      maxLines: 3,
+                      decoration:
+                          const InputDecoration(
+                        labelText: '일정 내용',
+                        hintText: '내용을 입력하세요.',
+                        border: OutlineInputBorder(),
+                      ),
+                      onChanged: (value) {
+                        description = value.trim();
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(
+                        Icons.access_time,
+                      ),
+                      title: const Text('시간'),
+                      subtitle: Text(
+                        _formatTime(selectedTime),
+                      ),
+                      trailing: const Icon(
+                        Icons.chevron_right,
+                      ),
+                      onTap: () async {
+                        final pickedTime =
+                            await showTimePicker(
+                          context: dialogContext,
+                          initialTime: selectedTime,
+                        );
+
+                        if (pickedTime == null) {
+                          return;
+                        }
+
+                        setDialogState(() {
+                          selectedTime = pickedTime;
+                        });
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(dialogContext).pop();
+                  },
+                  child: const Text('취소'),
+                ),
+                FilledButton(
+                  onPressed: () {
+                    if (title.isEmpty) {
+                      ScaffoldMessenger.of(
+                        dialogContext,
+                      ).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            '일정 제목을 입력하세요.',
+                          ),
+                        ),
+                      );
+                      return;
+                    }
+
+                    Navigator.of(dialogContext).pop(
+                      ScheduleItem(
+                        date: selectedDate,
+                        time:
+                            _formatTime(selectedTime),
+                        title: title,
+                        description:
+                            description.isEmpty
+                                ? null
+                                : description,
+                      ),
+                    );
+                  },
+                  child: const Text('추가'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    if (result == null || !mounted) {
+      return;
+    }
+
+    await WidgetsBinding.instance.endOfFrame;
+
+    if (!mounted) {
+      return;
+    }
+
+    calendarViewModel.addSchedule(result);
+  }
+
+  /// 일정 수정
+  Future<void> _showEditScheduleDialog(
+    ScheduleItem oldSchedule,
+  ) async {
+    final calendarViewModel =
+        context.read<CalendarViewModel>();
+
+    String title = oldSchedule.title;
+    String description =
+        oldSchedule.description ?? '';
+
+    TimeOfDay selectedTime =
+        _parseTime(oldSchedule.time);
+
+    final result = await showDialog<ScheduleItem>(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (
+            context,
+            setDialogState,
+          ) {
+            return AlertDialog(
+              title: const Text(
+                '일정 수정',
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextFormField(
+                      initialValue: oldSchedule.title,
+                      autofocus: true,
+                      decoration:
+                          const InputDecoration(
+                        labelText: '일정 제목',
+                        border: OutlineInputBorder(),
+                      ),
+                      onChanged: (value) {
+                        title = value.trim();
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      initialValue:
+                          oldSchedule.description ?? '',
+                      maxLines: 3,
+                      decoration:
+                          const InputDecoration(
+                        labelText: '일정 내용',
+                        border: OutlineInputBorder(),
+                      ),
+                      onChanged: (value) {
+                        description = value.trim();
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(
+                        Icons.access_time,
+                      ),
+                      title: const Text('시간'),
+                      subtitle: Text(
+                        _formatTime(selectedTime),
+                      ),
+                      trailing: const Icon(
+                        Icons.chevron_right,
+                      ),
+                      onTap: () async {
+                        final pickedTime =
+                            await showTimePicker(
+                          context: dialogContext,
+                          initialTime: selectedTime,
+                        );
+
+                        if (pickedTime == null) {
+                          return;
+                        }
+
+                        setDialogState(() {
+                          selectedTime = pickedTime;
+                        });
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(dialogContext).pop();
+                  },
+                  child: const Text('취소'),
+                ),
+                FilledButton(
+                  onPressed: () {
+                    if (title.isEmpty) {
+                      ScaffoldMessenger.of(
+                        dialogContext,
+                      ).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            '일정 제목을 입력하세요.',
+                          ),
+                        ),
+                      );
+                      return;
+                    }
+
+                    Navigator.of(dialogContext).pop(
+                      ScheduleItem(
+                        date: oldSchedule.date,
+                        time:
+                            _formatTime(selectedTime),
+                        title: title,
+                        description:
+                            description.isEmpty
+                                ? null
+                                : description,
+                      ),
+                    );
+                  },
+                  child: const Text('저장'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    if (result == null || !mounted) {
+      return;
+    }
+
+    await WidgetsBinding.instance.endOfFrame;
+
+    if (!mounted) {
+      return;
+    }
+
+    calendarViewModel.updateSchedule(
+      oldSchedule: oldSchedule,
+      newSchedule: result,
+    );
+  }
+
+  /// 일정 삭제
+  Future<void> _deleteSchedule(
+    ScheduleItem schedule,
+  ) async {
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('일정 삭제'),
+          content: Text(
+            '"${schedule.title}" 일정을 삭제하시겠습니까?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop(false);
+              },
+              child: const Text('취소'),
+            ),
+            FilledButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop(true);
+              },
+              style: FilledButton.styleFrom(
+                backgroundColor:
+                    Theme.of(dialogContext)
+                        .colorScheme
+                        .error,
+              ),
+              child: const Text('삭제'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldDelete != true || !mounted) {
+      return;
+    }
+
+    await WidgetsBinding.instance.endOfFrame;
+
+    if (!mounted) {
+      return;
+    }
+
+    context
+        .read<CalendarViewModel>()
+        .removeSchedule(schedule);
+  }
+
   @override
   Widget build(BuildContext context) {
-    final viewModel = context.watch<CalendarViewModel>();
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
+    final viewModel =
+        context.watch<CalendarViewModel>();
+
+    final colorScheme =
+        Theme.of(context).colorScheme;
 
     return Scaffold(
       backgroundColor: colorScheme.surface,
-
       appBar: AppBar(
         centerTitle: true,
         elevation: 0,
         backgroundColor: colorScheme.surface,
         surfaceTintColor: Colors.transparent,
-
-        /// 왼쪽 닫기 버튼
         leading: IconButton(
           onPressed: () {
             Navigator.of(context).maybePop();
@@ -83,15 +447,12 @@ final class _CalendarViewState extends State<CalendarView> {
             Icons.close,
           ),
         ),
-
-        /// 현재 선택된 날짜의 월
         title: Text(
           '${viewModel.selectedDate.month}월',
           style: const TextStyle(
             fontWeight: FontWeight.bold,
           ),
         ),
-
         actions: [
           IconButton(
             onPressed: () {
@@ -119,20 +480,22 @@ final class _CalendarViewState extends State<CalendarView> {
           ),
         ],
       ),
-
       body: SafeArea(
         child: Column(
           children: [
-            /// 확장 상태에서는 달력 전체가 화면 안에서 스크롤 가능
             if (_isCalendarExpanded)
               Expanded(
                 child: SingleChildScrollView(
-                  physics: const ClampingScrollPhysics(),
+                  physics:
+                      const ClampingScrollPhysics(),
                   child: _CalendarDragArea(
-                    selectedDate: viewModel.selectedDate,
-                    schedules: viewModel.schedules,
+                    selectedDate:
+                        viewModel.selectedDate,
+                    schedules:
+                        viewModel.schedules,
                     isExpanded: true,
-                    onDateChanged: viewModel.selectDate,
+                    onDateChanged:
+                        viewModel.selectDate,
                     onVerticalDragUpdate:
                         _handleVerticalDragUpdate,
                     onVerticalDragEnd:
@@ -142,14 +505,15 @@ final class _CalendarViewState extends State<CalendarView> {
                   ),
                 ),
               ),
-
-            /// 축소 상태에서는 달력 아래에 선택 날짜 일정 표시
             if (!_isCalendarExpanded) ...[
               _CalendarDragArea(
-                selectedDate: viewModel.selectedDate,
-                schedules: viewModel.schedules,
+                selectedDate:
+                    viewModel.selectedDate,
+                schedules:
+                    viewModel.schedules,
                 isExpanded: false,
-                onDateChanged: viewModel.selectDate,
+                onDateChanged:
+                    viewModel.selectDate,
                 onVerticalDragUpdate:
                     _handleVerticalDragUpdate,
                 onVerticalDragEnd:
@@ -157,22 +521,22 @@ final class _CalendarViewState extends State<CalendarView> {
                 onVerticalDragCancel:
                     _handleVerticalDragCancel,
               ),
-
               Expanded(
                 child: ScheduleBottomSheet(
-                  selectedDate: viewModel.selectedDate,
-                  schedules: viewModel.selectedSchedules,
+                  selectedDate:
+                      viewModel.selectedDate,
+                  schedules:
+                      viewModel.selectedSchedules,
+                  onEdit: _showEditScheduleDialog,
+                  onDelete: _deleteSchedule,
                 ),
               ),
             ],
           ],
         ),
       ),
-
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          /// 일정 등록 화면 연결 예정
-        },
+        onPressed: _showAddScheduleDialog,
         child: const Icon(
           Icons.add,
         ),
@@ -181,8 +545,8 @@ final class _CalendarViewState extends State<CalendarView> {
   }
 }
 
-/// 달력과 드래그 손잡이를 묶은 영역
-final class _CalendarDragArea extends StatelessWidget {
+final class _CalendarDragArea
+    extends StatelessWidget {
   const _CalendarDragArea({
     required this.selectedDate,
     required this.schedules,
@@ -198,19 +562,24 @@ final class _CalendarDragArea extends StatelessWidget {
   final bool isExpanded;
 
   final ValueChanged<DateTime> onDateChanged;
-  final GestureDragUpdateCallback onVerticalDragUpdate;
+  final GestureDragUpdateCallback
+      onVerticalDragUpdate;
   final GestureDragEndCallback onVerticalDragEnd;
-  final GestureDragCancelCallback onVerticalDragCancel;
+  final GestureDragCancelCallback
+      onVerticalDragCancel;
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colorScheme =
+        Theme.of(context).colorScheme;
 
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
-      onVerticalDragUpdate: onVerticalDragUpdate,
+      onVerticalDragUpdate:
+          onVerticalDragUpdate,
       onVerticalDragEnd: onVerticalDragEnd,
-      onVerticalDragCancel: onVerticalDragCancel,
+      onVerticalDragCancel:
+          onVerticalDragCancel,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -221,7 +590,8 @@ final class _CalendarDragArea extends StatelessWidget {
             curve: Curves.easeInOut,
             alignment: Alignment.topCenter,
             child: Padding(
-              padding: const EdgeInsets.symmetric(
+              padding:
+                  const EdgeInsets.symmetric(
                 horizontal: 12,
               ),
               child: MonthlyCalendar(
@@ -232,11 +602,10 @@ final class _CalendarDragArea extends StatelessWidget {
               ),
             ),
           ),
-
-          /// 위아래 드래그 손잡이
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(
+            padding:
+                const EdgeInsets.symmetric(
               vertical: 12,
             ),
             alignment: Alignment.center,
@@ -244,10 +613,12 @@ final class _CalendarDragArea extends StatelessWidget {
               width: 42,
               height: 5,
               decoration: BoxDecoration(
-                color: colorScheme.onSurface.withValues(
+                color: colorScheme.onSurface
+                    .withValues(
                   alpha: 0.22,
                 ),
-                borderRadius: BorderRadius.circular(10),
+                borderRadius:
+                    BorderRadius.circular(10),
               ),
             ),
           ),

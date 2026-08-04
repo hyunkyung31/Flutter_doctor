@@ -19,6 +19,7 @@ import 'features/patient/service/patient_service.dart';
 import 'features/patient/view_model/patient_list_view_model.dart';
 
 import 'features/settings/view_model/settings_view_model.dart';
+import 'features/calendar/view_model/calendar_view_model.dart';
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -71,11 +72,15 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider<PatientListViewModel>(
           create: (context) => PatientListViewModel(
             patientRepository: context.read<PatientRepository>(),
-          ),
+          )..loadPatients(),
         ),
 
         ChangeNotifierProvider<SettingsViewModel>(
           create: (_) => SettingsViewModel(),
+        ),
+
+        ChangeNotifierProvider<CalendarViewModel>(
+          create: (_) => CalendarViewModel(),
         ),
       ],
       child: Builder(

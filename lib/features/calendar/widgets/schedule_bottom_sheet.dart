@@ -22,10 +22,14 @@ final class ScheduleBottomSheet extends StatelessWidget {
     super.key,
     required this.selectedDate,
     required this.schedules,
+    required this.onEdit,
+    required this.onDelete,
   });
 
   final DateTime selectedDate;
   final List<ScheduleItem> schedules;
+  final ValueChanged<ScheduleItem> onEdit;
+  final ValueChanged<ScheduleItem> onDelete;
 
   String _getWeekday(DateTime date) {
     const weekdays = [
@@ -129,6 +133,12 @@ final class ScheduleBottomSheet extends StatelessWidget {
 
                       return ScheduleTile(
                         schedule: schedule,
+                        onEdit: () {
+                          onEdit(schedule);
+                        },
+                        onDelete: () {
+                          onDelete(schedule);
+                        },
                       );
                     },
                   ),
