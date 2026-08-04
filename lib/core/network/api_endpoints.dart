@@ -26,6 +26,20 @@ abstract final class ApiEndpoints {
   // 협진 요청
   static const String consultations = '/api/consultations/';
 
+  static const String chatRooms = '/api/chat/rooms/';
+
+  static String chatMessages(String roomId) {
+    return '/api/chat/rooms/$roomId/messages/';
+  }
+
+  static String chatRoomRead(String roomId) {
+    return '/api/chat/rooms/$roomId/read/';
+  }
+
+  static String chatResourceStatus(String messageId) {
+    return '/api/chat/messages/$messageId/resource-status/';
+  }
+
   static String consultationStatus(String consultationId) {
     return '/api/consultations/$consultationId/status/';
   }
