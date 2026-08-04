@@ -787,10 +787,14 @@ final class _HomeCalendarState extends State<_HomeCalendar> {
         },
 
         eventLoader: (day) {
+          final targetDay = DateUtils.dateOnly(day);
+
           return widget.schedules.where((schedule) {
-            return schedule.date.year == day.year &&
-                schedule.date.month == day.month &&
-                schedule.date.day == day.day;
+            final startDay = DateUtils.dateOnly(schedule.date);
+
+            final endDay = DateUtils.dateOnly(schedule.endDate);
+
+            return !targetDay.isBefore(startDay) && !targetDay.isAfter(endDay);
           }).toList();
         },
         onDaySelected: (selectedDay, focusedDay) {
