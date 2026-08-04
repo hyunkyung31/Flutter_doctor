@@ -33,20 +33,14 @@ extension AiAnalysisTypePresentation on AiAnalysisType {
     }
   }
 
-  bool get supportsBoundingBox {  // BBOX는 탐지, 통합에서만
-    switch (this) {
-      case AiAnalysisType.detection:
-      case AiAnalysisType.integrated:
-        return true;
 
-      case AiAnalysisType.classification:
-        return false;
-    }
+  bool get supportsBoundingBox {
+    return this == AiAnalysisType.detection ||
+        this == AiAnalysisType.integrated;
   }
 
-  bool get supportsHeatmap {  // Heatmap은 분류, 통합에서만
-    return this == AiAnalysisType.integrated;
+  bool get supportsHeatmap {
+    return this == AiAnalysisType.classification ||
+        this == AiAnalysisType.integrated;
   }
 }
-
-//// 분석 저장 API 확정 후 서버 요청값 넣기

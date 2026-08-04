@@ -27,8 +27,8 @@ final class DiagnosisExamination {
     return videoUrl != null;
   }
 
-  bool get hasAnalyzableMedia {  // 이미지 또는 동영상 있는지 확인
-    return hasKeyFrame || hasVideo;
+  bool get canRunIntegratedAnalysis {
+   return hasKeyFrame;
   }
 
   factory DiagnosisExamination.fromJson(

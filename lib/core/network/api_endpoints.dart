@@ -27,4 +27,9 @@ abstract final class ApiEndpoints {
   static String patientDetail(String patientId) {
     return '/api/patients/$patientId/';
   }
+
+  // 검사 키프레임 통합 AI 분석 및 결과 저장
+  static String examAiRun(int examId,) {
+    return '/api/exams/$examId/ai/run/';
+  }
 }
