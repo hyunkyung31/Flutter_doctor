@@ -52,10 +52,7 @@ final class _MonthlyCalendarState extends State<MonthlyCalendar> {
   void didUpdateWidget(covariant MonthlyCalendar oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    if (!isSameDay(
-      oldWidget.selectedDate,
-      widget.selectedDate,
-    )) {
+    if (!isSameDay(oldWidget.selectedDate, widget.selectedDate)) {
       _focusedDate = widget.selectedDate;
     }
   }
@@ -67,26 +64,24 @@ final class _MonthlyCalendarState extends State<MonthlyCalendar> {
 
   /// 공휴일인지 확인
   bool _isHoliday(DateTime day) {
-    return _holidays.any(
-      (holiday) => isSameDay(
-        holiday,
-        day,
-      ),
-    );
+    return _holidays.any((holiday) => isSameDay(holiday, day));
   }
 
   /// 해당 날짜의 일정 반환
   List<ScheduleItem> _getSchedulesForDay(DateTime day) {
+    final targetDay = DateUtils.dateOnly(day);
+
     final schedules = widget.schedules.where((schedule) {
-      return schedule.date.year == day.year &&
-          schedule.date.month == day.month &&
-          schedule.date.day == day.day;
+      final startDay = DateUtils.dateOnly(schedule.date);
+
+      final endDay = DateUtils.dateOnly(schedule.endDate);
+
+      return !targetDay.isBefore(startDay) && !targetDay.isAfter(endDay);
     }).toList();
 
     schedules.sort((first, second) {
       return first.time.compareTo(second.time);
     });
-
     return schedules;
   }
 
@@ -97,28 +92,16 @@ final class _MonthlyCalendarState extends State<MonthlyCalendar> {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(
-        12,
-        8,
-        12,
-        14,
-      ),
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 14),
       decoration: BoxDecoration(
         color: colorScheme.surface,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: theme.dividerColor,
-        ),
+        border: Border.all(color: theme.dividerColor),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withValues(
-              alpha: 0.05,
-            ),
+            color: AppColors.primary.withValues(alpha: 0.05),
             blurRadius: 12,
-            offset: const Offset(
-              0,
-              4,
-            ),
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -145,14 +128,10 @@ final class _MonthlyCalendarState extends State<MonthlyCalendar> {
         /// 월간 달력 고정
         calendarFormat: CalendarFormat.month,
 
-        availableCalendarFormats: const {
-          CalendarFormat.month: '월',
-        },
+        availableCalendarFormats: const {CalendarFormat.month: '월'},
 
         /// 일요일만 주말로 지정
-        weekendDays: const [
-          DateTime.sunday,
-        ],
+        weekendDays: const [DateTime.sunday],
 
         /// 공휴일 확인
         holidayPredicate: _isHoliday,
@@ -162,17 +141,11 @@ final class _MonthlyCalendarState extends State<MonthlyCalendar> {
 
         /// 선택 날짜 확인
         selectedDayPredicate: (day) {
-          return isSameDay(
-            widget.selectedDate,
-            day,
-          );
+          return isSameDay(widget.selectedDate, day);
         },
 
         /// 날짜 선택
-        onDaySelected: (
-          selectedDay,
-          focusedDay,
-        ) {
+        onDaySelected: (selectedDay, focusedDay) {
           setState(() {
             _focusedDate = focusedDay;
           });
@@ -191,9 +164,7 @@ final class _MonthlyCalendarState extends State<MonthlyCalendar> {
         headerStyle: HeaderStyle(
           formatButtonVisible: false,
           titleCentered: true,
-          headerPadding: const EdgeInsets.symmetric(
-            vertical: 12,
-          ),
+          headerPadding: const EdgeInsets.symmetric(vertical: 12),
           leftChevronIcon: Icon(
             Icons.chevron_left,
             color: colorScheme.onSurface,
@@ -212,9 +183,7 @@ final class _MonthlyCalendarState extends State<MonthlyCalendar> {
         /// 요일 글자 스타일
         daysOfWeekStyle: DaysOfWeekStyle(
           weekdayStyle: TextStyle(
-            color: colorScheme.onSurface.withValues(
-              alpha: 0.75,
-            ),
+            color: colorScheme.onSurface.withValues(alpha: 0.75),
             fontWeight: FontWeight.w600,
           ),
           weekendStyle: const TextStyle(
@@ -226,28 +195,19 @@ final class _MonthlyCalendarState extends State<MonthlyCalendar> {
         /// 날짜 셀과 일정 표시
         calendarBuilders: CalendarBuilders<ScheduleItem>(
           /// 현재 월 일반 날짜
-          defaultBuilder: (
-            context,
-            day,
-            focusedDay,
-          ) {
-            final isRedDay =
-                _isSunday(day) || _isHoliday(day);
+          defaultBuilder: (context, day, focusedDay) {
+            final isRedDay = _isSunday(day) || _isHoliday(day);
 
             return Align(
               alignment: widget.isExpanded
                   ? Alignment.topCenter
                   : Alignment.center,
               child: Padding(
-                padding: EdgeInsets.only(
-                  top: widget.isExpanded ? 8 : 0,
-                ),
+                padding: EdgeInsets.only(top: widget.isExpanded ? 8 : 0),
                 child: Text(
                   '${day.day}',
                   style: TextStyle(
-                    color: isRedDay
-                        ? Colors.red
-                        : colorScheme.onSurface,
+                    color: isRedDay ? Colors.red : colorScheme.onSurface,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -256,32 +216,21 @@ final class _MonthlyCalendarState extends State<MonthlyCalendar> {
           },
 
           /// 앞달·다음 달 날짜
-          outsideBuilder: (
-            context,
-            day,
-            focusedDay,
-          ) {
-            final isRedDay =
-                _isSunday(day) || _isHoliday(day);
+          outsideBuilder: (context, day, focusedDay) {
+            final isRedDay = _isSunday(day) || _isHoliday(day);
 
             return Align(
               alignment: widget.isExpanded
                   ? Alignment.topCenter
                   : Alignment.center,
               child: Padding(
-                padding: EdgeInsets.only(
-                  top: widget.isExpanded ? 8 : 0,
-                ),
+                padding: EdgeInsets.only(top: widget.isExpanded ? 8 : 0),
                 child: Text(
                   '${day.day}',
                   style: TextStyle(
                     color: isRedDay
-                        ? Colors.red.withValues(
-                            alpha: 0.3,
-                          )
-                        : colorScheme.onSurface.withValues(
-                            alpha: 0.25,
-                          ),
+                        ? Colors.red.withValues(alpha: 0.3)
+                        : colorScheme.onSurface.withValues(alpha: 0.25),
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -290,11 +239,7 @@ final class _MonthlyCalendarState extends State<MonthlyCalendar> {
           },
 
           /// 선택된 날짜
-          selectedBuilder: (
-            context,
-            day,
-            focusedDay,
-          ) {
+          selectedBuilder: (context, day, focusedDay) {
             return Align(
               alignment: widget.isExpanded
                   ? Alignment.topCenter
@@ -302,9 +247,7 @@ final class _MonthlyCalendarState extends State<MonthlyCalendar> {
               child: Container(
                 width: 38,
                 height: 38,
-                margin: EdgeInsets.only(
-                  top: widget.isExpanded ? 2 : 0,
-                ),
+                margin: EdgeInsets.only(top: widget.isExpanded ? 2 : 0),
                 decoration: BoxDecoration(
                   color: colorScheme.primary,
                   shape: BoxShape.circle,
@@ -322,13 +265,8 @@ final class _MonthlyCalendarState extends State<MonthlyCalendar> {
           },
 
           /// 오늘 날짜
-          todayBuilder: (
-            context,
-            day,
-            focusedDay,
-          ) {
-            final isRedDay =
-                _isSunday(day) || _isHoliday(day);
+          todayBuilder: (context, day, focusedDay) {
+            final isRedDay = _isSunday(day) || _isHoliday(day);
 
             return Align(
               alignment: widget.isExpanded
@@ -337,26 +275,17 @@ final class _MonthlyCalendarState extends State<MonthlyCalendar> {
               child: Container(
                 width: 38,
                 height: 38,
-                margin: EdgeInsets.only(
-                  top: widget.isExpanded ? 2 : 0,
-                ),
+                margin: EdgeInsets.only(top: widget.isExpanded ? 2 : 0),
                 decoration: BoxDecoration(
-                  color: AppColors.secondary.withValues(
-                    alpha: 0.16,
-                  ),
+                  color: AppColors.secondary.withValues(alpha: 0.16),
                   shape: BoxShape.circle,
-                  border: Border.all(
-                    color: AppColors.secondary,
-                    width: 1.5,
-                  ),
+                  border: Border.all(color: AppColors.secondary, width: 1.5),
                 ),
                 alignment: Alignment.center,
                 child: Text(
                   '${day.day}',
                   style: TextStyle(
-                    color: isRedDay
-                        ? Colors.red
-                        : AppColors.secondary,
+                    color: isRedDay ? Colors.red : AppColors.secondary,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -365,11 +294,7 @@ final class _MonthlyCalendarState extends State<MonthlyCalendar> {
           },
 
           /// 일정 표시
-          markerBuilder: (
-            context,
-            day,
-            events,
-          ) {
+          markerBuilder: (context, day, events) {
             if (events.isEmpty) {
               return null;
             }
@@ -398,9 +323,7 @@ final class _MonthlyCalendarState extends State<MonthlyCalendar> {
               bottom: 7,
               child: Container(
                 height: 24,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 5,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 5),
                 decoration: BoxDecoration(
                   color: const Color(0xFFF0B52D),
                   borderRadius: BorderRadius.circular(4),
@@ -443,9 +366,7 @@ final class _MonthlyCalendarState extends State<MonthlyCalendar> {
           ),
 
           outsideTextStyle: TextStyle(
-            color: colorScheme.onSurface.withValues(
-              alpha: 0.25,
-            ),
+            color: colorScheme.onSurface.withValues(alpha: 0.25),
           ),
 
           selectedDecoration: BoxDecoration(
@@ -459,14 +380,9 @@ final class _MonthlyCalendarState extends State<MonthlyCalendar> {
           ),
 
           todayDecoration: BoxDecoration(
-            color: AppColors.secondary.withValues(
-              alpha: 0.16,
-            ),
+            color: AppColors.secondary.withValues(alpha: 0.16),
             shape: BoxShape.circle,
-            border: Border.all(
-              color: AppColors.secondary,
-              width: 1.5,
-            ),
+            border: Border.all(color: AppColors.secondary, width: 1.5),
           ),
 
           todayTextStyle: const TextStyle(
