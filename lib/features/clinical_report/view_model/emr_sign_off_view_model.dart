@@ -45,6 +45,37 @@ final class EmrSignOffViewModel extends ChangeNotifier {
         _isTransmitting;
   }
 
+  EmrSignOff? findSignOffByExamId({
+    required String patientId,
+    required int examId,
+  }) {
+    final normalizedPatientId = patientId.trim();
+
+    if (normalizedPatientId.isEmpty || examId <= 0) {
+      return null;
+    }
+
+    for (final signOff in _signOffs) {
+      final signOffExamId = signOff.aiResult?.examId;
+
+      if (signOff.patientId == normalizedPatientId && signOffExamId == examId) {
+        return signOff;
+      }
+    }
+
+    return null;
+  }
+
+  bool hasSignOffForExam({required String patientId, required int examId}) {
+    return findSignOffByExamId(patientId: patientId, examId: examId) != null;
+  }
+
+  bool isExamFinalized({required String patientId, required int examId}) {
+    final signOff = findSignOffByExamId(patientId: patientId, examId: examId);
+
+    return signOff?.finalized ?? false;
+  }
+
   Future<bool> loadSignOffs() async {
     if (_isLoading) {
       return false;

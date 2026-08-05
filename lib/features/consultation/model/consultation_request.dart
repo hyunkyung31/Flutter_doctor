@@ -12,6 +12,7 @@ final class ConsultationRequest {
     required this.referenceTypes,
     required this.status,
     required this.createdAt,
+    this.examId,
     this.responseMemo = '',
     this.completedAt,
   });
@@ -28,6 +29,7 @@ final class ConsultationRequest {
   final List<String> referenceTypes;
   final String status;
   final DateTime? createdAt;
+  final int? examId;
   final String responseMemo;
   final DateTime? completedAt;
 
@@ -39,6 +41,27 @@ final class ConsultationRequest {
         normalizedStatus == 'requested' ||
         normalizedStatus == 'waiting' ||
         normalizedStatus == 'new';
+  }
+
+  bool get isInProgress {
+    final normalizedStatus = status.trim().toLowerCase();
+
+    return normalizedStatus == 'in_progress' ||
+        normalizedStatus == 'reviewing' ||
+        normalizedStatus == 'processing';
+  }
+
+  bool get isCompleted {
+    final normalizedStatus = status.trim().toLowerCase();
+
+    return normalizedStatus == 'completed' ||
+        normalizedStatus == 'complete' ||
+        normalizedStatus == 'answered' ||
+        responseMemo.trim().isNotEmpty;
+  }
+
+  bool get isWaitingForResponse {
+    return isPending || isInProgress;
   }
 
   ConsultationRequest copyWith({
@@ -59,6 +82,7 @@ final class ConsultationRequest {
       referenceTypes: referenceTypes,
       status: status ?? this.status,
       createdAt: createdAt,
+      examId: examId,
       responseMemo: responseMemo ?? this.responseMemo,
       completedAt: completedAt ?? this.completedAt,
     );
@@ -115,15 +139,10 @@ final class ConsultationRequest {
         json['reference_types'] ?? json['referenceTypes'],
       ),
       status: _stringValue(json['status'] ?? json['request_status']),
-      createdAt: DateTime.tryParse(
-        _stringValue(json['created_at'] ?? json['createdAt']),
-      ),
-      responseMemo: _stringValue(
-        json['response_memo'] ?? json['responseMemo'],
-      ),
-      completedAt: DateTime.tryParse(
-        _stringValue(json['completed_at'] ?? json['completedAt']),
-      ),
+      createdAt: _dateTimeValue(json['created_at'] ?? json['createdAt']),
+      examId: _intValue(json['exam_id'] ?? json['examId']),
+      responseMemo: _stringValue(json['response_memo'] ?? json['responseMemo']),
+      completedAt: _dateTimeValue(json['completed_at'] ?? json['completedAt']),
     );
   }
 
@@ -147,14 +166,60 @@ final class ConsultationRequest {
     return value.toString().trim();
   }
 
-  static List<String> _stringListValue(dynamic value) {
-    if (value is! List) {
-      return const <String>[];
+  static int? _intValue(dynamic value) {
+    if (value is int) {
+      return value;
     }
 
-    return value
-        .map(_stringValue)
-        .where((item) => item.isNotEmpty)
-        .toList(growable: false);
+    if (value is num) {
+      return value.toInt();
+    }
+
+    final text = _stringValue(value);
+
+    if (text.isEmpty) {
+      return null;
+    }
+
+    return int.tryParse(text);
+  }
+
+  static DateTime? _dateTimeValue(dynamic value) {
+    final text = _stringValue(value);
+
+    if (text.isEmpty) {
+      return null;
+    }
+
+    return DateTime.tryParse(text);
+  }
+
+  static List<String> _stringListValue(dynamic value) {
+    if (value is List) {
+      return value
+          .map(_stringValue)
+          .where((item) => item.isNotEmpty)
+          .toList(growable: false);
+    }
+
+    if (value is String) {
+      final normalizedValue = value.trim();
+
+      if (normalizedValue.isEmpty) {
+        return const <String>[];
+      }
+
+      return normalizedValue
+          .replaceAll('[', '')
+          .replaceAll(']', '')
+          .replaceAll('"', '')
+          .replaceAll("'", '')
+          .split(',')
+          .map((item) => item.trim())
+          .where((item) => item.isNotEmpty)
+          .toList(growable: false);
+    }
+
+    return const <String>[];
   }
 }

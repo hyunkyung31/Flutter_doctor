@@ -5,14 +5,10 @@ import '../model/consultation_request.dart';
 import '../repository/consultation_repository.dart';
 
 final class ConsultationViewModel extends ChangeNotifier {
-  ConsultationViewModel({
-    required ConsultationRepository consultationRepository,
-  }) : _consultationRepository = consultationRepository;
-
+  ConsultationViewModel({required this._consultationRepository});
   final ConsultationRepository _consultationRepository;
 
-  List<ConsultationDoctor> _doctors =
-      <ConsultationDoctor>[];
+  List<ConsultationDoctor> _doctors = <ConsultationDoctor>[];
   List<ConsultationRequest> _receivedRequests = <ConsultationRequest>[];
   List<ConsultationRequest> _sentRequests = <ConsultationRequest>[];
 
@@ -22,11 +18,11 @@ final class ConsultationViewModel extends ChangeNotifier {
 
   String? _errorMessage;
 
-  List<ConsultationDoctor> get doctors =>
-      List.unmodifiable(_doctors);
+  List<ConsultationDoctor> get doctors => List.unmodifiable(_doctors);
   List<ConsultationRequest> get receivedRequests =>
       List.unmodifiable(_receivedRequests);
-  List<ConsultationRequest> get sentRequests => List.unmodifiable(_sentRequests);
+  List<ConsultationRequest> get sentRequests =>
+      List.unmodifiable(_sentRequests);
 
   bool get isLoading => _isLoading;
   bool get isRequestsLoading => _isRequestsLoading;
@@ -56,14 +52,8 @@ final class ConsultationViewModel extends ChangeNotifier {
     return values;
   }
 
-  List<ConsultationDoctor> doctorsByDepartment(
-    String department,
-  ) {
-    return _doctors
-        .where(
-          (doctor) => doctor.department == department,
-        )
-        .toList();
+  List<ConsultationDoctor> doctorsByDepartment(String department) {
+    return _doctors.where((doctor) => doctor.department == department).toList();
   }
 
   Future<void> loadDoctors() async {
@@ -76,8 +66,7 @@ final class ConsultationViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _doctors =
-          await _consultationRepository.fetchDoctors();
+      _doctors = await _consultationRepository.fetchDoctors();
     } on ConsultationRepositoryException catch (error) {
       _errorMessage = error.message;
     } catch (_) {
@@ -102,8 +91,8 @@ final class ConsultationViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _receivedRequests =
-          await _consultationRepository.fetchReceivedConsultations();
+      _receivedRequests = await _consultationRepository
+          .fetchReceivedConsultations();
     } on ConsultationRepositoryException catch (error) {
       _errorMessage = error.message;
     } catch (_) {
@@ -144,9 +133,7 @@ final class ConsultationViewModel extends ChangeNotifier {
 
   Future<void> refreshAllRequests() => loadAllRequests();
 
-  Future<ConsultationRequest?> markAsReviewing(
-    String consultationId,
-  ) async {
+  Future<ConsultationRequest?> markAsReviewing(String consultationId) async {
     final request = requestById(consultationId);
 
     if (request == null) {
@@ -182,11 +169,11 @@ final class ConsultationViewModel extends ChangeNotifier {
     _errorMessage = null;
 
     try {
-      final updatedRequest =
-          await _consultationRepository.updateConsultationStatus(
-        consultationId: consultationId,
-        status: status,
-      );
+      final updatedRequest = await _consultationRepository
+          .updateConsultationStatus(
+            consultationId: consultationId,
+            status: status,
+          );
 
       _receivedRequests[index] = updatedRequest;
       notifyListeners();
@@ -201,6 +188,7 @@ final class ConsultationViewModel extends ChangeNotifier {
       return false;
     }
   }
+
   Future<bool> completeConsultation({
     required String consultationId,
     required String responseMemo,
@@ -219,8 +207,7 @@ final class ConsultationViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final updatedRequest =
-          await _consultationRepository.completeConsultation(
+      final updatedRequest = await _consultationRepository.completeConsultation(
         consultationId: consultationId,
         responseMemo: responseMemo,
       );
