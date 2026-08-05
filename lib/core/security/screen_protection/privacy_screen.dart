@@ -11,18 +11,15 @@ class PrivacyScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const ColoredBox(
-      color: Color(0xFFFFF8F8), // 휴대폰과 비율이 다를 때 남는 공간 채우기
+      color: Color(0xFFF5F8FF),
       child: SizedBox.expand(
-        child: SafeArea(
-          child: Center(
-            child: Image(
-              image: AssetImage(_assetPath),
-              fit: BoxFit.contain, // 전체 비율 유지, 화면 안에 맞추기
-              width: double.infinity,
-              height: double.infinity,
-              filterQuality: FilterQuality.high,
-            ),
-          ),
+        child: Image(
+          image: AssetImage(_assetPath),
+          fit: BoxFit.cover,
+          alignment: Alignment.center,
+          width: double.infinity,
+          height: double.infinity,
+          filterQuality: FilterQuality.high,
         ),
       ),
     );
