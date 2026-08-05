@@ -56,9 +56,9 @@ final class _MyPageViewState extends State<MyPageView> {
                 onTap: () => context.push('/patient'),
               ),
               _MenuTile(
-                icon: Icons.note_alt_outlined,
-                title: '작성한 메모',
-                onTap: () => _showPreparingMessage('작성한 메모'),
+                icon: Icons.mic_none,
+                title: '최근 녹음',
+                onTap: () => context.pushNamed('recentVoiceMemos'),
               ),
             ],
           ),
