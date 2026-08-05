@@ -10,6 +10,7 @@ final class ScheduleItem {
     required this.time,
     required this.title,
     this.description,
+    this.color = const Color(0xFF24459A),
   });
 
   final DateTime date;
@@ -17,6 +18,39 @@ final class ScheduleItem {
   final String time;
   final String title;
   final String? description;
+  final Color color;
+
+  Map<String, dynamic> toJson() {
+    return {
+      'date': date.toIso8601String(),
+      'endDate': endDate.toIso8601String(),
+      'time': time,
+      'title': title,
+      'description': description,
+      'colorValue': color.toARGB32(),
+    };
+  }
+
+  factory ScheduleItem.fromJson(Map<String, dynamic> json) {
+    final startDate = DateTime.parse(json['date'].toString());
+    final endDateValue = json['endDate']?.toString();
+    final colorValue = json['colorValue'];
+
+    return ScheduleItem(
+      date: startDate,
+      endDate: endDateValue == null || endDateValue.isEmpty
+          ? startDate
+          : DateTime.parse(endDateValue),
+      time: json['time']?.toString() ?? '00:00',
+      title: json['title']?.toString() ?? '',
+      description: json['description']?.toString(),
+      color: Color(
+        colorValue is int
+            ? colorValue
+            : int.tryParse(colorValue?.toString() ?? '') ?? 0xFF24459A,
+      ),
+    );
+  }
 }
 
 final class ScheduleBottomSheet extends StatelessWidget {
@@ -26,12 +60,18 @@ final class ScheduleBottomSheet extends StatelessWidget {
     required this.schedules,
     required this.onEdit,
     required this.onDelete,
+    this.onVerticalDragUpdate,
+    this.onVerticalDragEnd,
+    this.onVerticalDragCancel,
   });
 
   final DateTime selectedDate;
   final List<ScheduleItem> schedules;
   final ValueChanged<ScheduleItem> onEdit;
   final ValueChanged<ScheduleItem> onDelete;
+  final GestureDragUpdateCallback? onVerticalDragUpdate;
+  final GestureDragEndCallback? onVerticalDragEnd;
+  final GestureDragCancelCallback? onVerticalDragCancel;
 
   String _getWeekday(DateTime date) {
     const weekdays = ['월요일', '화요일', '수요일', '목요일', '금요일', '토요일', '일요일'];
@@ -54,32 +94,23 @@ final class ScheduleBottomSheet extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          /// 선택 날짜와 달력 사이의 손잡이
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.only(top: 10, bottom: 8),
-            alignment: Alignment.center,
-            child: Container(
-              width: 42,
-              height: 5,
-              decoration: BoxDecoration(
-                color: colorScheme.onSurface.withValues(alpha: 0.22),
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-          ),
-
           /// 선택 날짜
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
-            child: Text(
-              '${selectedDate.year}년 '
-              '${selectedDate.month}월 '
-              '${selectedDate.day}일 '
-              '${_getWeekday(selectedDate)}',
-              style: textTheme.titleMedium?.copyWith(
-                color: colorScheme.onSurface,
-                fontWeight: FontWeight.bold,
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onVerticalDragUpdate: onVerticalDragUpdate,
+            onVerticalDragEnd: onVerticalDragEnd,
+            onVerticalDragCancel: onVerticalDragCancel,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
+              child: Text(
+                '${selectedDate.year}년 '
+                '${selectedDate.month}월 '
+                '${selectedDate.day}일 '
+                '${_getWeekday(selectedDate)}',
+                style: textTheme.titleMedium?.copyWith(
+                  color: colorScheme.onSurface,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ),

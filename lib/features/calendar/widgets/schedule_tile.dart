@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/theme/app_colors.dart';
 import 'schedule_bottom_sheet.dart';
 
 final class ScheduleTile extends StatelessWidget {
@@ -37,13 +36,13 @@ final class ScheduleTile extends StatelessWidget {
             height: 52,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.1),
+              color: schedule.color.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(14),
             ),
             child: Text(
               schedule.time,
-              style: const TextStyle(
-                color: AppColors.primary,
+              style: TextStyle(
+                color: schedule.color,
                 fontWeight: FontWeight.bold,
               ),
             ),
