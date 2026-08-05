@@ -15,6 +15,7 @@ import '../../consultation/view_model/consultation_view_model.dart';
 import '../widgets/Doctor_briefing_card.dart';
 import '../widgets/patient_status_card.dart';
 import '../../diagnosis/diagnosis_routes.dart'; // 추가
+import '../../clinical_report/view_model/emr_sign_off_view_model.dart';
 // import '../widgets/recent_patient_section.dart';
 // import '../widgets/today_schedule_section.dart';
 // import '../widgets/today_todo_section.dart';
@@ -36,11 +37,16 @@ final class _HomeViewState extends State<HomeView> {
   @override
   void initState() {
     super.initState();
+
     _loadTodoItems();
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        context.read<ConsultationViewModel>().loadReceivedRequests();
+      if (!mounted) {
+        return;
       }
+
+      context.read<ConsultationViewModel>().loadReceivedRequests();
+      context.read<EmrSignOffViewModel>().loadSignOffs();
     });
   }
 
@@ -86,20 +92,6 @@ final class _HomeViewState extends State<HomeView> {
     final preferences = SharedPreferencesAsync();
 
     await preferences.setString(_todoStorageKey, jsonEncode(_todoItems));
-  }
-
-  Future<void> _logout(BuildContext context) async {
-    final authViewModel = context.read<AuthViewModel>();
-
-    final isSuccess = await authViewModel.logout();
-
-    if (!context.mounted) {
-      return;
-    }
-
-    if (isSuccess) {
-      context.go('/login');
-    }
   }
 
   void _showPreparingMessage(BuildContext context) {
@@ -236,15 +228,20 @@ final class _HomeViewState extends State<HomeView> {
     final calendarViewModel = context.watch<CalendarViewModel>();
 
     final patientListViewModel = context.watch<PatientListViewModel>();
+
     final consultationViewModel = context.watch<ConsultationViewModel>();
+
+    final signOffViewModel = context.watch<EmrSignOffViewModel>();
 
     final patientCount = patientListViewModel.patientCount;
 
     final doctorName = authViewModel.doctorName ?? '의료진';
 
     final consultationCount = consultationViewModel.pendingCount;
+
+    final signOffCount = signOffViewModel.signOffs.length;
+
     const originalVideoCount = 0;
-    const analyzedPatientCount = 0;
 
     // 예약·대기 환자 역시 실제 데이터 연결 전 임시값.
     const reservationCount = 0;
@@ -264,6 +261,7 @@ final class _HomeViewState extends State<HomeView> {
             await Future.wait([
               patientListViewModel.refreshPatients(),
               consultationViewModel.refreshReceivedRequests(),
+              signOffViewModel.loadSignOffs(),
             ]);
           },
           child: ListView(
@@ -335,19 +333,17 @@ final class _HomeViewState extends State<HomeView> {
                     unit: '건',
                     onTap: () {
                       // 추가 - ai 분석
-                      context.pushNamed(
-                        DiagnosisRoute.name,);
+                      context.pushNamed(DiagnosisRoute.name);
                     },
                   ),
                   _QuickMenuCard(
-                    title: '소견 작성',
-                    icon: Icons.analytics_outlined,
+                    title: 'SIGN OFF',
+                    icon: Icons.assignment_turned_in_outlined,
                     iconColor: AppColors.secondary,
-                    count: analyzedPatientCount,
-                    unit: '명',
+                    count: signOffCount,
+                    unit: '건',
                     onTap: () {
-                      // 추후 분석 완료 화면으로 연결
-                      _showPreparingMessage(context);
+                      context.pushNamed('emrSignOffList');
                     },
                   ),
                 ],

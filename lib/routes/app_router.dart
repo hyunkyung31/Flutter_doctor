@@ -10,6 +10,7 @@ import '../features/consultation/consultation_routes.dart';
 import '../features/diagnosis/diagnosis_routes.dart';
 import '../features/chat/chat_routes.dart';
 import '../features/mypage/mypage_routes.dart';
+import '../features/clinical_report/clinical_report_routes.dart';
 
 import 'app_shell.dart';
 import 'route_names.dart';
@@ -41,6 +42,7 @@ class AppRouter {
           ...chatRoutes,
           ...memoRoutes,
           ...myPageRoutes,
+          ...clinicalReportRoutes,
         ],
       ),
 
