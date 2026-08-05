@@ -14,6 +14,9 @@ final class EmrSignOffViewModel extends ChangeNotifier {
   EmrSignOff? _selectedSignOff;
   bool _isLoading = false;
   bool _isSubmitting = false;
+  bool _isGeneratingReport = false;
+  bool _isDownloadingReport = false;
+  bool _isTransmitting = false;
   String? _errorMessage;
 
   List<EmrSignOff> get signOffs => List<EmrSignOff>.unmodifiable(_signOffs);
@@ -24,9 +27,23 @@ final class EmrSignOffViewModel extends ChangeNotifier {
 
   bool get isSubmitting => _isSubmitting;
 
+  bool get isGeneratingReport => _isGeneratingReport;
+
+  bool get isDownloadingReport => _isDownloadingReport;
+
+  bool get isTransmitting => _isTransmitting;
+
   String? get errorMessage => _errorMessage;
 
   bool get hasError => _errorMessage != null;
+
+  bool get isBusy {
+    return _isLoading ||
+        _isSubmitting ||
+        _isGeneratingReport ||
+        _isDownloadingReport ||
+        _isTransmitting;
+  }
 
   Future<bool> loadSignOffs() async {
     if (_isLoading) {
@@ -140,6 +157,83 @@ final class EmrSignOffViewModel extends ChangeNotifier {
     }
   }
 
+  Future<EmrSignOff?> generateReport({required int signOffId}) async {
+    if (_isGeneratingReport) {
+      return null;
+    }
+
+    _setGeneratingReport(true);
+    _clearError(notify: false);
+
+    try {
+      final signOff = await _emrSignOffRepository.generateReport(
+        signOffId: signOffId,
+      );
+
+      _selectedSignOff = signOff;
+      _replaceOrInsert(signOff);
+
+      return signOff;
+    } on EmrSignOffRepositoryException catch (error) {
+      _errorMessage = error.message;
+      return null;
+    } catch (_) {
+      _errorMessage = '임상 보고서 PDF를 생성하지 못했습니다.';
+      return null;
+    } finally {
+      _setGeneratingReport(false);
+    }
+  }
+
+  Future<Uint8List?> downloadReport({required int signOffId}) async {
+    if (_isDownloadingReport) {
+      return null;
+    }
+
+    _setDownloadingReport(true);
+    _clearError(notify: false);
+
+    try {
+      return await _emrSignOffRepository.downloadReport(signOffId: signOffId);
+    } on EmrSignOffRepositoryException catch (error) {
+      _errorMessage = error.message;
+      return null;
+    } catch (_) {
+      _errorMessage = '임상 보고서 PDF를 다운로드하지 못했습니다.';
+      return null;
+    } finally {
+      _setDownloadingReport(false);
+    }
+  }
+
+  Future<EmrSignOff?> transmitReport({required int signOffId}) async {
+    if (_isTransmitting) {
+      return null;
+    }
+
+    _setTransmitting(true);
+    _clearError(notify: false);
+
+    try {
+      final signOff = await _emrSignOffRepository.transmitReport(
+        signOffId: signOffId,
+      );
+
+      _selectedSignOff = signOff;
+      _replaceOrInsert(signOff);
+
+      return signOff;
+    } on EmrSignOffRepositoryException catch (error) {
+      _errorMessage = error.message;
+      return null;
+    } catch (_) {
+      _errorMessage = '임상 보고서를 전달하지 못했습니다.';
+      return null;
+    } finally {
+      _setTransmitting(false);
+    }
+  }
+
   void selectSignOff(EmrSignOff? signOff) {
     if (identical(_selectedSignOff, signOff)) {
       return;
@@ -181,6 +275,33 @@ final class EmrSignOffViewModel extends ChangeNotifier {
     }
 
     _isSubmitting = value;
+    notifyListeners();
+  }
+
+  void _setGeneratingReport(bool value) {
+    if (_isGeneratingReport == value) {
+      return;
+    }
+
+    _isGeneratingReport = value;
+    notifyListeners();
+  }
+
+  void _setDownloadingReport(bool value) {
+    if (_isDownloadingReport == value) {
+      return;
+    }
+
+    _isDownloadingReport = value;
+    notifyListeners();
+  }
+
+  void _setTransmitting(bool value) {
+    if (_isTransmitting == value) {
+      return;
+    }
+
+    _isTransmitting = value;
     notifyListeners();
   }
 

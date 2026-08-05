@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:dio/dio.dart';
 
 import '../../../core/network/api_client.dart';
@@ -130,7 +131,96 @@ final class EmrSignOffService {
     }
   }
 
+  Future<EmrSignOff> generateReport({
+    required int signOffId,
+    required String accessToken,
+  }) async {
+    _validateSignOffId(signOffId);
+
+    try {
+      final response = await _apiClient.dio.post<dynamic>(
+        ApiEndpoints.emrSignOffReport(signOffId),
+        options: _authorizedOptions(accessToken),
+      );
+
+      return _parseEmrSignOff(response.data);
+    } on DioException catch (error) {
+      throw EmrSignOffServiceException(
+        _messageFromDioException(
+          error,
+          defaultMessage: '임상 보고서 PDF를 생성하지 못했습니다.',
+        ),
+      );
+    } on FormatException catch (error) {
+      throw EmrSignOffServiceException(error.message);
+    } on EmrSignOffServiceException {
+      rethrow;
+    } catch (_) {
+      throw const EmrSignOffServiceException('임상 보고서 PDF를 생성하지 못했습니다.');
+    }
+  }
+
+  Future<Uint8List> downloadReport({
+    required int signOffId,
+    required String accessToken,
+  }) async {
+    _validateSignOffId(signOffId);
+
+    try {
+      final response = await _apiClient.dio.get<List<int>>(
+        ApiEndpoints.emrSignOffReport(signOffId),
+        options: _authorizedBytesOptions(accessToken),
+      );
+
+      final data = response.data;
+
+      if (data == null || data.isEmpty) {
+        throw const EmrSignOffServiceException('다운로드한 임상 보고서 PDF가 비어 있습니다.');
+      }
+
+      return Uint8List.fromList(data);
+    } on DioException catch (error) {
+      throw EmrSignOffServiceException(
+        _messageFromDioException(
+          error,
+          defaultMessage: '임상 보고서 PDF를 다운로드하지 못했습니다.',
+        ),
+      );
+    } on EmrSignOffServiceException {
+      rethrow;
+    } catch (_) {
+      throw const EmrSignOffServiceException('임상 보고서 PDF를 다운로드하지 못했습니다.');
+    }
+  }
+
+  Future<EmrSignOff> transmitReport({
+    required int signOffId,
+    required String accessToken,
+  }) async {
+    _validateSignOffId(signOffId);
+
+    try {
+      final response = await _apiClient.dio.post<dynamic>(
+        ApiEndpoints.emrSignOffTransmit(signOffId),
+        options: _authorizedOptions(accessToken),
+      );
+
+      return _parseEmrSignOff(response.data);
+    } on DioException catch (error) {
+      throw EmrSignOffServiceException(
+        _messageFromDioException(error, defaultMessage: '임상 보고서를 전달하지 못했습니다.'),
+      );
+    } on FormatException catch (error) {
+      throw EmrSignOffServiceException(error.message);
+    } on EmrSignOffServiceException {
+      rethrow;
+    } catch (_) {
+      throw const EmrSignOffServiceException('임상 보고서를 전달하지 못했습니다.');
+    }
+  }
+
   Options _authorizedOptions(String accessToken) {
+    //json api 요청용
     final normalizedAccessToken = accessToken.trim();
 
     if (normalizedAccessToken.isEmpty) {
@@ -145,6 +235,24 @@ final class EmrSignOffService {
     );
   }
 
+  // pdf 바이트 다운로드용
+  Options _authorizedBytesOptions(String accessToken) {
+    final normalizedAccessToken = accessToken.trim();
+
+    if (normalizedAccessToken.isEmpty) {
+      throw const EmrSignOffServiceException('로그인 정보가 없습니다.');
+    }
+
+    return Options(
+      headers: <String, String>{
+        'Authorization': 'Bearer $normalizedAccessToken',
+        'Accept': 'application/pdf',
+      },
+      responseType: ResponseType.bytes,
+    );
+  }
+
+  // 목록 응답 파싱
   List<dynamic> _responseList(Object? data) {
     if (data is List<dynamic>) {
       return data;
