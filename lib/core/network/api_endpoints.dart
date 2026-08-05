@@ -26,7 +26,12 @@ abstract final class ApiEndpoints {
   // 협진 요청
   static const String consultations = '/api/consultations/';
 
+  // 채팅방
   static const String chatRooms = '/api/chat/rooms/';
+
+  // 메모
+  static const String memos = '/api/memos/';
+  static const String voiceMemos = '/api/memos/voice/';
 
   static String chatMessages(String roomId) {
     return '/api/chat/rooms/$roomId/messages/';
@@ -56,5 +61,14 @@ abstract final class ApiEndpoints {
   // 검사 키프레임 통합 AI 분석 및 결과 저장
   static String examAiRun(int examId,) {
     return '/api/exams/$examId/ai/run/';
+  }
+
+  // 메모
+  static String memoDetail(int memoId) {
+    return '/api/memos/$memoId/';
+  }
+
+  static String memoAudio(int memoId) {
+    return '/api/memos/$memoId/audio/';
   }
 }
