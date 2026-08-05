@@ -1,9 +1,17 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../widgets/schedule_bottom_sheet.dart';
 
 final class CalendarViewModel extends ChangeNotifier {
-  CalendarViewModel();
+  CalendarViewModel() {
+    unawaited(_loadSchedules());
+  }
+
+  static const String _scheduleStorageKey = 'doctor_calendar_schedules';
 
   /// 현재 선택된 날짜
   DateTime _selectedDate = DateTime.now();
@@ -22,10 +30,12 @@ final class CalendarViewModel extends ChangeNotifier {
   /// 선택한 날짜의 일정만 반환
   List<ScheduleItem> get selectedSchedules {
     final result = _schedules.where((schedule) {
-      return _isSameDate(
-        schedule.date,
-        _selectedDate,
-      );
+      final selectedDay = DateUtils.dateOnly(_selectedDate);
+      final startDay = DateUtils.dateOnly(schedule.date);
+      final endDay = DateUtils.dateOnly(schedule.endDate);
+
+      return !selectedDay.isBefore(startDay) &&
+          !selectedDay.isAfter(endDay);
     }).toList();
 
     result.sort((first, second) {
@@ -51,6 +61,7 @@ final class CalendarViewModel extends ChangeNotifier {
     _schedules.add(schedule);
 
     notifyListeners();
+    unawaited(_saveSchedules());
   }
 
   /// 일정 삭제
@@ -58,6 +69,7 @@ final class CalendarViewModel extends ChangeNotifier {
     _schedules.remove(schedule);
 
     notifyListeners();
+    unawaited(_saveSchedules());
   }
 
   /// 선택 날짜의 일정 삭제
@@ -73,6 +85,7 @@ final class CalendarViewModel extends ChangeNotifier {
     _schedules.remove(schedule);
 
     notifyListeners();
+    unawaited(_saveSchedules());
   }
 
   /// 일정 수정
@@ -89,15 +102,54 @@ final class CalendarViewModel extends ChangeNotifier {
     _schedules[index] = newSchedule;
 
     notifyListeners();
+    unawaited(_saveSchedules());
   }
 
-  /// 같은 날짜인지 확인
-  bool _isSameDate(
-    DateTime first,
-    DateTime second,
-  ) {
-    return first.year == second.year &&
-        first.month == second.month &&
-        first.day == second.day;
+  Future<void> _loadSchedules() async {
+    try {
+      final preferences = SharedPreferencesAsync();
+      final savedJson = await preferences.getString(_scheduleStorageKey);
+
+      if (savedJson == null || savedJson.trim().isEmpty) {
+        return;
+      }
+
+      final decoded = jsonDecode(savedJson);
+      if (decoded is! List) {
+        return;
+      }
+
+      final loadedSchedules = <ScheduleItem>[];
+      for (final item in decoded) {
+        if (item is! Map) continue;
+
+        try {
+          loadedSchedules.add(
+            ScheduleItem.fromJson(Map<String, dynamic>.from(item)),
+          );
+        } catch (_) {
+          // 손상된 일정 하나만 제외하고 나머지는 정상적으로 복원한다.
+        }
+      }
+
+      _schedules
+        ..clear()
+        ..addAll(loadedSchedules);
+      notifyListeners();
+    } catch (_) {
+      // 로컬 저장소를 읽지 못해도 빈 일정으로 앱을 계속 사용할 수 있다.
+    }
+  }
+
+  Future<void> _saveSchedules() async {
+    try {
+      final preferences = SharedPreferencesAsync();
+      final encoded = jsonEncode(
+        _schedules.map((schedule) => schedule.toJson()).toList(),
+      );
+      await preferences.setString(_scheduleStorageKey, encoded);
+    } catch (_) {
+      // 저장 실패가 화면 동작을 중단시키지 않도록 한다.
+    }
   }
 }

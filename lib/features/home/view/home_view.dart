@@ -758,16 +758,57 @@ final class _HomeCalendarState extends State<_HomeCalendar> {
               ),
             );
           },
+          markerBuilder: (context, day, events) {
+            if (events.isEmpty) {
+              return null;
+            }
+
+            final schedule = events.first;
+            final isSingleDay = isSameDay(schedule.date, schedule.endDate);
+            final startsSegment = isSameDay(day, schedule.date) ||
+                day.weekday == DateTime.sunday;
+            final endsSegment = isSameDay(day, schedule.endDate) ||
+                day.weekday == DateTime.saturday;
+
+            return Positioned(
+              left: 0,
+              right: 0,
+              bottom: 4,
+              height: 6,
+              child: isSingleDay
+                  ? Center(
+                      child: Container(
+                        width: 6,
+                        height: 6,
+                        decoration: BoxDecoration(
+                          color: schedule.color,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    )
+                  : Container(
+                      margin: EdgeInsets.only(
+                        left: startsSegment ? 9 : 0,
+                        right: endsSegment ? 9 : 0,
+                      ),
+                      decoration: BoxDecoration(
+                        color: schedule.color,
+                        borderRadius: BorderRadius.horizontal(
+                          left: startsSegment
+                              ? const Radius.circular(4)
+                              : Radius.zero,
+                          right: endsSegment
+                              ? const Radius.circular(4)
+                              : Radius.zero,
+                        ),
+                      ),
+                    ),
+            );
+          },
         ),
         calendarStyle: CalendarStyle(
           outsideDaysVisible: true,
-          markersMaxCount: 3,
-          markerSize: 6,
-          markerMargin: const EdgeInsets.symmetric(horizontal: 1.5),
-          markerDecoration: const BoxDecoration(
-            color: Color(0xFFF0B52D),
-            shape: BoxShape.circle,
-          ),
+          markersMaxCount: 1,
           defaultTextStyle: TextStyle(
             color: colorScheme.onSurface,
             fontWeight: FontWeight.w500,

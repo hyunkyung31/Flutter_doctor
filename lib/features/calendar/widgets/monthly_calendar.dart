@@ -128,6 +128,9 @@ final class _MonthlyCalendarState extends State<MonthlyCalendar> {
         /// 월간 달력 고정
         calendarFormat: CalendarFormat.month,
 
+        /// 좌우 월 이동만 캘린더가 처리하고 세로 제스처는 부모에 전달
+        availableGestures: AvailableGestures.horizontalSwipe,
+
         availableCalendarFormats: const {CalendarFormat.month: '월'},
 
         /// 일요일만 주말로 지정
@@ -299,40 +302,79 @@ final class _MonthlyCalendarState extends State<MonthlyCalendar> {
               return null;
             }
 
-            /// 축소형에서는 일정 점만 표시
+            final schedule = events.first;
+            final isSingleDay = isSameDay(schedule.date, schedule.endDate);
+            final startsSegment = isSameDay(day, schedule.date) ||
+                day.weekday == DateTime.sunday;
+            final endsSegment = isSameDay(day, schedule.endDate) ||
+                day.weekday == DateTime.saturday;
+
+            /// 한 날짜 일정은 점, 연속 일정은 가로선으로 표시
             if (!widget.isExpanded) {
               return Positioned(
-                bottom: 5,
-                child: Container(
-                  width: 6,
-                  height: 6,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFF0B52D),
-                    shape: BoxShape.circle,
-                  ),
-                ),
+                left: 0,
+                right: 0,
+                bottom: 4,
+                height: 6,
+                child: isSingleDay
+                    ? Center(
+                        child: Container(
+                          width: 6,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            color: schedule.color,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      )
+                    : Container(
+                        margin: EdgeInsets.only(
+                          left: startsSegment ? 10 : 0,
+                          right: endsSegment ? 10 : 0,
+                        ),
+                        decoration: BoxDecoration(
+                          color: schedule.color,
+                          borderRadius: BorderRadius.horizontal(
+                            left: startsSegment
+                                ? const Radius.circular(4)
+                                : Radius.zero,
+                            right: endsSegment
+                                ? const Radius.circular(4)
+                                : Radius.zero,
+                          ),
+                        ),
+                      ),
               );
             }
 
-            /// 확장형에서는 첫 일정 제목 표시
-            final schedule = events.first;
-
+            /// 확장형에서도 연속 일정의 셀 경계를 연결
             return Positioned(
-              left: 3,
-              right: 3,
+              left: isSingleDay || startsSegment ? 3 : 0,
+              right: isSingleDay || endsSegment ? 3 : 0,
               bottom: 7,
               child: Container(
                 height: 24,
-                padding: const EdgeInsets.symmetric(horizontal: 5),
+                padding: EdgeInsets.symmetric(
+                  horizontal: startsSegment || isSingleDay ? 5 : 0,
+                ),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF0B52D),
-                  borderRadius: BorderRadius.circular(4),
+                  color: schedule.color,
+                  borderRadius: BorderRadius.horizontal(
+                    left: isSingleDay || startsSegment
+                        ? const Radius.circular(4)
+                        : Radius.zero,
+                    right: isSingleDay || endsSegment
+                        ? const Radius.circular(4)
+                        : Radius.zero,
+                  ),
                 ),
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  events.length > 1
-                      ? '${schedule.title} 외 ${events.length - 1}개'
-                      : schedule.title,
+                  isSingleDay || startsSegment
+                      ? events.length > 1
+                          ? '${schedule.title} 외 ${events.length - 1}개'
+                          : schedule.title
+                      : '',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
