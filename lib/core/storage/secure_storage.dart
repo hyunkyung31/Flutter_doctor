@@ -24,11 +24,50 @@ final class SecureStorage {
     ]);
   }
 
+  Future<void> saveLoginSession({
+    required String accessToken,
+    required String refreshToken,
+    required String doctorId,
+    required String doctorName,
+  }) async {
+    await Future.wait([
+      _storage.write(
+        key: StorageKeys.accessToken,
+        value: accessToken,
+      ),
+      _storage.write(
+        key: StorageKeys.refreshToken,
+        value: refreshToken,
+      ),
+      _storage.write(
+        key: StorageKeys.doctorId,
+        value: doctorId,
+      ),
+      _storage.write(
+        key: StorageKeys.doctorName,
+        value: doctorName,
+      ),
+    ]);
+  }
+
+
   // refresh Token 재발급 성공 후 새 access Token만 교체 저장
   Future<void> saveAccessToken(String accessToken) {
     return _storage.write(
       key: StorageKeys.accessToken,
       value: accessToken,);
+  }
+
+  Future<String?> readDoctorId() {
+    return _storage.read(
+      key: StorageKeys.doctorId,
+    );
+  }
+
+  Future<String?> readDoctorName() {
+    return _storage.read(
+      key: StorageKeys.doctorName,
+    );
   }
 
   // 토큰 읽기
@@ -41,10 +80,21 @@ final class SecureStorage {
   }
 
   // 로그아웃하거나 인증 상태 초기화 시 두 토큰 모두 삭제
+
   Future<void> clearTokens() async {
     await Future.wait([
-      _storage.delete(key: StorageKeys.accessToken),
-      _storage.delete(key: StorageKeys.refreshToken),
+      _storage.delete(
+        key: StorageKeys.accessToken,
+      ),
+      _storage.delete(
+        key: StorageKeys.refreshToken,
+      ),
+      _storage.delete(
+        key: StorageKeys.doctorId,
+      ),
+      _storage.delete(
+        key: StorageKeys.doctorName,
+      ),
     ]);
   }
 }
