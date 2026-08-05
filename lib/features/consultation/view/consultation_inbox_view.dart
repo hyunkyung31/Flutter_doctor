@@ -13,12 +13,15 @@ final class ConsultationInboxView extends StatefulWidget {
 }
 
 final class _ConsultationInboxViewState extends State<ConsultationInboxView> {
+  _ConsultationBox _selectedBox = _ConsultationBox.received;
+  _ConsultationFilter _selectedFilter = _ConsultationFilter.all;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        context.read<ConsultationViewModel>().loadReceivedRequests();
+        context.read<ConsultationViewModel>().loadAllRequests();
       }
     });
   }
@@ -26,11 +29,13 @@ final class _ConsultationInboxViewState extends State<ConsultationInboxView> {
   @override
   Widget build(BuildContext context) {
     final viewModel = context.watch<ConsultationViewModel>();
-    final requests = viewModel.receivedRequests;
+    final requests = _selectedBox == _ConsultationBox.received
+        ? viewModel.receivedRequests
+        : viewModel.sentRequests;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('받은 협진 요청'),
+        title: const Text('협진 내역'),
         centerTitle: true,
       ),
       body: SafeArea(
@@ -68,7 +73,7 @@ final class _ConsultationInboxViewState extends State<ConsultationInboxView> {
               ),
               const SizedBox(height: 16),
               FilledButton.icon(
-                onPressed: viewModel.loadReceivedRequests,
+                onPressed: viewModel.loadAllRequests,
                 icon: const Icon(Icons.refresh),
                 label: const Text('다시 시도'),
               ),
@@ -78,60 +83,160 @@ final class _ConsultationInboxViewState extends State<ConsultationInboxView> {
       );
     }
 
-    return RefreshIndicator(
-      onRefresh: viewModel.refreshReceivedRequests,
-      child: requests.isEmpty
-          ? ListView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.all(24),
-              children: const [
-                SizedBox(height: 120),
-                Icon(Icons.inbox_outlined, size: 72),
-                SizedBox(height: 16),
-                Text(
-                  '받은 협진 요청이 없습니다.',
-                  textAlign: TextAlign.center,
+    final activeCount = requests.where(_isActive).length;
+    final completedCount = requests.where(_isCompleted).length;
+    final filteredRequests = requests.where(_matchesSelectedFilter).toList();
+
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+          child: SizedBox(
+            width: double.infinity,
+            child: SegmentedButton<_ConsultationBox>(
+              showSelectedIcon: false,
+              segments: [
+                ButtonSegment(
+                  value: _ConsultationBox.received,
+                  label: Text('받은 요청 ${viewModel.receivedRequests.length}'),
+                ),
+                ButtonSegment(
+                  value: _ConsultationBox.sent,
+                  label: Text('보낸 요청 ${viewModel.sentRequests.length}'),
                 ),
               ],
-            )
-          : ListView.separated(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
-              itemCount: requests.length,
-              separatorBuilder: (_, _) => const SizedBox(height: 10),
-              itemBuilder: (context, index) => _ConsultationRequestCard(
-                request: requests[index],
-                onTap: () async {
-                  final request = await viewModel.markAsReviewing(
-                    requests[index].consultationId,
-                  );
-
-                  if (!context.mounted) {
-                    return;
-                  }
-
-                  if (request == null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          viewModel.errorMessage ??
-                              '협진 검토 상태로 변경하지 못했습니다.',
-                        ),
-                      ),
-                    );
-                    return;
-                  }
-
-                  context.pushNamed(
-                    'consultationDetail',
-                    extra: request,
-                  );
-                },
-              ),
+              selected: {_selectedBox},
+              onSelectionChanged: (selection) {
+                setState(() {
+                  _selectedBox = selection.first;
+                  _selectedFilter = _ConsultationFilter.all;
+                });
+              },
             ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+          child: SizedBox(
+            width: double.infinity,
+            child: SegmentedButton<_ConsultationFilter>(
+              showSelectedIcon: false,
+              segments: [
+                ButtonSegment(
+                  value: _ConsultationFilter.all,
+                  label: Text('전체 ${requests.length}'),
+                ),
+                ButtonSegment(
+                  value: _ConsultationFilter.active,
+                  label: Text('진행 중 $activeCount'),
+                ),
+                ButtonSegment(
+                  value: _ConsultationFilter.completed,
+                  label: Text('완료 $completedCount'),
+                ),
+              ],
+              selected: {_selectedFilter},
+              onSelectionChanged: (selection) {
+                setState(() => _selectedFilter = selection.first);
+              },
+            ),
+          ),
+        ),
+        Expanded(
+          child: RefreshIndicator(
+            onRefresh: viewModel.refreshAllRequests,
+            child: filteredRequests.isEmpty
+                ? ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.all(24),
+                    children: [
+                      const SizedBox(height: 100),
+                      const Icon(Icons.inbox_outlined, size: 72),
+                      const SizedBox(height: 16),
+                      Text(
+                        _emptyMessage(),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  )
+                : ListView.separated(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+                    itemCount: filteredRequests.length,
+                    separatorBuilder: (_, _) => const SizedBox(height: 10),
+                    itemBuilder: (context, index) => _ConsultationRequestCard(
+                      request: filteredRequests[index],
+                      onTap: () async {
+                        if (_selectedBox == _ConsultationBox.sent) {
+                          context.pushNamed(
+                            'consultationDetail',
+                            extra: filteredRequests[index],
+                          );
+                          return;
+                        }
+
+                        final request = await viewModel.markAsReviewing(
+                          filteredRequests[index].consultationId,
+                        );
+
+                        if (!context.mounted) {
+                          return;
+                        }
+
+                        if (request == null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                viewModel.errorMessage ??
+                                    '협진 검토 상태로 변경하지 못했습니다.',
+                              ),
+                            ),
+                          );
+                          return;
+                        }
+
+                        context.pushNamed(
+                          'consultationDetail',
+                          extra: request,
+                        );
+                      },
+                    ),
+                  ),
+          ),
+        ),
+      ],
     );
   }
+
+  bool _matchesSelectedFilter(ConsultationRequest request) {
+    return switch (_selectedFilter) {
+      _ConsultationFilter.all => true,
+      _ConsultationFilter.active => _isActive(request),
+      _ConsultationFilter.completed => _isCompleted(request),
+    };
+  }
+
+  bool _isCompleted(ConsultationRequest request) {
+    return request.status.trim().toLowerCase() == 'completed';
+  }
+
+  bool _isActive(ConsultationRequest request) {
+    final status = request.status.trim().toLowerCase();
+    return request.isPending || status == 'in_progress' || status == 'accepted';
+  }
+
+  String _emptyMessage() {
+    return switch (_selectedFilter) {
+      _ConsultationFilter.all => '받은 협진 요청이 없습니다.',
+      _ConsultationFilter.active => '진행 중인 협진이 없습니다.',
+      _ConsultationFilter.completed => '완료된 협진이 없습니다.',
+    };
+  }
 }
+
+enum _ConsultationFilter { all, active, completed }
+
+enum _ConsultationBox { received, sent }
 
 final class _ConsultationRequestCard extends StatelessWidget {
   const _ConsultationRequestCard({

@@ -12,6 +12,8 @@ final class ConsultationRequest {
     required this.referenceTypes,
     required this.status,
     required this.createdAt,
+    this.responseMemo = '',
+    this.completedAt,
   });
 
   final String consultationId;
@@ -26,6 +28,8 @@ final class ConsultationRequest {
   final List<String> referenceTypes;
   final String status;
   final DateTime? createdAt;
+  final String responseMemo;
+  final DateTime? completedAt;
 
   bool get isPending {
     final normalizedStatus = status.trim().toLowerCase();
@@ -37,7 +41,11 @@ final class ConsultationRequest {
         normalizedStatus == 'new';
   }
 
-  ConsultationRequest copyWith({String? status}) {
+  ConsultationRequest copyWith({
+    String? status,
+    String? responseMemo,
+    DateTime? completedAt,
+  }) {
     return ConsultationRequest(
       consultationId: consultationId,
       patientId: patientId,
@@ -51,6 +59,8 @@ final class ConsultationRequest {
       referenceTypes: referenceTypes,
       status: status ?? this.status,
       createdAt: createdAt,
+      responseMemo: responseMemo ?? this.responseMemo,
+      completedAt: completedAt ?? this.completedAt,
     );
   }
 
@@ -107,6 +117,12 @@ final class ConsultationRequest {
       status: _stringValue(json['status'] ?? json['request_status']),
       createdAt: DateTime.tryParse(
         _stringValue(json['created_at'] ?? json['createdAt']),
+      ),
+      responseMemo: _stringValue(
+        json['response_memo'] ?? json['responseMemo'],
+      ),
+      completedAt: DateTime.tryParse(
+        _stringValue(json['completed_at'] ?? json['completedAt']),
       ),
     );
   }
