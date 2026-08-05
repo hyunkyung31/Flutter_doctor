@@ -181,12 +181,12 @@ final class EmrSignOffService {
       throw const EmrSignOffServiceException('환자 ID가 없습니다.');
     }
 
-    if (request.aiResult.trim().isEmpty) {
-      throw const EmrSignOffServiceException('AI 결과 식별자가 없습니다.');
+    if (request.examId <= 0) {
+      throw const EmrSignOffServiceException('검사 ID가 올바르지 않습니다.');
     }
 
-    if (request.finalResult.trim().isEmpty) {
-      throw const EmrSignOffServiceException('의료진 소견을 입력해 주세요.');
+    if (request.finalized && request.finalResult.trim().isEmpty) {
+      throw const EmrSignOffServiceException('최종 승인하려면 의료진 소견을 입력해 주세요.');
     }
   }
 

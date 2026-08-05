@@ -34,6 +34,17 @@ abstract final class ApiEndpoints {
     return '/api/emr-signoffs/$signOffId/';
   }
 
+  // 최종 승인된 임상 보고서의 PDF 생성 및 다운로드
+  // POST 요청은 PDF 생성, GET 요청은 생성된 PDF 다운로드에 사용
+  static String emrSignOffReport(int signOffId) {
+    return '/api/emr-signoffs/$signOffId/report/';
+  }
+
+  // 생성 완료된 임상 보고서의 전달 상태 처리
+  static String emrSignOffTransmit(int signOffId) {
+    return '/api/emr-signoffs/$signOffId/transmit/';
+  }
+
   // 채팅방
   static const String chatRooms = '/api/chat/rooms/';
 

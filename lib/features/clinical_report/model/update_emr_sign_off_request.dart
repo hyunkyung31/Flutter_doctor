@@ -1,34 +1,28 @@
 final class UpdateEmrSignOffRequest {
   const UpdateEmrSignOffRequest({
-    this.patientId,
+    this.examId,
     this.finalized,
     this.finalResult,
-    this.aiResult,
-    this.emrTransmitted,
-    this.reportReady,
   });
 
-  final String? patientId;
+  // 연결할 검사를 변경해야 할 때만 전달
+  final int? examId;
+
+  // false는 초안 저장, true는 최종 승인을 의미
   final bool? finalized;
+
+  // 수정할 의료진 소견
   final String? finalResult;
-  final String? aiResult;
-  final bool? emrTransmitted;
-  final bool? reportReady;
 
   bool get isEmpty {
-    return patientId == null &&
-        finalized == null &&
-        finalResult == null &&
-        aiResult == null &&
-        emrTransmitted == null &&
-        reportReady == null;
+    return examId == null && finalized == null && finalResult == null;
   }
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{};
 
-    if (patientId != null) {
-      json['patient_id'] = patientId!.trim();
+    if (examId != null) {
+      json['exam_id'] = examId;
     }
 
     if (finalized != null) {
@@ -37,18 +31,6 @@ final class UpdateEmrSignOffRequest {
 
     if (finalResult != null) {
       json['final_result'] = finalResult!.trim();
-    }
-
-    if (aiResult != null) {
-      json['ai_result'] = aiResult!.trim();
-    }
-
-    if (emrTransmitted != null) {
-      json['emr_transmitted'] = emrTransmitted;
-    }
-
-    if (reportReady != null) {
-      json['report_ready'] = reportReady;
     }
 
     return json;

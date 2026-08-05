@@ -7,6 +7,8 @@ final class EmrSignOff {
     required this.finalResult,
     required this.emrTransmitted,
     required this.reportReady,
+    this.reportUrl,
+    this.reportGeneratedAt,
     this.aiResult,
     this.transmittedAt,
     this.createdAt,
@@ -22,6 +24,10 @@ final class EmrSignOff {
   final bool emrTransmitted;
   final DateTime? transmittedAt;
   final bool reportReady;
+  // JWT 인증을 통해 접근하는 보호된 PDF 다운로드 API 경로
+  final String? reportUrl;
+  // 서버에서 PDF 생성이 완료된 시각
+  final DateTime? reportGeneratedAt;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -39,6 +45,8 @@ final class EmrSignOff {
       emrTransmitted: _boolValue(json['emr_transmitted']),
       transmittedAt: _dateTimeValue(json['transmitted_at']),
       reportReady: _boolValue(json['report_ready']),
+      reportUrl: _nullableStringValue(json['report_url']),
+      reportGeneratedAt: _dateTimeValue(json['report_generated_at']),
       createdAt: _dateTimeValue(json['created_at']),
       updatedAt: _dateTimeValue(json['updated_at']),
     );
