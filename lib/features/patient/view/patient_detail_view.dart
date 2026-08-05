@@ -69,6 +69,19 @@ final class _PatientDetailViewState extends State<PatientDetailView> {
 
         return Scaffold(
           appBar: const _PatientDetailAppBar(),
+          floatingActionButton: FloatingActionButton.extended(
+            onPressed: () {
+              context.pushNamed(
+                'memoList',
+                pathParameters: {
+                  'patientId': detail.patient.patientId,
+                },
+                extra: detail.patient,
+              );
+            },
+            icon: const Icon(Icons.edit_note_outlined),
+            label: const Text('메모'),
+          ),
           body: RefreshIndicator(
             onRefresh: () {
               return viewModel.refreshPatientDetail(widget.patientId);

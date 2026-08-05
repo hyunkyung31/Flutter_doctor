@@ -30,6 +30,9 @@ import 'features/consultation/view_model/consultation_view_model.dart';
 import 'features/chat/view_model/chat_view_model.dart';
 import 'features/chat/service/chat_service.dart';
 import 'features/chat/repository/chat_repository.dart';
+import 'features/memo/repository/memo_repository.dart';
+import 'features/memo/service/memo_service.dart';
+import 'features/memo/view_model/memo_view_model.dart';
 
 import 'features/clinical_report/repository/emr_sign_off_repository.dart';
 import 'features/clinical_report/service/emr_sign_off_service.dart';
@@ -151,6 +154,20 @@ class MyApp extends StatelessWidget {
           create: (context) => ChatViewModel(
             chatRepository: context.read<ChatRepository>(),
             consultationRepository: context.read<ConsultationRepository>(),
+          ),
+        ),
+        Provider<MemoService>(
+          create: (context) => MemoService(context.read<ApiClient>()),
+        ),
+        Provider<MemoRepository>(
+          create: (context) => MemoRepository(
+            memoService: context.read<MemoService>(),
+            secureStorage: context.read<SecureStorage>(),
+          ),
+        ),
+        ChangeNotifierProvider<MemoViewModel>(
+          create: (context) => MemoViewModel(
+            memoRepository: context.read<MemoRepository>(),
           ),
         ),
       ],
