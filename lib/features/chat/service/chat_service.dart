@@ -91,8 +91,17 @@ final class ChatService {
       return await action();
     } on DioException catch (error) {
       final data = error.response?.data;
-      if (data is Map && data['detail'] != null) {
-        throw ChatServiceException(data['detail'].toString());
+      if (data is Map) {
+        final detail = data['detail'];
+        if (detail != null) {
+          throw ChatServiceException(detail.toString());
+        }
+        final validationMessage = data.entries
+            .map((entry) => '${entry.key}: ${_errorText(entry.value)}')
+            .join('\n');
+        if (validationMessage.isNotEmpty) {
+          throw ChatServiceException(validationMessage);
+        }
       }
       throw ChatServiceException(fallback);
     } on ChatServiceException {
@@ -116,8 +125,18 @@ final class ChatService {
   }
 
   Map<String, dynamic> _map(dynamic data) {
-    if (data is Map) return Map<String, dynamic>.from(data);
+    if (data is Map) {
+      final result = Map<String, dynamic>.from(data);
+      final nested = result['data'] ?? result['result'] ?? result['room'];
+      if (nested is Map) return Map<String, dynamic>.from(nested);
+      return result;
+    }
     throw const ChatServiceException('채팅 API 응답 형식이 올바르지 않습니다.');
+  }
+
+  String _errorText(dynamic value) {
+    if (value is List) return value.join(', ');
+    return value.toString();
   }
 }
 

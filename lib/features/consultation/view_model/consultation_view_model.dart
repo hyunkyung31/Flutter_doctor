@@ -14,6 +14,7 @@ final class ConsultationViewModel extends ChangeNotifier {
   List<ConsultationDoctor> _doctors =
       <ConsultationDoctor>[];
   List<ConsultationRequest> _receivedRequests = <ConsultationRequest>[];
+  List<ConsultationRequest> _sentRequests = <ConsultationRequest>[];
 
   bool _isLoading = false;
   bool _isRequestsLoading = false;
@@ -25,6 +26,7 @@ final class ConsultationViewModel extends ChangeNotifier {
       List.unmodifiable(_doctors);
   List<ConsultationRequest> get receivedRequests =>
       List.unmodifiable(_receivedRequests);
+  List<ConsultationRequest> get sentRequests => List.unmodifiable(_sentRequests);
 
   bool get isLoading => _isLoading;
   bool get isRequestsLoading => _isRequestsLoading;
@@ -33,7 +35,7 @@ final class ConsultationViewModel extends ChangeNotifier {
   int get pendingCount =>
       _receivedRequests.where((request) => request.isPending).length;
   ConsultationRequest? requestById(String consultationId) {
-    for (final request in _receivedRequests) {
+    for (final request in [..._receivedRequests, ..._sentRequests]) {
       if (request.consultationId == consultationId) {
         return request;
       }
@@ -116,6 +118,32 @@ final class ConsultationViewModel extends ChangeNotifier {
     await loadReceivedRequests();
   }
 
+  Future<void> loadAllRequests() async {
+    if (_isRequestsLoading) return;
+
+    _isRequestsLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final results = await Future.wait([
+        _consultationRepository.fetchReceivedConsultations(),
+        _consultationRepository.fetchSentConsultations(),
+      ]);
+      _receivedRequests = results[0];
+      _sentRequests = results[1];
+    } on ConsultationRepositoryException catch (error) {
+      _errorMessage = error.message;
+    } catch (_) {
+      _errorMessage = '협진 내역을 불러오지 못했습니다.';
+    } finally {
+      _isRequestsLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> refreshAllRequests() => loadAllRequests();
+
   Future<ConsultationRequest?> markAsReviewing(
     String consultationId,
   ) async {
@@ -170,6 +198,46 @@ final class ConsultationViewModel extends ChangeNotifier {
     } catch (_) {
       _errorMessage = '협진 상태를 변경하지 못했습니다.';
       notifyListeners();
+      return false;
+    }
+  }
+  Future<bool> completeConsultation({
+    required String consultationId,
+    required String responseMemo,
+  }) async {
+    final index = _receivedRequests.indexWhere(
+      (request) => request.consultationId == consultationId,
+    );
+
+    if (index == -1) {
+      _errorMessage = '협진 요청을 찾을 수 없습니다.';
+      notifyListeners();
+      return false;
+    }
+
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final updatedRequest =
+          await _consultationRepository.completeConsultation(
+        consultationId: consultationId,
+        responseMemo: responseMemo,
+      );
+
+      _receivedRequests[index] = updatedRequest;
+      notifyListeners();
+
+      return true;
+    } on ConsultationRepositoryException catch (error) {
+      _errorMessage = error.message;
+      notifyListeners();
+
+      return false;
+    } catch (_) {
+      _errorMessage = '소견을 전송하지 못했습니다.';
+      notifyListeners();
+
       return false;
     }
   }
