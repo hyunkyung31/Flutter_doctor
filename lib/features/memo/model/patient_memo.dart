@@ -46,6 +46,7 @@ final class PatientMemo {
   const PatientMemo({
     required this.id,
     required this.doctorId,
+    required this.doctorName,
     required this.patientId,
     required this.examId,
     required this.memoType,
@@ -61,6 +62,7 @@ final class PatientMemo {
 
   final int id;
   final String doctorId;
+  final String doctorName;
   final String? patientId;
   final int? examId;
   final PatientMemoType memoType;
@@ -89,6 +91,13 @@ final class PatientMemo {
     return transcript.trim().isNotEmpty;
   }
 
+  String get doctorDisplayName {
+    if (doctorName.trim().isNotEmpty) {
+      return doctorName.trim();
+    }
+    return doctorId.trim().isEmpty ? '의료진' : doctorId.trim();
+  }
+
   String get displayContent {
     if (content.trim().isNotEmpty) {
       return content.trim();
@@ -107,6 +116,7 @@ final class PatientMemo {
       doctorId: _stringValue(
         json['doctor_id'] ?? json['doctorId'],
       ),
+      doctorName: _doctorNameValue(json),
       patientId: _nullableStringValue(
         json['patient_id'] ?? json['patientId'],
       ),
@@ -142,6 +152,7 @@ final class PatientMemo {
   PatientMemo copyWith({
     int? id,
     String? doctorId,
+    String? doctorName,
     String? patientId,
     int? examId,
     PatientMemoType? memoType,
@@ -157,6 +168,7 @@ final class PatientMemo {
     return PatientMemo(
       id: id ?? this.id,
       doctorId: doctorId ?? this.doctorId,
+      doctorName: doctorName ?? this.doctorName,
       patientId: patientId ?? this.patientId,
       examId: examId ?? this.examId,
       memoType: memoType ?? this.memoType,
@@ -199,5 +211,27 @@ final class PatientMemo {
     }
 
     return DateTime.tryParse(result);
+  }
+
+  static String _doctorNameValue(Map<String, dynamic> json) {
+    final direct = json['doctor_name'] ??
+        json['doctorName'] ??
+        json['author_name'] ??
+        json['created_by_name'];
+    if (_stringValue(direct).isNotEmpty) {
+      return _stringValue(direct);
+    }
+
+    final doctor = json['doctor'];
+    if (doctor is Map) {
+      return _stringValue(
+        doctor['doctor_name'] ??
+            doctor['doctorName'] ??
+            doctor['name'] ??
+            doctor['full_name'],
+      );
+    }
+
+    return '';
   }
 }

@@ -122,6 +122,53 @@ final class MemoService {
     }
   }
 
+  Future<PatientMemo> createVoiceMemo({
+    required String accessToken,
+    required String patientId,
+    required String audioPath,
+    required int durationSeconds,
+    String title = '',
+    int? examId,
+  }) async {
+    try {
+      final formData = FormData.fromMap({
+        'patient_id': patientId.trim(),
+        'memo_type': PatientMemoType.voice.value,
+        'title': title.trim(),
+        'audio_duration_seconds': durationSeconds,
+        if (examId != null) 'exam_id': examId,
+        'audio_file': await MultipartFile.fromFile(
+          audioPath,
+          filename: 'voice_memo.m4a',
+        ),
+      });
+
+      final response = await _apiClient.dio.post<dynamic>(
+        ApiEndpoints.voiceMemos,
+        data: formData,
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $accessToken',
+          },
+          contentType: Headers.multipartFormDataContentType,
+        ),
+      );
+
+      return PatientMemo.fromJson(_map(response.data));
+    } on DioException catch (error) {
+      throw MemoServiceException(
+        _errorMessage(
+          error,
+          fallback: '음성 메모를 저장하지 못했습니다.',
+        ),
+      );
+    } catch (_) {
+      throw const MemoServiceException(
+        '음성 메모를 저장하지 못했습니다.',
+      );
+    }
+  }
+
   Future<PatientMemo> updateTextMemo({
     required String accessToken,
     required int memoId,
@@ -157,6 +204,28 @@ final class MemoService {
       throw const MemoServiceException(
         '메모를 수정하지 못했습니다.',
       );
+    }
+  }
+
+  Future<PatientMemo> updateVoiceMemo({
+    required String accessToken,
+    required int memoId,
+    required String title,
+  }) async {
+    try {
+      final response = await _apiClient.dio.patch<dynamic>(
+        ApiEndpoints.memoDetail(memoId),
+        data: {'title': title.trim()},
+        options: _options(accessToken),
+      );
+
+      return PatientMemo.fromJson(_map(response.data));
+    } on DioException catch (error) {
+      throw MemoServiceException(
+        _errorMessage(error, fallback: '음성 메모 제목을 수정하지 못했습니다.'),
+      );
+    } catch (_) {
+      throw const MemoServiceException('음성 메모 제목을 수정하지 못했습니다.');
     }
   }
 

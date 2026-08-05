@@ -1,4 +1,5 @@
 import '../../../core/storage/secure_storage.dart';
+import '../../../core/network/api_endpoints.dart';
 import '../model/patient_memo.dart';
 import '../service/memo_service.dart';
 
@@ -63,6 +64,29 @@ final class MemoRepository {
     }
   }
 
+  Future<PatientMemo> createVoiceMemo({
+    required String patientId,
+    required String audioPath,
+    required int durationSeconds,
+    String title = '',
+    int? examId,
+  }) async {
+    final accessToken = await _accessToken();
+
+    try {
+      return await _memoService.createVoiceMemo(
+        accessToken: accessToken,
+        patientId: patientId,
+        audioPath: audioPath,
+        durationSeconds: durationSeconds,
+        title: title,
+        examId: examId,
+      );
+    } on MemoServiceException catch (error) {
+      throw MemoRepositoryException(error.message);
+    }
+  }
+
   Future<PatientMemo> updateTextMemo({
     required int memoId,
     required String title,
@@ -82,6 +106,31 @@ final class MemoRepository {
     } on MemoServiceException catch (error) {
       throw MemoRepositoryException(error.message);
     }
+  }
+
+  Future<PatientMemo> updateVoiceMemo({
+    required int memoId,
+    required String title,
+  }) async {
+    final accessToken = await _accessToken();
+
+    try {
+      return await _memoService.updateVoiceMemo(
+        accessToken: accessToken,
+        memoId: memoId,
+        title: title,
+      );
+    } on MemoServiceException catch (error) {
+      throw MemoRepositoryException(error.message);
+    }
+  }
+
+  Future<MemoAudioSource> audioSource(int memoId) async {
+    final accessToken = await _accessToken();
+    return MemoAudioSource(
+      url: '${ApiEndpoints.baseUrl}${ApiEndpoints.memoAudio(memoId)}',
+      headers: {'Authorization': 'Bearer $accessToken'},
+    );
   }
 
   Future<void> deleteMemo({
@@ -122,4 +171,11 @@ final class MemoRepositoryException implements Exception {
   String toString() {
     return message;
   }
+}
+
+final class MemoAudioSource {
+  const MemoAudioSource({required this.url, required this.headers});
+
+  final String url;
+  final Map<String, String> headers;
 }
