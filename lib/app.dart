@@ -31,6 +31,10 @@ import 'features/chat/view_model/chat_view_model.dart';
 import 'features/chat/service/chat_service.dart';
 import 'features/chat/repository/chat_repository.dart';
 
+import 'features/clinical_report/repository/emr_sign_off_repository.dart';
+import 'features/clinical_report/service/emr_sign_off_service.dart';
+import 'features/clinical_report/view_model/emr_sign_off_view_model.dart';
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -88,6 +92,22 @@ class MyApp extends StatelessWidget {
             context.read<DiagnosisService>(),
             context.read<SecureStorage>(),
           ),
+        ),
+
+        Provider<EmrSignOffService>(
+          create: (context) => EmrSignOffService(context.read<ApiClient>()),
+        ),
+
+        Provider<EmrSignOffRepository>(
+          create: (context) => EmrSignOffRepository(
+            emrSignOffService: context.read<EmrSignOffService>(),
+            secureStorage: context.read<SecureStorage>(),
+          ),
+        ),
+
+        ChangeNotifierProvider<EmrSignOffViewModel>(
+          create: (context) =>
+              EmrSignOffViewModel(context.read<EmrSignOffRepository>()),
         ),
         ChangeNotifierProvider<PatientListViewModel>(
           create: (context) => PatientListViewModel(
