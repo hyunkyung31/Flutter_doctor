@@ -16,7 +16,9 @@ final class _ChatListViewState extends State<ChatListView> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<ChatViewModel>().loadRooms();
+      if (mounted) {
+        context.read<ChatViewModel>().loadRooms(force: true);
+      }
     });
   }
 
@@ -24,9 +26,26 @@ final class _ChatListViewState extends State<ChatListView> {
   Widget build(BuildContext context) {
     final viewModel = context.watch<ChatViewModel>();
     final rooms = viewModel.rooms;
+    final totalUnreadCount = rooms.fold<int>(
+      0,
+      (total, room) => total + room.unreadCount,
+    );
     return Scaffold(
       appBar: AppBar(
-        title: const Text('채팅'),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('채팅'),
+            if (totalUnreadCount > 0) ...[
+              const SizedBox(width: 8),
+              Badge(
+                label: Text(
+                  totalUnreadCount > 99 ? '99+' : '$totalUnreadCount',
+                ),
+              ),
+            ],
+          ],
+        ),
         actions: [
           IconButton(
             tooltip: '새 채팅',
@@ -42,6 +61,7 @@ final class _ChatListViewState extends State<ChatListView> {
             child: SearchBar(
               hintText: '의사 이름 또는 진료과 검색',
               leading: const Icon(Icons.search),
+              elevation: const WidgetStatePropertyAll(0),
               onTap: () => context.push('/chat/new'),
             ),
           ),
@@ -88,7 +108,13 @@ final class _ChatListViewState extends State<ChatListView> {
                         ),
                         isThreeLine: true,
                         trailing: room.unreadCount > 0
-                            ? Badge(label: Text('${room.unreadCount}'))
+                            ? Badge(
+                                label: Text(
+                                  room.unreadCount > 9
+                                      ? '9+'
+                                      : '${room.unreadCount}',
+                                ),
+                              )
                             : null,
                         onTap: () => context.push('/chat/${room.id}'),
                       );

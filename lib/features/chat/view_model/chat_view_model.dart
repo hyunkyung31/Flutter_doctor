@@ -20,6 +20,7 @@ final class ChatViewModel extends ChangeNotifier {
   bool _isRoomsLoading = false;
   final Set<String> _loadingRoomIds = {};
   final Set<String> _sendingRoomIds = {};
+  final Set<String> _roomsWithLoadedMessages = {};
   String? _doctorsError;
   String? _errorMessage;
 
@@ -38,7 +39,15 @@ final class ChatViewModel extends ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
     try {
-      _rooms = await _chatRepository.fetchRooms();
+      final fetchedRooms = await _chatRepository.fetchRooms();
+      _rooms = fetchedRooms.map((fetchedRoom) {
+        if (!_roomsWithLoadedMessages.contains(fetchedRoom.id)) {
+          return fetchedRoom;
+        }
+        final currentRoom = roomById(fetchedRoom.id);
+        if (currentRoom == null) return fetchedRoom;
+        return fetchedRoom.copyWith(messages: currentRoom.messages);
+      }).toList(growable: false);
     } on ChatRepositoryException catch (error) {
       _errorMessage = error.message;
     } finally {
@@ -84,6 +93,11 @@ final class ChatViewModel extends ChangeNotifier {
     }
     try {
       final room = await _chatRepository.createRoom(doctor.id);
+      if (room.id.trim().isEmpty) {
+        throw const ChatRepositoryException(
+          '채팅방 번호가 응답에 없습니다.',
+        );
+      }
       _rooms.insert(0, room);
       notifyListeners();
       return room;
@@ -102,6 +116,7 @@ final class ChatViewModel extends ChangeNotifier {
     try {
       final messages = await _chatRepository.fetchMessages(roomId);
       _updateRoom(roomId, messages: messages, unreadCount: 0);
+      _roomsWithLoadedMessages.add(roomId);
       if (markRead) await _chatRepository.markRoomRead(roomId);
     } on ChatRepositoryException catch (error) {
       _errorMessage = error.message;

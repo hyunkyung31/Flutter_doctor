@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/storage/secure_storage.dart';
+import '../../auth/view_model/auth_view_model.dart';
 import '../../patient/model/patient.dart';
 import '../../patient/model/patient_detail.dart';
 import '../../patient/repository/patient_repository.dart';
@@ -22,17 +25,28 @@ final class ChatRoomView extends StatefulWidget {
 
 final class _ChatRoomViewState extends State<ChatRoomView> {
   final controller = TextEditingController();
+  Timer? _messagePollingTimer;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) context.read<ChatViewModel>().loadMessages(widget.roomId);
+      if (!mounted) return;
+      context.read<ChatViewModel>().loadMessages(widget.roomId);
+      _messagePollingTimer = Timer.periodic(
+        const Duration(seconds: 3),
+        (_) {
+          if (mounted) {
+            context.read<ChatViewModel>().loadMessages(widget.roomId);
+          }
+        },
+      );
     });
   }
 
   @override
   void dispose() {
+    _messagePollingTimer?.cancel();
     controller.dispose();
     super.dispose();
   }
@@ -45,6 +59,7 @@ final class _ChatRoomViewState extends State<ChatRoomView> {
       return const Scaffold(body: Center(child: Text('채팅방을 찾을 수 없습니다.')));
     }
     return Scaffold(
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
       appBar: AppBar(
         titleSpacing: 0,
         title: Column(
@@ -72,7 +87,6 @@ final class _ChatRoomViewState extends State<ChatRoomView> {
                     itemBuilder: (context, index) {
                       final message = room.messages.reversed.elementAt(index);
                       return _MessageBubble(
-                        roomId: widget.roomId,
                         message: message,
                       );
                     },
@@ -80,8 +94,13 @@ final class _ChatRoomViewState extends State<ChatRoomView> {
           ),
           SafeArea(
             top: false,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+            child: Container(
+              margin: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainer,
+                borderRadius: BorderRadius.circular(28),
+              ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
@@ -90,7 +109,7 @@ final class _ChatRoomViewState extends State<ChatRoomView> {
                     onPressed: () => _showShareMenu(context, viewModel),
                     icon: const Icon(Icons.add),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 4),
                   Expanded(
                     child: TextField(
                       controller: controller,
@@ -99,12 +118,15 @@ final class _ChatRoomViewState extends State<ChatRoomView> {
                       textInputAction: TextInputAction.newline,
                       decoration: const InputDecoration(
                         hintText: '메시지를 입력하세요',
-                        border: OutlineInputBorder(),
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        filled: false,
                         isDense: true,
                       ),
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 4),
                   IconButton.filled(
                     tooltip: '전송',
                     onPressed: viewModel.isSending(widget.roomId)
@@ -152,7 +174,6 @@ final class _ChatRoomViewState extends State<ChatRoomView> {
             _shareTile(context, Icons.person, '환자 공유', ChatMessageType.patient),
             _shareTile(context, Icons.monitor_heart, '혈관조영 영상', ChatMessageType.examination),
             _shareTile(context, Icons.auto_awesome, 'AI 분석 결과', ChatMessageType.aiResult),
-            _shareTile(context, Icons.assignment, '검사 결과', ChatMessageType.examination),
           ],
         ),
       ),
@@ -296,15 +317,15 @@ final class _ChatRoomViewState extends State<ChatRoomView> {
 }
 
 final class _MessageBubble extends StatelessWidget {
-  const _MessageBubble({required this.roomId, required this.message});
+  const _MessageBubble({required this.message});
 
-  final String roomId;
   final ChatMessage message;
 
   @override
   Widget build(BuildContext context) {
-    final room = context.read<ChatViewModel>().roomById(roomId);
-    final mine = room == null || message.senderId != room.doctor.id;
+    final currentDoctorId = context.watch<AuthViewModel>().doctorId;
+    final mine = currentDoctorId != null &&
+        message.senderId.trim() == currentDoctorId.trim();
     final colors = Theme.of(context).colorScheme;
     return Align(
       alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
@@ -321,7 +342,12 @@ final class _MessageBubble extends StatelessWidget {
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: mine ? colors.primary : colors.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.only(
+                    topLeft: const Radius.circular(22),
+                    topRight: const Radius.circular(22),
+                    bottomLeft: Radius.circular(mine ? 22 : 6),
+                    bottomRight: Radius.circular(mine ? 6 : 22),
+                  ),
                 ),
                 child: DefaultTextStyle.merge(
                   style: TextStyle(
@@ -330,7 +356,6 @@ final class _MessageBubble extends StatelessWidget {
                   child: message.type == ChatMessageType.text
                       ? Text(message.content)
                       : _SharedCard(
-                          roomId: roomId,
                           message: message,
                           isMine: mine,
                         ),
@@ -347,12 +372,10 @@ final class _MessageBubble extends StatelessWidget {
 
 final class _SharedCard extends StatelessWidget {
   const _SharedCard({
-    required this.roomId,
     required this.message,
     required this.isMine,
   });
 
-  final String roomId;
   final ChatMessage message;
   final bool isMine;
 
@@ -369,16 +392,9 @@ final class _SharedCard extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                title,
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-            _ResourceStatusBadge(status: message.resourceStatus),
-          ],
+        Text(
+          title,
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 6),
         if (message.patientName != null)
@@ -409,10 +425,6 @@ final class _SharedCard extends StatelessWidget {
       return;
     }
 
-    if (!isMine) {
-      context.read<ChatViewModel>().markResourceChecked(roomId, message.id);
-    }
-
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -423,26 +435,16 @@ final class _SharedCard extends StatelessWidget {
           patientRepository: context.read<PatientRepository>(),
           secureStorage: context.read<SecureStorage>(),
         )..loadPatientDetail(patientId),
-        child: _SharedDataSheet(
-          roomId: roomId,
-          message: message,
-          canRespond: !isMine,
-        ),
+        child: _SharedDataSheet(message: message),
       ),
     );
   }
 }
 
 final class _SharedDataSheet extends StatelessWidget {
-  const _SharedDataSheet({
-    required this.roomId,
-    required this.message,
-    required this.canRespond,
-  });
+  const _SharedDataSheet({required this.message});
 
-  final String roomId;
   final ChatMessage message;
-  final bool canRespond;
 
   @override
   Widget build(BuildContext context) {
@@ -488,52 +490,7 @@ final class _SharedDataSheet extends StatelessWidget {
                             viewModel: viewModel,
                           ),
           ),
-          if (canRespond)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-              child: SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  onPressed: () {
-                    context.read<ChatViewModel>().markResourceAnswered(
-                          roomId,
-                          message.id,
-                        );
-                    Navigator.pop(context);
-                  },
-                  icon: const Icon(Icons.check_circle_outline),
-                  label: const Text('답변 완료'),
-                ),
-              ),
-            ),
         ],
-      ),
-    );
-  }
-}
-
-final class _ResourceStatusBadge extends StatelessWidget {
-  const _ResourceStatusBadge({required this.status});
-
-  final SharedResourceStatus? status;
-
-  @override
-  Widget build(BuildContext context) {
-    final value = status ?? SharedResourceStatus.unread;
-    final (label, color) = switch (value) {
-      SharedResourceStatus.unread => ('안 읽음', Colors.grey),
-      SharedResourceStatus.checked => ('확인함', Colors.blue),
-      SharedResourceStatus.answered => ('답변 완료', Colors.green),
-    };
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.18),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.bold),
       ),
     );
   }
@@ -553,7 +510,10 @@ final class _SharedDataBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return switch (messageType) {
-      ChatMessageType.patient => _PatientDataView(patient: detail.patient),
+      ChatMessageType.patient => _PatientDataView(
+          patient: detail.patient,
+          viewModel: viewModel,
+        ),
       ChatMessageType.examination => _MapDataList(
           items: detail.examinations,
           emptyMessage: '검사·촬영 자료가 없습니다.',
@@ -566,16 +526,23 @@ final class _SharedDataBody extends StatelessWidget {
           resolveMediaUrl: viewModel.resolveMediaUrl,
           mediaHeaders: viewModel.mediaHeaders,
         ),
-      ChatMessageType.consultation => _PatientDataView(patient: detail.patient),
+      ChatMessageType.consultation => _PatientDataView(
+          patient: detail.patient,
+          viewModel: viewModel,
+        ),
       ChatMessageType.text => const Center(child: Text('표시할 자료가 없습니다.')),
     };
   }
 }
 
 final class _PatientDataView extends StatelessWidget {
-  const _PatientDataView({required this.patient});
+  const _PatientDataView({
+    required this.patient,
+    required this.viewModel,
+  });
 
   final Patient patient;
+  final PatientDetailViewModel viewModel;
 
   @override
   Widget build(BuildContext context) {
@@ -589,6 +556,35 @@ final class _PatientDataView extends StatelessWidget {
         _InfoRow(label: '주호소', value: patient.chiefComplaint ?? '미등록'),
         _InfoRow(label: '심전도 결과', value: patient.ecgResult ?? '미등록'),
         _InfoRow(label: 'Troponin T', value: patient.troponinTText),
+        const SizedBox(height: 12),
+        Text(
+          '심전도 이미지',
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+        ),
+        const SizedBox(height: 8),
+        if (patient.ecgImageUrl.trim().isEmpty)
+          const Text('심전도 이미지가 없습니다.')
+        else
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: CachedNetworkImage(
+              imageUrl: viewModel.resolveMediaUrl(patient.ecgImageUrl),
+              httpHeaders: viewModel.mediaHeaders,
+              fit: BoxFit.contain,
+              placeholder: (_, __) => const SizedBox(
+                height: 180,
+                child: Center(child: CircularProgressIndicator()),
+              ),
+              errorWidget: (_, __, ___) => const SizedBox(
+                height: 180,
+                child: Center(
+                  child: Text('심전도 이미지를 불러올 수 없습니다.'),
+                ),
+              ),
+            ),
+          ),
       ],
     );
   }
@@ -858,6 +854,29 @@ final class _Time extends StatelessWidget {
   Widget build(BuildContext context) {
     final hour = message.sentAt.hour;
     final minute = message.sentAt.minute.toString().padLeft(2, '0');
+    if (showReadStatus) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            if (!message.isRead)
+              Text(
+                '1',
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: Theme.of(context).colorScheme.primary,
+                      fontWeight: FontWeight.w700,
+                    ),
+              ),
+            Text(
+              '$hour:$minute',
+              style: Theme.of(context).textTheme.labelSmall,
+            ),
+          ],
+        ),
+      );
+    }
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
       child: Text(
