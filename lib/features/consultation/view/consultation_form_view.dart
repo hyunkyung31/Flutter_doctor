@@ -78,7 +78,7 @@ final class _ConsultationFormViewState extends State<ConsultationFormView> {
       reason: reason,
       priority: _selectedRiskLevel,
       memo: _memoController.text.trim(),
-      referenceTypes: const <String>[],
+      referenceTypes: const [],
       examId: null,
     );
 

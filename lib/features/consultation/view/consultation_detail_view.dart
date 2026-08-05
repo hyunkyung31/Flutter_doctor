@@ -5,6 +5,7 @@ import 'package:video_player/video_player.dart';
 
 import '../../patient/model/patient.dart';
 import '../../patient/view_model/patient_detail_view_model.dart';
+import '../../auth/view_model/auth_view_model.dart';
 import '../model/consultation_request.dart';
 import '../view_model/consultation_view_model.dart';
 
@@ -42,6 +43,10 @@ final class _ConsultationDetailViewState extends State<ConsultationDetailView> {
           widget.request.consultationId,
         ) ??
         widget.request;
+    final currentDoctorId = context.watch<AuthViewModel>().doctorId?.trim();
+    final canRespond = currentDoctorId != null &&
+        currentDoctorId.isNotEmpty &&
+        currentDoctorId == request.receiverId.trim();
 
     return Scaffold(
       appBar: AppBar(
@@ -57,6 +62,10 @@ final class _ConsultationDetailViewState extends State<ConsultationDetailView> {
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
           children: [
             _ConsultationSection(request: request),
+            if (request.responseMemo.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              _OpinionRecordCard(request: request),
+            ],
             const SizedBox(height: 24),
             Text(
               '환자 상세 정보',
@@ -72,6 +81,7 @@ final class _ConsultationDetailViewState extends State<ConsultationDetailView> {
             const SizedBox(height: 24),
             _StatusActions(
               request: request,
+              canRespond: canRespond,
             ),
           ],
         ),
@@ -80,12 +90,63 @@ final class _ConsultationDetailViewState extends State<ConsultationDetailView> {
   }
 }
 
+final class _OpinionRecordCard extends StatelessWidget {
+  const _OpinionRecordCard({required this.request});
+
+  final ConsultationRequest request;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.description_outlined,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                const SizedBox(width: 10),
+                const Text(
+                  '작성한 의료진 소견',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            SelectableText(request.responseMemo),
+            if (request.completedAt != null) ...[
+              const SizedBox(height: 12),
+              Text(
+                '전송 일시  ${_completedDateText(request.completedAt!)}',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _completedDateText(DateTime value) {
+    final local = value.toLocal();
+    String twoDigits(int number) => number.toString().padLeft(2, '0');
+    return '${local.year}.${twoDigits(local.month)}.${twoDigits(local.day)} '
+        '${twoDigits(local.hour)}:${twoDigits(local.minute)}';
+  }
+}
+
 final class _StatusActions extends StatefulWidget {
   const _StatusActions({
     required this.request,
+    required this.canRespond,
   });
 
   final ConsultationRequest request;
+  final bool canRespond;
 
   @override
   State<_StatusActions> createState() => _StatusActionsState();
@@ -98,9 +159,30 @@ final class _StatusActionsState extends State<_StatusActions> {
   Widget build(BuildContext context) {
     final status = widget.request.status.trim().toLowerCase();
 
+    if (!widget.canRespond) {
+      return Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              const Icon(Icons.schedule_outlined),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  status == 'completed'
+                      ? '상대 의료진의 소견 작성이 완료되었습니다.'
+                      : '상대 의료진의 소견을 기다리고 있습니다.',
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     if (status == 'in_progress') {
       if (_isOpinionFormVisible) {
-        return const _OpinionComposer();
+        return _OpinionComposer(request: widget.request);
       }
 
       return SizedBox(
@@ -118,7 +200,7 @@ final class _StatusActionsState extends State<_StatusActions> {
     }
 
     if (status == 'accepted') {
-      return const _OpinionComposer();
+      return _OpinionComposer(request: widget.request);
     }
 
     if (status == 'completed' || status == 'rejected') {
@@ -147,7 +229,9 @@ final class _StatusActionsState extends State<_StatusActions> {
 }
 
 final class _OpinionComposer extends StatefulWidget {
-  const _OpinionComposer();
+  const _OpinionComposer({required this.request});
+
+  final ConsultationRequest request;
 
   @override
   State<_OpinionComposer> createState() => _OpinionComposerState();
@@ -162,7 +246,7 @@ final class _OpinionComposerState extends State<_OpinionComposer> {
     super.dispose();
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     final opinion = _controller.text.trim();
 
     if (opinion.isEmpty) {
@@ -172,8 +256,27 @@ final class _OpinionComposerState extends State<_OpinionComposer> {
       return;
     }
 
+    final viewModel = context.read<ConsultationViewModel>();
+    final success = await viewModel.completeConsultation(
+      consultationId: widget.request.consultationId,
+      responseMemo: opinion,
+    );
+
+    if (!mounted) return;
+
+    if (!success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            viewModel.errorMessage ?? '소견을 전송하지 못했습니다.',
+          ),
+        ),
+      );
+      return;
+    }
+
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('소견 전송 API 연결 예정입니다.')),
+      const SnackBar(content: Text('소견을 전송했습니다.')),
     );
   }
 

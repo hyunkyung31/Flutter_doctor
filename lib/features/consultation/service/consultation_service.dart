@@ -68,18 +68,32 @@ final class ConsultationService {
     required List<String> referenceTypes,
     String? examId,
   }) async {
+    final normalizedPatientId = patientId.trim();
+    final normalizedReceiverId = receiverId.trim();
+    final normalizedReason = reason.trim();
+    final normalizedMemo = memo.trim();
+    final normalizedExamId = examId?.trim();
+
+    final data = <String, dynamic>{
+      'patient_id': normalizedPatientId,
+      'receiver_id': normalizedReceiverId,
+      'reason': normalizedReason,
+      'priority': priority,
+    };
+    if (normalizedMemo.isNotEmpty) {
+      data['memo'] = normalizedMemo;
+    }
+    if (referenceTypes.isNotEmpty) {
+      data['reference_types'] = referenceTypes;
+    }
+    if (normalizedExamId != null && normalizedExamId.isNotEmpty) {
+      data['exam_id'] = normalizedExamId;
+    }
+
     try {
       await _apiClient.dio.post<dynamic>(
         ApiEndpoints.consultations,
-        data: {
-          'patient_id': patientId,
-          'receiver_id': receiverId,
-          'reason': reason,
-          'priority': priority,
-          'memo': memo,
-          'reference_types': referenceTypes,
-          'exam_id': examId,
-        },
+        data: data,
         options: Options(
           headers: {
             'Authorization': 'Bearer $accessToken',
@@ -142,6 +156,49 @@ final class ConsultationService {
     } catch (_) {
       throw const ConsultationServiceException(
         '받은 협진 요청을 불러오지 못했습니다.',
+      );
+    }
+  }
+
+  Future<List<ConsultationRequest>> fetchSentConsultations({
+    required String accessToken,
+  }) async {
+    try {
+      final response = await _apiClient.dio.get<dynamic>(
+        ApiEndpoints.consultations,
+        queryParameters: const {'sender': 'me'},
+        options: Options(
+          headers: {'Authorization': 'Bearer $accessToken'},
+        ),
+      );
+
+      final data = response.data;
+      final dynamic items = data is List
+          ? data
+          : data is Map
+              ? data['results'] ?? data['consultations'] ?? data['data']
+              : null;
+
+      if (items is! List) return const <ConsultationRequest>[];
+
+      return items
+          .whereType<Map>()
+          .map(
+            (item) => ConsultationRequest.fromJson(
+              Map<String, dynamic>.from(item),
+            ),
+          )
+          .toList(growable: false);
+    } on DioException catch (error) {
+      throw ConsultationServiceException(
+        _extractErrorMessage(
+          error,
+          defaultMessage: '보낸 협진 요청을 불러오지 못했습니다.',
+        ),
+      );
+    } catch (_) {
+      throw const ConsultationServiceException(
+        '보낸 협진 요청을 불러오지 못했습니다.',
       );
     }
   }
@@ -219,6 +276,50 @@ final class ConsultationService {
     }
 
     return defaultMessage;
+  }
+
+  Future<ConsultationRequest> completeConsultation({
+    required String accessToken,
+    required String consultationId,
+    required String responseMemo,
+  }) async {
+    try {
+      final response = await _apiClient.dio.patch<dynamic>(
+        ApiEndpoints.consultationComplete(consultationId),
+        data: {
+          'response_memo': responseMemo.trim(),
+        },
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $accessToken',
+            'Content-Type': 'application/json',
+          },
+        ),
+      );
+
+      if (response.data is! Map) {
+        throw const ConsultationServiceException(
+          '소견 전송 응답 형식이 올바르지 않습니다.',
+        );
+      }
+
+      return ConsultationRequest.fromJson(
+        Map<String, dynamic>.from(response.data as Map),
+      );
+    } on DioException catch (error) {
+      throw ConsultationServiceException(
+        _extractErrorMessage(
+          error,
+          defaultMessage: '소견을 전송하지 못했습니다.',
+        ),
+      );
+    } on ConsultationServiceException {
+      rethrow;
+    } catch (_) {
+      throw const ConsultationServiceException(
+        '소견을 전송하지 못했습니다.',
+      );
+    }
   }
 }
 

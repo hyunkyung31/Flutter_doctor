@@ -104,6 +104,47 @@ final class ConsultationRepository {
       throw ConsultationRepositoryException(error.message);
     }
   }
+
+  Future<List<ConsultationRequest>> fetchSentConsultations() async {
+    final accessToken = await _secureStorage.readAccessToken();
+
+    if (accessToken == null || accessToken.isEmpty) {
+      throw const ConsultationRepositoryException(
+        '로그인 정보가 없습니다. 다시 로그인해 주세요.',
+      );
+    }
+
+    try {
+      return await _consultationService.fetchSentConsultations(
+        accessToken: accessToken,
+      );
+    } on ConsultationServiceException catch (error) {
+      throw ConsultationRepositoryException(error.message);
+    }
+  }
+
+  Future<ConsultationRequest> completeConsultation({
+    required String consultationId,
+    required String responseMemo,
+  }) async {
+    final accessToken = await _secureStorage.readAccessToken();
+
+    if (accessToken == null || accessToken.isEmpty) {
+      throw const ConsultationRepositoryException(
+        '로그인 정보가 없습니다. 다시 로그인해 주세요.',
+      );
+    }
+
+    try {
+      return await _consultationService.completeConsultation(
+        accessToken: accessToken,
+        consultationId: consultationId,
+        responseMemo: responseMemo,
+      );
+    } on ConsultationServiceException catch (error) {
+      throw ConsultationRepositoryException(error.message);
+    }
+  }
 }
 
 final class ConsultationRepositoryException implements Exception {
