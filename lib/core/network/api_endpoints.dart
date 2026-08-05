@@ -26,6 +26,14 @@ abstract final class ApiEndpoints {
   // 협진 요청
   static const String consultations = '/api/consultations/';
 
+  // 의료진 임상 보고서 목록 조회 및 초안 생성
+  static const String emrSignOffs = '/api/emr-signoffs/';
+
+  // 의료진 임상 보고서 상세 조회 및 수정
+  static String emrSignOffDetail(int signOffId) {
+    return '/api/emr-signoffs/$signOffId/';
+  }
+
   static const String chatRooms = '/api/chat/rooms/';
 
   static String chatMessages(String roomId) {
@@ -50,7 +58,7 @@ abstract final class ApiEndpoints {
   }
 
   // 검사 키프레임 통합 AI 분석 및 결과 저장
-  static String examAiRun(int examId,) {
+  static String examAiRun(int examId) {
     return '/api/exams/$examId/ai/run/';
   }
 }
