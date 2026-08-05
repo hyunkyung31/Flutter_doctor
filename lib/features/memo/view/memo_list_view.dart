@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import '../../auth/view_model/auth_view_model.dart';
 import '../../patient/model/patient.dart';
 import '../model/patient_memo.dart';
 import '../view_model/memo_view_model.dart';
@@ -303,6 +304,13 @@ final class _MemoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final signedInDoctorName =
+        context.watch<AuthViewModel>().doctorName?.trim() ?? '';
+    final authorName = memo.doctorName.trim().isNotEmpty
+        ? memo.doctorName.trim()
+        : signedInDoctorName.isNotEmpty
+            ? signedInDoctorName
+            : '의료진';
 
     return Card(
       margin: EdgeInsets.zero,
@@ -355,7 +363,7 @@ final class _MemoCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      '${_dateText(memo.createdAt)} · ${memo.doctorId}',
+                      '${_dateText(memo.createdAt)} · $authorName 의사',
                       style: Theme.of(context)
                           .textTheme
                           .bodySmall

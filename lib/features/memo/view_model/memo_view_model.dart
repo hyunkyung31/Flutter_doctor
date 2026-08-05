@@ -89,7 +89,7 @@ final class MemoViewModel extends ChangeNotifier {
   }
 
   Future<void> loadMemos({
-    required String patientId,
+    String? patientId,
   }) async {
     if (_isLoading) {
       return;
@@ -116,7 +116,7 @@ final class MemoViewModel extends ChangeNotifier {
   }
 
   Future<void> refreshMemos({
-    required String patientId,
+    String? patientId,
   }) {
     return loadMemos(patientId: patientId);
   }
@@ -201,6 +201,50 @@ final class MemoViewModel extends ChangeNotifier {
     }
   }
 
+  Future<bool> createVoiceMemo({
+    required String patientId,
+    required String audioPath,
+    required int durationSeconds,
+    String title = '',
+    int? examId,
+  }) async {
+    if (_isSaving) return false;
+
+    if (audioPath.trim().isEmpty || durationSeconds <= 0) {
+      _errorMessage = '녹음을 완료한 뒤 저장해 주세요.';
+      notifyListeners();
+      return false;
+    }
+
+    _isSaving = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final memo = await _memoRepository.createVoiceMemo(
+        patientId: patientId,
+        audioPath: audioPath,
+        durationSeconds: durationSeconds,
+        title: title,
+        examId: examId,
+      );
+
+      _memos.insert(0, memo);
+      _memos.sort(_compareByLatest);
+      _selectedMemo = memo;
+      return true;
+    } on MemoRepositoryException catch (error) {
+      _errorMessage = error.message;
+      return false;
+    } catch (_) {
+      _errorMessage = '음성 메모를 저장하지 못했습니다.';
+      return false;
+    } finally {
+      _isSaving = false;
+      notifyListeners();
+    }
+  }
+
   Future<bool> updateTextMemo({
     required int memoId,
     required String title,
@@ -241,6 +285,43 @@ final class MemoViewModel extends ChangeNotifier {
       return false;
     } catch (_) {
       _errorMessage = '메모를 수정하지 못했습니다.';
+      return false;
+    } finally {
+      _isSaving = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> updateVoiceMemo({
+    required int memoId,
+    required String title,
+  }) async {
+    if (_isSaving) return false;
+
+    final normalizedTitle = title.trim();
+    if (normalizedTitle.isEmpty) {
+      _errorMessage = '음성 메모 제목을 입력해 주세요.';
+      notifyListeners();
+      return false;
+    }
+
+    _isSaving = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final memo = await _memoRepository.updateVoiceMemo(
+        memoId: memoId,
+        title: normalizedTitle,
+      );
+      _replaceMemo(memo);
+      _selectedMemo = memo;
+      return true;
+    } on MemoRepositoryException catch (error) {
+      _errorMessage = error.message;
+      return false;
+    } catch (_) {
+      _errorMessage = '음성 메모 제목을 수정하지 못했습니다.';
       return false;
     } finally {
       _isSaving = false;

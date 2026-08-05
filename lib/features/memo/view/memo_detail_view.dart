@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:just_audio/just_audio.dart';
 import 'package:provider/provider.dart';
 
+import '../../auth/view_model/auth_view_model.dart';
 import '../../patient/model/patient.dart';
 import '../model/patient_memo.dart';
+import '../repository/memo_repository.dart';
 import '../view_model/memo_view_model.dart';
 
 final class MemoDetailView extends StatefulWidget {
@@ -331,7 +334,7 @@ final class _TextMemoContent extends StatelessWidget {
   }
 }
 
-final class _VoiceMemoContent extends StatelessWidget {
+final class _VoiceMemoContent extends StatefulWidget {
   const _VoiceMemoContent({
     required this.memo,
   });
@@ -339,8 +342,52 @@ final class _VoiceMemoContent extends StatelessWidget {
   final PatientMemo memo;
 
   @override
+  State<_VoiceMemoContent> createState() => _VoiceMemoContentState();
+}
+
+final class _VoiceMemoContentState extends State<_VoiceMemoContent> {
+  final AudioPlayer _player = AudioPlayer();
+  bool _isLoading = false;
+  bool _isPrepared = false;
+
+  PatientMemo get memo => widget.memo;
+
+  @override
+  void dispose() {
+    _player.dispose();
+    super.dispose();
+  }
+
+  Future<void> _togglePlayback() async {
+    try {
+      if (!_isPrepared) {
+        setState(() => _isLoading = true);
+        final source = await context.read<MemoRepository>().audioSource(memo.id);
+        await _player.setUrl(source.url, headers: source.headers);
+        _isPrepared = true;
+      }
+
+      if (_player.playing) {
+        await _player.pause();
+      } else {
+        if (_player.processingState == ProcessingState.completed) {
+          await _player.seek(Duration.zero);
+        }
+        await _player.play();
+      }
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('음성 파일을 재생하지 못했습니다.')),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final duration = memo.audioDurationSeconds;
+    final recordedDurationSeconds = memo.audioDurationSeconds;
 
     return Card(
       margin: EdgeInsets.zero,
@@ -351,32 +398,53 @@ final class _VoiceMemoContent extends StatelessWidget {
           children: [
             Row(
               children: [
-                IconButton.filled(
-                  tooltip: '음성 재생',
-                  onPressed: memo.hasAudio
-                      ? () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                '음성 재생 기능은 다음 단계에서 연결합니다.',
-                              ),
-                            ),
-                          );
-                        }
-                      : null,
-                  icon: const Icon(Icons.play_arrow),
+                StreamBuilder<PlayerState>(
+                  stream: _player.playerStateStream,
+                  builder: (context, snapshot) {
+                    final isPlaying = snapshot.data?.playing ?? false;
+                    return IconButton.filled(
+                      tooltip: isPlaying ? '일시정지' : '음성 재생',
+                      onPressed: memo.isVoiceMemo && !_isLoading
+                          ? _togglePlayback
+                          : null,
+                      icon: _isLoading
+                          ? const SizedBox.square(
+                              dimension: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : Icon(isPlaying ? Icons.pause : Icons.play_arrow),
+                    );
+                  },
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: LinearProgressIndicator(
-                    value: memo.hasAudio ? 0 : null,
+                  child: StreamBuilder<Duration>(
+                    stream: _player.positionStream,
+                    builder: (context, snapshot) {
+                      final position = snapshot.data ?? Duration.zero;
+                      final playbackDuration = _player.duration ??
+                          Duration(seconds: recordedDurationSeconds ?? 0);
+                      final maximum =
+                          playbackDuration.inMilliseconds.toDouble();
+                      return Slider(
+                        value: position.inMilliseconds
+                            .clamp(0, maximum <= 0 ? 0 : maximum)
+                            .toDouble(),
+                        max: maximum <= 0 ? 1 : maximum,
+                        onChanged: _isPrepared
+                            ? (value) => _player.seek(
+                                  Duration(milliseconds: value.round()),
+                                )
+                            : null,
+                      );
+                    },
                   ),
                 ),
                 const SizedBox(width: 12),
                 Text(
-                  duration == null
+                  recordedDurationSeconds == null
                       ? '--:--'
-                      : _durationText(duration),
+                      : _durationText(recordedDurationSeconds),
                 ),
               ],
             ),
@@ -425,6 +493,14 @@ final class _MemoInformationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final signedInDoctorName =
+        context.watch<AuthViewModel>().doctorName?.trim() ?? '';
+    final authorName = memo.doctorName.trim().isNotEmpty
+        ? memo.doctorName.trim()
+        : signedInDoctorName.isNotEmpty
+            ? signedInDoctorName
+            : '의료진';
+
     return Card(
       margin: EdgeInsets.zero,
       child: Padding(
@@ -440,9 +516,7 @@ final class _MemoInformationCard extends StatelessWidget {
             _InformationRow(
               icon: Icons.person_outline,
               label: '작성자',
-              value: memo.doctorId.trim().isEmpty
-                  ? '정보 없음'
-                  : memo.doctorId,
+              value: '$authorName 의사',
             ),
             const SizedBox(height: 14),
             _InformationRow(
