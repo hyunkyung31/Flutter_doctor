@@ -5,6 +5,21 @@ import '../view_model/calendar_view_model.dart';
 import '../widgets/monthly_calendar.dart';
 import '../widgets/schedule_bottom_sheet.dart';
 
+const List<Color> _scheduleColors = [
+  Color(0xFF24459A),
+  Color(0xFF2E8B57),
+  Color(0xFF7E57C2),
+  Color(0xFFF39C12),
+  Color(0xFFE74C3C),
+  Color(0xFF78909C),
+];
+
+enum _CalendarPanelMode {
+  calendarExpanded,
+  balanced,
+  scheduleExpanded,
+}
+
 final class CalendarView extends StatefulWidget {
   const CalendarView({super.key});
 
@@ -13,9 +28,7 @@ final class CalendarView extends StatefulWidget {
 }
 
 final class _CalendarViewState extends State<CalendarView> {
-  /// false: 축소형 달력 + 선택 날짜 일정
-  /// true: 확장형 달력 + 날짜별 일정 표시
-  bool _isCalendarExpanded = false;
+  _CalendarPanelMode _panelMode = _CalendarPanelMode.balanced;
 
   /// 세로 드래그 누적 거리
   double _verticalDragDistance = 0;
@@ -27,15 +40,19 @@ final class _CalendarViewState extends State<CalendarView> {
   void _handleVerticalDragEnd(DragEndDetails details) {
     const dragThreshold = 40.0;
 
-    if (_verticalDragDistance > dragThreshold && !_isCalendarExpanded) {
+    if (_verticalDragDistance > dragThreshold) {
       setState(() {
-        _isCalendarExpanded = true;
+        _panelMode = switch (_panelMode) {
+          _CalendarPanelMode.scheduleExpanded => _CalendarPanelMode.balanced,
+          _ => _CalendarPanelMode.calendarExpanded,
+        };
       });
-    }
-
-    if (_verticalDragDistance < -dragThreshold && _isCalendarExpanded) {
+    } else if (_verticalDragDistance < -dragThreshold) {
       setState(() {
-        _isCalendarExpanded = false;
+        _panelMode = switch (_panelMode) {
+          _CalendarPanelMode.calendarExpanded => _CalendarPanelMode.balanced,
+          _ => _CalendarPanelMode.scheduleExpanded,
+        };
       });
     }
 
@@ -102,6 +119,7 @@ final class _CalendarViewState extends State<CalendarView> {
     );
 
     TimeOfDay selectedTime = TimeOfDay.now();
+    Color selectedColor = _scheduleColors.first;
 
     final result = await showDialog<ScheduleItem>(
       context: context,
@@ -195,6 +213,13 @@ final class _CalendarViewState extends State<CalendarView> {
                         });
                       },
                     ),
+                    const SizedBox(height: 12),
+                    _ScheduleColorPicker(
+                      selectedColor: selectedColor,
+                      onSelected: (color) {
+                        setDialogState(() => selectedColor = color);
+                      },
+                    ),
                   ],
                 ),
               ),
@@ -221,6 +246,7 @@ final class _CalendarViewState extends State<CalendarView> {
                         time: _formatTime(selectedTime),
                         title: title,
                         description: description.isEmpty ? null : description,
+                        color: selectedColor,
                       ),
                     );
                   },
@@ -254,6 +280,7 @@ final class _CalendarViewState extends State<CalendarView> {
     String description = oldSchedule.description ?? '';
 
     TimeOfDay selectedTime = _parseTime(oldSchedule.time);
+    Color selectedColor = oldSchedule.color;
 
     final result = await showDialog<ScheduleItem>(
       context: context,
@@ -311,6 +338,13 @@ final class _CalendarViewState extends State<CalendarView> {
                         });
                       },
                     ),
+                    const SizedBox(height: 12),
+                    _ScheduleColorPicker(
+                      selectedColor: selectedColor,
+                      onSelected: (color) {
+                        setDialogState(() => selectedColor = color);
+                      },
+                    ),
                   ],
                 ),
               ),
@@ -337,6 +371,7 @@ final class _CalendarViewState extends State<CalendarView> {
                         time: _formatTime(selectedTime),
                         title: title,
                         description: description.isEmpty ? null : description,
+                        color: selectedColor,
                       ),
                     );
                   },
@@ -454,7 +489,7 @@ final class _CalendarViewState extends State<CalendarView> {
       body: SafeArea(
         child: Column(
           children: [
-            if (_isCalendarExpanded)
+            if (_panelMode == _CalendarPanelMode.calendarExpanded)
               Expanded(
                 child: SingleChildScrollView(
                   physics: const ClampingScrollPhysics(),
@@ -469,7 +504,7 @@ final class _CalendarViewState extends State<CalendarView> {
                   ),
                 ),
               ),
-            if (!_isCalendarExpanded) ...[
+            if (_panelMode == _CalendarPanelMode.balanced) ...[
               _CalendarDragArea(
                 selectedDate: viewModel.selectedDate,
                 schedules: viewModel.schedules,
@@ -485,9 +520,24 @@ final class _CalendarViewState extends State<CalendarView> {
                   schedules: viewModel.selectedSchedules,
                   onEdit: _showEditScheduleDialog,
                   onDelete: _deleteSchedule,
+                  onVerticalDragUpdate: _handleVerticalDragUpdate,
+                  onVerticalDragEnd: _handleVerticalDragEnd,
+                  onVerticalDragCancel: _handleVerticalDragCancel,
                 ),
               ),
             ],
+            if (_panelMode == _CalendarPanelMode.scheduleExpanded)
+              Expanded(
+                child: ScheduleBottomSheet(
+                  selectedDate: viewModel.selectedDate,
+                  schedules: viewModel.selectedSchedules,
+                  onEdit: _showEditScheduleDialog,
+                  onDelete: _deleteSchedule,
+                  onVerticalDragUpdate: _handleVerticalDragUpdate,
+                  onVerticalDragEnd: _handleVerticalDragEnd,
+                  onVerticalDragCancel: _handleVerticalDragCancel,
+                ),
+              ),
           ],
         ),
       ),
@@ -496,6 +546,80 @@ final class _CalendarViewState extends State<CalendarView> {
         child: const Icon(Icons.add),
       ),
     );
+  }
+}
+
+final class _ScheduleColorPicker extends StatelessWidget {
+  const _ScheduleColorPicker({
+    required this.selectedColor,
+    required this.onSelected,
+  });
+
+  final Color selectedColor;
+  final ValueChanged<Color> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '일정 색상',
+          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+        ),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 12,
+          runSpacing: 10,
+          children: _scheduleColors.map((color) {
+            final isSelected = selectedColor == color;
+
+            return Tooltip(
+              message: _colorName(color),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(22),
+                onTap: () => onSelected(color),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: isSelected
+                          ? Theme.of(context).colorScheme.onSurface
+                          : Colors.transparent,
+                      width: 3,
+                    ),
+                    boxShadow: isSelected
+                        ? [
+                            BoxShadow(
+                              color: color.withValues(alpha: 0.35),
+                              blurRadius: 8,
+                              spreadRadius: 1,
+                            ),
+                          ]
+                        : null,
+                  ),
+                  child: isSelected
+                      ? const Icon(Icons.check, color: Colors.white, size: 20)
+                      : null,
+                ),
+              ),
+            );
+          }).toList(growable: false),
+        ),
+      ],
+    );
+  }
+
+  String _colorName(Color color) {
+    final index = _scheduleColors.indexOf(color);
+    const names = ['파랑', '초록', '보라', '주황', '빨강', '회색'];
+    return index >= 0 ? names[index] : '일정 색상';
   }
 }
 
@@ -521,8 +645,6 @@ final class _CalendarDragArea extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
       onVerticalDragUpdate: onVerticalDragUpdate,
@@ -542,19 +664,6 @@ final class _CalendarDragArea extends StatelessWidget {
                 onDateChanged: onDateChanged,
                 schedules: schedules,
                 isExpanded: isExpanded,
-              ),
-            ),
-          ),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            alignment: Alignment.center,
-            child: Container(
-              width: 42,
-              height: 5,
-              decoration: BoxDecoration(
-                color: colorScheme.onSurface.withValues(alpha: 0.22),
-                borderRadius: BorderRadius.circular(10),
               ),
             ),
           ),
