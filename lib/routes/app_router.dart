@@ -1,3 +1,4 @@
+import 'package:doctor_app/features/memo/memo_routes.dart';
 import 'package:go_router/go_router.dart';
 
 import '../features/auth/view/login_screen.dart';
@@ -9,6 +10,7 @@ import '../features/consultation/consultation_routes.dart';
 import '../features/diagnosis/diagnosis_routes.dart';
 import '../features/chat/chat_routes.dart';
 import '../features/mypage/mypage_routes.dart';
+import '../features/memo/memo_routes.dart';
 import 'app_shell.dart';
 import 'route_names.dart';
 
@@ -37,6 +39,7 @@ class AppRouter {
           ...consultationRoutes,
           ...diagnosisRoutes,
           ...chatRoutes,
+          ...memoRoutes,
           ...myPageRoutes,
         ],
       ),
