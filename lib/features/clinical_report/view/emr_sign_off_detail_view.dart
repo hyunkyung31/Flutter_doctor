@@ -60,17 +60,19 @@ final class _EmrSignOffDetailViewState extends State<EmrSignOffDetailView> {
 
     final success = await viewModel.loadSignOff(signOffId: signOffId);
 
-    if (!mounted || !success) {
-      if (mounted) {
-        _showMessage(viewModel.errorMessage ?? 'SIGN OFF 정보를 불러오지 못했습니다.');
-      }
+    if (!mounted) {
+      return;
+    }
 
+    if (!success) {
+      _showMessage(viewModel.errorMessage ?? 'SIGN OFF 정보를 불러오지 못했습니다.');
       return;
     }
 
     final loadedSignOff = viewModel.selectedSignOff;
 
     if (loadedSignOff == null) {
+      _showMessage('SIGN OFF 응답 데이터가 없습니다.');
       return;
     }
 
@@ -159,7 +161,10 @@ final class _EmrSignOffDetailViewState extends State<EmrSignOffDetailView> {
       builder: (dialogContext) {
         return AlertDialog(
           title: const Text('SIGN OFF 최종 승인'),
-          content: const Text('최종 승인 후에는 의료진 소견을 수정할 수 없습니다.\n계속 진행하시겠습니까?'),
+          content: const Text(
+            '최종 승인 후에는 의료진 소견을 수정할 수 없습니다.\n'
+            '계속 진행하시겠습니까?',
+          ),
           actions: [
             TextButton(
               onPressed: () {
@@ -213,7 +218,24 @@ final class _EmrSignOffDetailViewState extends State<EmrSignOffDetailView> {
       _finalResultController.text = updatedSignOff.finalResult;
     });
 
-    _showMessage('SIGN OFF 최종 승인이 완료되었습니다.');
+    final reportSignOff = await viewModel.generateReport(signOffId: signOffId);
+
+    if (!mounted) {
+      return;
+    }
+
+    if (reportSignOff == null) {
+      _showMessage(
+        viewModel.errorMessage ?? 'SIGN OFF는 완료되었지만 환자용 보고서를 생성하지 못했습니다.',
+      );
+      return;
+    }
+
+    setState(() {
+      _currentSignOff = reportSignOff;
+    });
+
+    _showMessage('SIGN OFF와 환자용 보고서 생성이 완료되었습니다.');
   }
 
   Future<void> _generateReport() async {
@@ -392,8 +414,11 @@ final class _EmrSignOffDetailViewState extends State<EmrSignOffDetailView> {
   @override
   Widget build(BuildContext context) {
     final viewModel = context.watch<EmrSignOffViewModel>();
+
     final signOff = _currentSignOff ?? widget.item.signOff;
+
     final isFinalized = signOff.finalized;
+
     final consultation = widget.item.consultation;
 
     return Scaffold(
@@ -426,14 +451,18 @@ final class _EmrSignOffDetailViewState extends State<EmrSignOffDetailView> {
                       ),
                     ],
                   ),
+
                   const SizedBox(height: 16),
+
                   _InformationCard(
                     title: 'AI 분석 결과',
                     icon: Icons.analytics_outlined,
                     children: [_AiResultContent(aiResult: signOff.aiResult)],
                   ),
+
                   if (consultation != null) ...[
                     const SizedBox(height: 16),
+
                     _InformationCard(
                       title: '협진 내용',
                       icon: Icons.groups_outlined,
@@ -459,7 +488,9 @@ final class _EmrSignOffDetailViewState extends State<EmrSignOffDetailView> {
                       ],
                     ),
                   ],
+
                   const SizedBox(height: 16),
+
                   _InformationCard(
                     title: '최종 의료진 소견',
                     icon: Icons.edit_note_outlined,
@@ -477,6 +508,7 @@ final class _EmrSignOffDetailViewState extends State<EmrSignOffDetailView> {
                           filled: isFinalized,
                         ),
                       ),
+
                       if (isFinalized)
                         Padding(
                           padding: const EdgeInsets.only(top: 8),
@@ -504,7 +536,9 @@ final class _EmrSignOffDetailViewState extends State<EmrSignOffDetailView> {
                         ),
                     ],
                   ),
+
                   const SizedBox(height: 24),
+
                   if (!isFinalized) ...[
                     OutlinedButton.icon(
                       onPressed: viewModel.isSubmitting ? null : _saveDraft,
@@ -514,7 +548,9 @@ final class _EmrSignOffDetailViewState extends State<EmrSignOffDetailView> {
                         child: Text('초안 저장'),
                       ),
                     ),
+
                     const SizedBox(height: 12),
+
                     FilledButton.icon(
                       onPressed: viewModel.isSubmitting
                           ? null
@@ -533,7 +569,7 @@ final class _EmrSignOffDetailViewState extends State<EmrSignOffDetailView> {
                         ),
                       ),
                     ),
-                  ] else
+                  ] else ...[
                     FilledButton.icon(
                       onPressed: null,
                       icon: const Icon(Icons.verified),
@@ -543,34 +579,39 @@ final class _EmrSignOffDetailViewState extends State<EmrSignOffDetailView> {
                       ),
                     ),
 
-                  if (isFinalized) ...[
                     const SizedBox(height: 24),
+
                     _InformationCard(
-                      title: '임상 보고서',
-                      icon: Icons.picture_as_pdf_outlined,
+                      title: '환자용 임상 보고서',
+                      icon: Icons.description_outlined,
                       children: [
                         _InformationRow(
-                          label: 'PDF 생성 상태',
-                          value: signOff.reportReady ? '생성 완료' : '생성 전',
+                          label: '보고서 상태',
+                          value: signOff.reportReady
+                              ? '환자 앱에서 확인 가능'
+                              : viewModel.isGeneratingReport
+                              ? '보고서 생성 중'
+                              : '보고서 생성 실패 또는 대기 중',
                         ),
+
                         if (signOff.reportGeneratedAt != null)
                           _InformationRow(
-                            label: 'PDF 생성 시각',
+                            label: '생성 시각',
                             value: _dateTimeText(signOff.reportGeneratedAt!),
                           ),
-                        _InformationRow(
-                          label: 'EMR 전달 상태',
-                          value: signOff.emrTransmitted ? '전달 완료' : '전달 전',
+
+                        Text(
+                          signOff.reportReady
+                              ? '환자는 환자용 앱에서 본인의 임상 보고서를 PDF로 확인할 수 있습니다.'
+                              : '보고서가 생성되지 않았다면 아래 버튼을 눌러 다시 생성할 수 있습니다.',
                         ),
-                        if (signOff.transmittedAt != null)
-                          _InformationRow(
-                            label: 'EMR 전달 시각',
-                            value: _dateTimeText(signOff.transmittedAt!),
-                          ),
-                        if (!signOff.reportReady)
+
+                        if (!signOff.reportReady) ...[
+                          const SizedBox(height: 16),
+
                           SizedBox(
                             width: double.infinity,
-                            child: FilledButton.icon(
+                            child: OutlinedButton.icon(
                               onPressed: viewModel.isGeneratingReport
                                   ? null
                                   : _generateReport,
@@ -582,65 +623,72 @@ final class _EmrSignOffDetailViewState extends State<EmrSignOffDetailView> {
                                         strokeWidth: 2,
                                       ),
                                     )
-                                  : const Icon(Icons.picture_as_pdf_outlined),
+                                  : const Icon(Icons.refresh_outlined),
                               label: Padding(
                                 padding: const EdgeInsets.symmetric(
                                   vertical: 12,
                                 ),
                                 child: Text(
                                   viewModel.isGeneratingReport
-                                      ? 'PDF 생성 중...'
-                                      : '임상 보고서 PDF 생성',
+                                      ? '보고서 생성 중...'
+                                      : '환자용 보고서 다시 생성',
                                 ),
                               ),
                             ),
                           ),
-                        if (signOff.reportReady && !signOff.emrTransmitted)
-                          SizedBox(
-                            width: double.infinity,
-                            child: FilledButton.icon(
-                              onPressed: viewModel.isTransmitting
-                                  ? null
-                                  : _transmitReport,
-                              icon: viewModel.isTransmitting
-                                  ? const SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                      ),
-                                    )
-                                  : const Icon(Icons.send_outlined),
-                              label: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 12,
-                                ),
-                                child: Text(
-                                  viewModel.isTransmitting
-                                      ? '전달 중...'
-                                      : 'EMR로 보고서 전달',
-                                ),
-                              ),
-                            ),
-                          ),
-                        if (signOff.emrTransmitted)
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.check_circle,
-                                color: Theme.of(context).colorScheme.primary,
-                              ),
-                              const SizedBox(width: 8),
-                              const Expanded(
-                                child: Text(
-                                  '임상 보고서 전달이 완료되었습니다.',
-                                  style: TextStyle(fontWeight: FontWeight.w700),
-                                ),
-                              ),
-                            ],
-                          ),
+                        ],
                       ],
                     ),
+
+                    if (signOff.reportReady && !signOff.emrTransmitted) ...[
+                      const SizedBox(height: 16),
+
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton.icon(
+                          onPressed: viewModel.isTransmitting
+                              ? null
+                              : _transmitReport,
+                          icon: viewModel.isTransmitting
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Icon(Icons.send_outlined),
+                          label: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            child: Text(
+                              viewModel.isTransmitting
+                                  ? '전달 중...'
+                                  : 'EMR로 보고서 전달',
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+
+                    if (signOff.emrTransmitted) ...[
+                      const SizedBox(height: 16),
+
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.check_circle,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                          const SizedBox(width: 8),
+                          const Expanded(
+                            child: Text(
+                              '임상 보고서 전달이 완료되었습니다.',
+                              style: TextStyle(fontWeight: FontWeight.w700),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
                 ],
               ),
@@ -663,6 +711,7 @@ final class _InformationCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+
     final colorScheme = theme.colorScheme;
 
     return Container(
