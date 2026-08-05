@@ -238,124 +238,6 @@ final class _EmrSignOffDetailViewState extends State<EmrSignOffDetailView> {
     _showMessage('SIGN OFF와 환자용 보고서 생성이 완료되었습니다.');
   }
 
-  Future<void> _generateReport() async {
-    final signOff = _currentSignOff;
-
-    if (signOff == null) {
-      _showMessage('SIGN OFF 정보를 확인할 수 없습니다.');
-      return;
-    }
-
-    if (!signOff.finalized) {
-      _showMessage('SIGN OFF 최종 승인 후 보고서를 생성할 수 있습니다.');
-      return;
-    }
-
-    if (signOff.reportReady) {
-      _showMessage('임상 보고서 PDF가 이미 생성되었습니다.');
-      return;
-    }
-
-    final signOffId = int.tryParse(signOff.id);
-
-    if (signOffId == null) {
-      _showMessage('SIGN OFF 식별자가 올바르지 않습니다.');
-      return;
-    }
-
-    final viewModel = context.read<EmrSignOffViewModel>();
-
-    final updatedSignOff = await viewModel.generateReport(signOffId: signOffId);
-
-    if (!mounted) {
-      return;
-    }
-
-    if (updatedSignOff == null) {
-      _showMessage(viewModel.errorMessage ?? '임상 보고서 PDF를 생성하지 못했습니다.');
-      return;
-    }
-
-    setState(() {
-      _currentSignOff = updatedSignOff;
-    });
-
-    _showMessage('임상 보고서 PDF 생성이 완료되었습니다.');
-  }
-
-  Future<void> _transmitReport() async {
-    final signOff = _currentSignOff;
-
-    if (signOff == null) {
-      _showMessage('SIGN OFF 정보를 확인할 수 없습니다.');
-      return;
-    }
-
-    if (!signOff.reportReady) {
-      _showMessage('임상 보고서 PDF를 먼저 생성해 주세요.');
-      return;
-    }
-
-    if (signOff.emrTransmitted) {
-      _showMessage('이미 EMR 전달이 완료된 보고서입니다.');
-      return;
-    }
-
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text('EMR 전달'),
-          content: const Text('생성된 임상 보고서를 EMR로 전달하시겠습니까?'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(dialogContext).pop(false);
-              },
-              child: const Text('취소'),
-            ),
-            FilledButton(
-              onPressed: () {
-                Navigator.of(dialogContext).pop(true);
-              },
-              child: const Text('전달'),
-            ),
-          ],
-        );
-      },
-    );
-
-    if (!mounted || confirmed != true) {
-      return;
-    }
-
-    final signOffId = int.tryParse(signOff.id);
-
-    if (signOffId == null) {
-      _showMessage('SIGN OFF 식별자가 올바르지 않습니다.');
-      return;
-    }
-
-    final viewModel = context.read<EmrSignOffViewModel>();
-
-    final updatedSignOff = await viewModel.transmitReport(signOffId: signOffId);
-
-    if (!mounted) {
-      return;
-    }
-
-    if (updatedSignOff == null) {
-      _showMessage(viewModel.errorMessage ?? '임상 보고서를 전달하지 못했습니다.');
-      return;
-    }
-
-    setState(() {
-      _currentSignOff = updatedSignOff;
-    });
-
-    _showMessage('임상 보고서 EMR 전달이 완료되었습니다.');
-  }
-
   EmrSignOffWorkflowStatus _resolveCurrentStatus(EmrSignOff signOff) {
     if (signOff.emrTransmitted) {
       return EmrSignOffWorkflowStatus.transmitted;
@@ -418,6 +300,8 @@ final class _EmrSignOffDetailViewState extends State<EmrSignOffDetailView> {
     final signOff = _currentSignOff ?? widget.item.signOff;
 
     final isFinalized = signOff.finalized;
+
+    final isFinalizing = viewModel.isSubmitting || viewModel.isGeneratingReport;
 
     final consultation = widget.item.consultation;
 
@@ -541,7 +425,7 @@ final class _EmrSignOffDetailViewState extends State<EmrSignOffDetailView> {
 
                   if (!isFinalized) ...[
                     OutlinedButton.icon(
-                      onPressed: viewModel.isSubmitting ? null : _saveDraft,
+                      onPressed: isFinalizing ? null : _saveDraft,
                       icon: const Icon(Icons.save_outlined),
                       label: const Padding(
                         padding: EdgeInsets.symmetric(vertical: 13),
@@ -552,10 +436,8 @@ final class _EmrSignOffDetailViewState extends State<EmrSignOffDetailView> {
                     const SizedBox(height: 12),
 
                     FilledButton.icon(
-                      onPressed: viewModel.isSubmitting
-                          ? null
-                          : _finalizeSignOff,
-                      icon: viewModel.isSubmitting
+                      onPressed: isFinalizing ? null : _finalizeSignOff,
+                      icon: isFinalizing
                           ? const SizedBox(
                               width: 20,
                               height: 20,
@@ -565,7 +447,7 @@ final class _EmrSignOffDetailViewState extends State<EmrSignOffDetailView> {
                       label: Padding(
                         padding: const EdgeInsets.symmetric(vertical: 13),
                         child: Text(
-                          viewModel.isSubmitting ? '처리 중...' : 'SIGN OFF 최종 승인',
+                          isFinalizing ? 'SIGN OFF 처리 중...' : 'SIGN OFF 최종 승인',
                         ),
                       ),
                     ),
@@ -602,91 +484,21 @@ final class _EmrSignOffDetailViewState extends State<EmrSignOffDetailView> {
 
                         Text(
                           signOff.reportReady
-                              ? '환자는 환자용 앱에서 본인의 임상 보고서를 PDF로 확인할 수 있습니다.'
-                              : '보고서가 생성되지 않았다면 아래 버튼을 눌러 다시 생성할 수 있습니다.',
+                              ? '아래에서 최종 보고서 내용을 확인할 수 있으며 환자는 환자용 앱에서 PDF로 받을 수 있습니다.'
+                              : '환자용 보고서가 아직 생성되지 않았습니다.',
                         ),
-
-                        if (!signOff.reportReady) ...[
-                          const SizedBox(height: 16),
-
-                          SizedBox(
-                            width: double.infinity,
-                            child: OutlinedButton.icon(
-                              onPressed: viewModel.isGeneratingReport
-                                  ? null
-                                  : _generateReport,
-                              icon: viewModel.isGeneratingReport
-                                  ? const SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                      ),
-                                    )
-                                  : const Icon(Icons.refresh_outlined),
-                              label: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 12,
-                                ),
-                                child: Text(
-                                  viewModel.isGeneratingReport
-                                      ? '보고서 생성 중...'
-                                      : '환자용 보고서 다시 생성',
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
                       ],
                     ),
 
-                    if (signOff.reportReady && !signOff.emrTransmitted) ...[
+                    if (signOff.reportReady) ...[
                       const SizedBox(height: 16),
 
-                      SizedBox(
-                        width: double.infinity,
-                        child: FilledButton.icon(
-                          onPressed: viewModel.isTransmitting
-                              ? null
-                              : _transmitReport,
-                          icon: viewModel.isTransmitting
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : const Icon(Icons.send_outlined),
-                          label: Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            child: Text(
-                              viewModel.isTransmitting
-                                  ? '전달 중...'
-                                  : 'EMR로 보고서 전달',
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-
-                    if (signOff.emrTransmitted) ...[
-                      const SizedBox(height: 16),
-
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.check_circle,
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                          const SizedBox(width: 8),
-                          const Expanded(
-                            child: Text(
-                              '임상 보고서 전달이 완료되었습니다.',
-                              style: TextStyle(fontWeight: FontWeight.w700),
-                            ),
-                          ),
-                        ],
+                      _ClinicalReportPreview(
+                        signOff: signOff,
+                        item: widget.item,
+                        generatedAtText: signOff.reportGeneratedAt == null
+                            ? null
+                            : _dateTimeText(signOff.reportGeneratedAt!),
                       ),
                     ],
                   ],
@@ -802,6 +614,260 @@ final class _AiResultContent extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: entries.map((entry) {
         return _InformationRow(
+          label: entry.key,
+          value: entry.value?.toString() ?? '정보 없음',
+        );
+      }).toList(),
+    );
+  }
+}
+
+final class _ClinicalReportPreview extends StatelessWidget {
+  const _ClinicalReportPreview({
+    required this.signOff,
+    required this.item,
+    required this.generatedAtText,
+  });
+
+  final EmrSignOff signOff;
+  final EmrSignOffWorkflowItem item;
+  final String? generatedAtText;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final consultation = item.consultation;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: colorScheme.outlineVariant),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.description_outlined, color: colorScheme.primary),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  '관상동맥 조영술 임상 보고서',
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 6),
+
+          Text(
+            '최종 승인된 의료진 보고서 미리보기',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
+
+          const SizedBox(height: 20),
+
+          const Divider(),
+
+          const SizedBox(height: 16),
+
+          _ReportSection(
+            title: '환자 및 검사 정보',
+            children: [
+              _ReportRow(label: '환자', value: item.patientName),
+              _ReportRow(label: '환자 ID', value: item.patientId),
+              _ReportRow(
+                label: '검사 ID',
+                value: item.examId?.toString() ?? '정보 없음',
+              ),
+              _ReportRow(
+                label: '보고서 생성 시각',
+                value: generatedAtText ?? '생성 시각 정보 없음',
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 20),
+
+          _ReportSection(
+            title: 'AI 분석 결과',
+            children: [_ReportAiResult(aiResult: signOff.aiResult)],
+          ),
+
+          if (consultation != null) ...[
+            const SizedBox(height: 20),
+
+            _ReportSection(
+              title: '협진 소견',
+              children: [
+                _ReportRow(
+                  label: '협진 상태',
+                  value: consultation.status.trim().isEmpty
+                      ? '상태 정보 없음'
+                      : consultation.status,
+                ),
+                _ReportRow(
+                  label: '협진 요청 사유',
+                  value: consultation.reason.trim().isEmpty
+                      ? '등록된 협진 요청 사유가 없습니다.'
+                      : consultation.reason,
+                ),
+                _ReportRow(
+                  label: '협진 답변',
+                  value: consultation.responseMemo.trim().isEmpty
+                      ? '등록된 협진 답변이 없습니다.'
+                      : consultation.responseMemo,
+                ),
+              ],
+            ),
+          ],
+
+          const SizedBox(height: 20),
+
+          _ReportSection(
+            title: '최종 의료진 소견',
+            children: [
+              SelectableText(
+                signOff.finalResult.trim().isEmpty
+                    ? '등록된 최종 의료진 소견이 없습니다.'
+                    : signOff.finalResult,
+                style: theme.textTheme.bodyLarge?.copyWith(height: 1.6),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 20),
+
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: colorScheme.primaryContainer,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.verified_outlined,
+                  color: colorScheme.onPrimaryContainer,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    '본 보고서는 담당 의료진의 SIGN OFF가 완료된 최종 보고서입니다.',
+                    style: TextStyle(
+                      color: colorScheme.onPrimaryContainer,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+final class _ReportSection extends StatelessWidget {
+  const _ReportSection({required this.title, required this.children});
+
+  final String title;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: theme.textTheme.titleMedium?.copyWith(
+            color: colorScheme.primary,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 12),
+        ...children,
+      ],
+    );
+  }
+}
+
+final class _ReportRow extends StatelessWidget {
+  const _ReportRow({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 110,
+            child: Text(
+              label,
+              style: TextStyle(
+                color: colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: SelectableText(value, style: const TextStyle(height: 1.5)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+final class _ReportAiResult extends StatelessWidget {
+  const _ReportAiResult({required this.aiResult});
+
+  final EmrAiResultReference? aiResult;
+
+  @override
+  Widget build(BuildContext context) {
+    final data = aiResult?.data;
+
+    if (data == null || data.isEmpty) {
+      return const Text('상세 AI 분석 결과가 보고서 응답에 포함되지 않았습니다.');
+    }
+
+    final entries = data.entries.where((entry) {
+      return entry.key != 'id' &&
+          entry.key != 'ai_result_id' &&
+          entry.key != 'exam_id';
+    }).toList();
+
+    if (entries.isEmpty) {
+      return const Text('상세 AI 분석 결과가 보고서 응답에 포함되지 않았습니다.');
+    }
+
+    return Column(
+      children: entries.map((entry) {
+        return _ReportRow(
           label: entry.key,
           value: entry.value?.toString() ?? '정보 없음',
         );
