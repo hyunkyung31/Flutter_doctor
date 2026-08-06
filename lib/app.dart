@@ -34,6 +34,14 @@ import 'features/memo/repository/memo_repository.dart';
 import 'features/memo/service/memo_service.dart';
 import 'features/memo/view_model/memo_view_model.dart';
 
+import 'features/clinical_report/repository/emr_sign_off_repository.dart';
+import 'features/clinical_report/service/emr_sign_off_service.dart';
+import 'features/clinical_report/view_model/emr_sign_off_view_model.dart';
+
+import 'features/notification/repository/notification_repository.dart';
+import 'features/notification/service/notification_service.dart';
+import 'features/notification/view_model/notification_view_model.dart';
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -92,6 +100,22 @@ class MyApp extends StatelessWidget {
             context.read<SecureStorage>(),
           ),
         ),
+
+        Provider<EmrSignOffService>(
+          create: (context) => EmrSignOffService(context.read<ApiClient>()),
+        ),
+
+        Provider<EmrSignOffRepository>(
+          create: (context) => EmrSignOffRepository(
+            emrSignOffService: context.read<EmrSignOffService>(),
+            secureStorage: context.read<SecureStorage>(),
+          ),
+        ),
+
+        ChangeNotifierProvider<EmrSignOffViewModel>(
+          create: (context) =>
+              EmrSignOffViewModel(context.read<EmrSignOffRepository>()),
+        ),
         ChangeNotifierProvider<PatientListViewModel>(
           create: (context) => PatientListViewModel(
             patientRepository: context.read<PatientRepository>(),
@@ -148,6 +172,20 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider<MemoViewModel>(
           create: (context) => MemoViewModel(
             memoRepository: context.read<MemoRepository>(),
+          ),
+        ),
+        Provider<NotificationService>(
+          create: (context) => NotificationService(context.read<ApiClient>()),
+        ),
+        Provider<NotificationRepository>(
+          create: (context) => NotificationRepository(
+            notificationService: context.read<NotificationService>(),
+            secureStorage: context.read<SecureStorage>(),
+          ),
+        ),
+        ChangeNotifierProvider<NotificationViewModel>(
+          create: (context) => NotificationViewModel(
+            notificationRepository: context.read<NotificationRepository>(),
           ),
         ),
       ],

@@ -6,9 +6,16 @@ import '../model/consultation_doctor.dart';
 import '../view_model/consultation_view_model.dart';
 
 final class ConsultationFormView extends StatefulWidget {
-  const ConsultationFormView({super.key, required this.patient});
+  const ConsultationFormView({
+    super.key,
+    required this.patient,
+    this.examId,
+    this.initialMemo = '',
+  });
 
   final Patient patient;
+  final int? examId;
+  final String initialMemo;
 
   @override
   State<ConsultationFormView> createState() {
@@ -17,10 +24,9 @@ final class ConsultationFormView extends StatefulWidget {
 }
 
 final class _ConsultationFormViewState extends State<ConsultationFormView> {
-  final TextEditingController _reasonController = TextEditingController();
+  late final TextEditingController _reasonController;
 
-  final TextEditingController _memoController = TextEditingController();
-
+  late final TextEditingController _memoController;
   String? _selectedDepartment;
   String? _selectedDoctorId;
 
@@ -29,6 +35,10 @@ final class _ConsultationFormViewState extends State<ConsultationFormView> {
   @override
   void initState() {
     super.initState();
+
+    _reasonController = TextEditingController();
+
+    _memoController = TextEditingController(text: widget.initialMemo.trim());
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) {
@@ -78,8 +88,10 @@ final class _ConsultationFormViewState extends State<ConsultationFormView> {
       reason: reason,
       priority: _selectedRiskLevel,
       memo: _memoController.text.trim(),
-      referenceTypes: const [],
-      examId: null,
+      referenceTypes: widget.examId == null
+          ? const <String>[]
+          : const <String>['ai_result', 'draft_opinion'],
+      examId: widget.examId?.toString(),
     );
 
     if (!mounted) {
@@ -172,6 +184,40 @@ final class _ConsultationFormViewState extends State<ConsultationFormView> {
                     ],
                   ),
                 ),
+
+                if (widget.examId != null) ...[
+                  const SizedBox(height: 14),
+
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: colorScheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.analytics_outlined,
+                          color: colorScheme.onPrimaryContainer,
+                        ),
+
+                        const SizedBox(width: 10),
+
+                        Expanded(
+                          child: Text(
+                            'AI 분석 검사 ID ${widget.examId}',
+                            style: TextStyle(
+                              color: colorScheme.onPrimaryContainer,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+
                 const SizedBox(height: 28),
                 Text(
                   '협진 대상',

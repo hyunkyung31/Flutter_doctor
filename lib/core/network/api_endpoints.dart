@@ -26,6 +26,25 @@ abstract final class ApiEndpoints {
   // 협진 요청
   static const String consultations = '/api/consultations/';
 
+  // 의료진 임상 보고서 목록 조회 및 초안 생성
+  static const String emrSignOffs = '/api/emr-signoffs/';
+
+  // 의료진 임상 보고서 상세 조회 및 수정
+  static String emrSignOffDetail(int signOffId) {
+    return '/api/emr-signoffs/$signOffId/';
+  }
+
+  // 최종 승인된 임상 보고서의 PDF 생성 및 다운로드
+  // POST 요청은 PDF 생성, GET 요청은 생성된 PDF 다운로드에 사용
+  static String emrSignOffReport(int signOffId) {
+    return '/api/emr-signoffs/$signOffId/report/';
+  }
+
+  // 생성 완료된 임상 보고서의 전달 상태 처리
+  static String emrSignOffTransmit(int signOffId) {
+    return '/api/emr-signoffs/$signOffId/transmit/';
+  }
+
   // 채팅방
   static const String chatRooms = '/api/chat/rooms/';
 
@@ -59,7 +78,7 @@ abstract final class ApiEndpoints {
   }
 
   // 검사 키프레임 통합 AI 분석 및 결과 저장
-  static String examAiRun(int examId,) {
+  static String examAiRun(int examId) {
     return '/api/exams/$examId/ai/run/';
   }
 
@@ -71,4 +90,10 @@ abstract final class ApiEndpoints {
   static String memoAudio(int memoId) {
     return '/api/memos/$memoId/audio/';
   }
+
+static const String notifications = '/api/notifications/';
+
+static String notificationRead(int notificationId) {
+  return '/api/notifications/$notificationId/read/';
+}
 }
