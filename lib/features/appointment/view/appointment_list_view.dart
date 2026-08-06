@@ -14,7 +14,7 @@ final class AppointmentListView extends StatefulWidget {
 }
 
 final class _AppointmentListViewState extends State<AppointmentListView> {
-  _AppointmentFilter _filter = _AppointmentFilter.active;
+  _AppointmentFilter _filter = _AppointmentFilter.scheduled;
 
   @override
   void initState() {
@@ -47,20 +47,12 @@ final class _AppointmentListViewState extends State<AppointmentListView> {
                   showSelectedIcon: false,
                   segments: const [
                     ButtonSegment(
-                      value: _AppointmentFilter.active,
-                      label: Text('진행중'),
+                      value: _AppointmentFilter.scheduled,
+                      label: Text('예약 확정'),
                     ),
                     ButtonSegment(
-                      value: _AppointmentFilter.requested,
-                      label: Text('신청'),
-                    ),
-                    ButtonSegment(
-                      value: _AppointmentFilter.confirmed,
-                      label: Text('확정'),
-                    ),
-                    ButtonSegment(
-                      value: _AppointmentFilter.all,
-                      label: Text('전체'),
+                      value: _AppointmentFilter.completed,
+                      label: Text('진료 완료'),
                     ),
                   ],
                   selected: {_filter},
@@ -79,18 +71,13 @@ final class _AppointmentListViewState extends State<AppointmentListView> {
 
   List<Appointment> _filtered(List<Appointment> source) {
     switch (_filter) {
-      case _AppointmentFilter.active:
+      case _AppointmentFilter.scheduled:
+        // 신청(확인 필요) + 확정 예약
         return source.where((e) => e.isActive).toList(growable: false);
-      case _AppointmentFilter.requested:
+      case _AppointmentFilter.completed:
         return source
-            .where((e) => e.status == AppointmentStatus.requested)
+            .where((e) => e.status == AppointmentStatus.completed)
             .toList(growable: false);
-      case _AppointmentFilter.confirmed:
-        return source
-            .where((e) => e.status == AppointmentStatus.confirmed)
-            .toList(growable: false);
-      case _AppointmentFilter.all:
-        return source;
     }
   }
 
@@ -152,7 +139,7 @@ final class _AppointmentListViewState extends State<AppointmentListView> {
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
         itemCount: items.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 10),
+        separatorBuilder: (_, _) => const SizedBox(height: 10),
         itemBuilder: (context, index) {
           final item = items[index];
           return _AppointmentCard(
@@ -229,7 +216,7 @@ final class _AppointmentListViewState extends State<AppointmentListView> {
   }
 }
 
-enum _AppointmentFilter { active, requested, confirmed, all }
+enum _AppointmentFilter { scheduled, completed }
 
 final class _AppointmentCard extends StatelessWidget {
   const _AppointmentCard({
