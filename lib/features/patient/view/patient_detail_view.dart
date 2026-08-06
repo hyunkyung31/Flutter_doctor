@@ -1,12 +1,14 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter/foundation.dart';
 
 import '../model/patient_detail.dart';
 import '../view_model/patient_detail_view_model.dart';
 import 'package:go_router/go_router.dart';
 import '../../diagnosis/diagnosis_routes.dart'; // 추가
-import '../../diagnosis/model/diagnosis_entry_args.dart'; // 추가 
+import '../../diagnosis/model/diagnosis_entry_args.dart'; // 추가
+import '../../../core/security/screen_protection/screen_protection_notice.dart';
 
 final class PatientDetailView extends StatefulWidget {
   const PatientDetailView({super.key, required this.patientId});
@@ -73,9 +75,7 @@ final class _PatientDetailViewState extends State<PatientDetailView> {
             onPressed: () {
               context.pushNamed(
                 'memoList',
-                pathParameters: {
-                  'patientId': detail.patient.patientId,
-                },
+                pathParameters: {'patientId': detail.patient.patientId},
                 extra: detail.patient,
               );
             },
@@ -137,6 +137,8 @@ final class _PatientDetailBody extends StatelessWidget {
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
       children: [
+        const ScreenProtectionNotice(),
+        if (kReleaseMode) const SizedBox(height: 12),
         _PatientProfileCard(
           patientName: patient.patientName,
           patientId: patient.patientId,
@@ -210,17 +212,13 @@ final class _AiAnalysisRequestButton extends StatelessWidget {
   const _AiAnalysisRequestButton({required this.patientId});
 
   final String patientId;
-// 추가 : AI 분석 화면 연결
+  // 추가 : AI 분석 화면 연결
   void _openDiagnosisView(BuildContext context) {
     final normalizedPatientId = patientId.trim();
 
     if (normalizedPatientId.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            '환자 ID가 없어 AI 분석을 요청할 수 없습니다.',
-          ),
-        ),
+        const SnackBar(content: Text('환자 ID가 없어 AI 분석을 요청할 수 없습니다.')),
       );
 
       return;
@@ -228,9 +226,7 @@ final class _AiAnalysisRequestButton extends StatelessWidget {
 
     context.pushNamed(
       DiagnosisRoute.name,
-      extra: DiagnosisEntryArgs(
-        patientId: normalizedPatientId,
-      ),
+      extra: DiagnosisEntryArgs(patientId: normalizedPatientId),
     );
   }
 
@@ -243,7 +239,7 @@ final class _AiAnalysisRequestButton extends StatelessWidget {
       height: 54,
       child: FilledButton.icon(
         onPressed: () {
-          _openDiagnosisView(context);  // 추가 - ai 버튼
+          _openDiagnosisView(context); // 추가 - ai 버튼
         },
         icon: const Icon(Icons.analytics_outlined),
         label: const Text(
@@ -731,7 +727,7 @@ final class _NetworkImageViewer extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.65),
+                      color: Colors.black.withValues(alpha: 0.65),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: const Icon(
@@ -751,7 +747,7 @@ final class _NetworkImageViewer extends StatelessWidget {
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.65),
+                      color: Colors.black.withValues(alpha: 0.65),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: const Row(
@@ -959,7 +955,7 @@ final class _FullScreenGuide extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
         decoration: BoxDecoration(
-          color: Colors.black.withOpacity(0.7),
+          color: Colors.black.withValues(alpha: 0.7),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: Colors.white24),
         ),

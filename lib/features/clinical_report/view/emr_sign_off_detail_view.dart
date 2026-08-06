@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../model/emr_sign_off.dart';
@@ -133,7 +134,7 @@ final class _EmrSignOffDetailViewState extends State<EmrSignOffDetailView> {
       _finalResultController.text = updatedSignOff.finalResult;
     });
 
-    _showMessage('의료진 소견을 저장했습니다.');
+    _showDraftSavedMessage();
   }
 
   Future<void> _finalizeSignOff() async {
@@ -235,7 +236,38 @@ final class _EmrSignOffDetailViewState extends State<EmrSignOffDetailView> {
       _currentSignOff = reportSignOff;
     });
 
-    _showMessage('SIGN OFF와 환자용 보고서 생성이 완료되었습니다.');
+    final openList = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('SIGN OFF 완료'),
+          content: const Text(
+            'SIGN OFF와 환자용 보고서 생성이 완료되었습니다.\n'
+            'SIGN OFF 목록으로 이동하시겠습니까?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop(false);
+              },
+              child: const Text('상세에 머물기'),
+            ),
+            FilledButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop(true);
+              },
+              child: const Text('목록으로 이동'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (!mounted || openList != true) {
+      return;
+    }
+
+    context.go('/clinical-report/sign-offs');
   }
 
   EmrSignOffWorkflowStatus _resolveCurrentStatus(EmrSignOff signOff) {
@@ -291,6 +323,22 @@ final class _EmrSignOffDetailViewState extends State<EmrSignOffDetailView> {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  void _showDraftSavedMessage() {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: const Text('의료진 소견 초안을 저장했습니다.'),
+          action: SnackBarAction(
+            label: '목록 보기',
+            onPressed: () {
+              context.go('/clinical-report/sign-offs');
+            },
+          ),
+        ),
+      );
   }
 
   @override

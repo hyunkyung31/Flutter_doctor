@@ -7,11 +7,13 @@ final class EmrSignOffWorkflowItem {
     required this.signOff,
     required this.status,
     this.consultation,
+    this.resolvedPatientName,
   });
 
   final EmrSignOff signOff;
   final ConsultationRequest? consultation;
   final EmrSignOffWorkflowStatus status;
+  final String? resolvedPatientName;
 
   String get signOffId => signOff.id;
 
@@ -20,13 +22,19 @@ final class EmrSignOffWorkflowItem {
   int? get examId => signOff.aiResult?.examId;
 
   String get patientName {
-    final name = consultation?.patientName.trim() ?? '';
+    final resolvedName = resolvedPatientName?.trim() ?? '';
 
-    if (name.isNotEmpty) {
-      return name;
+    if (resolvedName.isNotEmpty) {
+      return resolvedName;
     }
 
-    return '환자 $patientId';
+    final consultationName = consultation?.patientName.trim() ?? '';
+
+    if (consultationName.isNotEmpty) {
+      return consultationName;
+    }
+
+    return '이름 미등록';
   }
 
   String get finalResult => signOff.finalResult.trim();
@@ -66,6 +74,7 @@ final class EmrSignOffWorkflowItem {
   factory EmrSignOffWorkflowItem.fromSignOff({
     required EmrSignOff signOff,
     required List<ConsultationRequest> sentConsultations,
+    String? patientName,
   }) {
     final consultation = _findLatestConsultation(
       signOff: signOff,
@@ -75,6 +84,7 @@ final class EmrSignOffWorkflowItem {
     return EmrSignOffWorkflowItem(
       signOff: signOff,
       consultation: consultation,
+      resolvedPatientName: patientName,
       status: _resolveStatus(signOff: signOff, consultation: consultation),
     );
   }
