@@ -33,6 +33,13 @@ abstract final class ApiEndpoints {
   static const String memos = '/api/memos/';
   static const String voiceMemos = '/api/memos/voice/';
 
+  // 예약 (의사 — 담당 예약 목록 / 상태 변경)
+  static const String appointments = '/api/appointments/';
+
+  static String appointmentDetail(int appointmentId) {
+    return '/api/appointments/$appointmentId/';
+  }
+
   static String chatMessages(String roomId) {
     return '/api/chat/rooms/$roomId/messages/';
   }

@@ -34,6 +34,10 @@ import 'features/memo/repository/memo_repository.dart';
 import 'features/memo/service/memo_service.dart';
 import 'features/memo/view_model/memo_view_model.dart';
 
+import 'features/appointment/repository/appointment_repository.dart';
+import 'features/appointment/service/appointment_service.dart';
+import 'features/appointment/view_model/appointment_view_model.dart';
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -148,6 +152,21 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider<MemoViewModel>(
           create: (context) => MemoViewModel(
             memoRepository: context.read<MemoRepository>(),
+          ),
+        ),
+
+        Provider<AppointmentService>(
+          create: (context) => AppointmentService(context.read<ApiClient>()),
+        ),
+        Provider<AppointmentRepository>(
+          create: (context) => AppointmentRepository(
+            appointmentService: context.read<AppointmentService>(),
+            secureStorage: context.read<SecureStorage>(),
+          ),
+        ),
+        ChangeNotifierProvider<AppointmentViewModel>(
+          create: (context) => AppointmentViewModel(
+            appointmentRepository: context.read<AppointmentRepository>(),
           ),
         ),
       ],

@@ -12,6 +12,7 @@ import '../../patient/view_model/patient_list_view_model.dart';
 import '../../calendar/view_model/calendar_view_model.dart';
 import '../../calendar/widgets/schedule_bottom_sheet.dart';
 import '../../consultation/view_model/consultation_view_model.dart';
+import '../../appointment/view_model/appointment_view_model.dart';
 import '../widgets/Doctor_briefing_card.dart';
 import '../widgets/patient_status_card.dart';
 import '../../diagnosis/diagnosis_routes.dart'; // 추가
@@ -40,6 +41,7 @@ final class _HomeViewState extends State<HomeView> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         context.read<ConsultationViewModel>().loadReceivedRequests();
+        context.read<AppointmentViewModel>().loadAppointments();
       }
     });
   }
@@ -237,6 +239,7 @@ final class _HomeViewState extends State<HomeView> {
 
     final patientListViewModel = context.watch<PatientListViewModel>();
     final consultationViewModel = context.watch<ConsultationViewModel>();
+    final appointmentViewModel = context.watch<AppointmentViewModel>();
 
     final patientCount = patientListViewModel.patientCount;
 
@@ -246,8 +249,7 @@ final class _HomeViewState extends State<HomeView> {
     const originalVideoCount = 0;
     const analyzedPatientCount = 0;
 
-    // 예약·대기 환자 역시 실제 데이터 연결 전 임시값.
-    const reservationCount = 0;
+    final reservationCount = appointmentViewModel.todayActiveCount;
     const waitingCount = 0;
 
     final theme = Theme.of(context);
@@ -264,6 +266,7 @@ final class _HomeViewState extends State<HomeView> {
             await Future.wait([
               patientListViewModel.refreshPatients(),
               consultationViewModel.refreshReceivedRequests(),
+              appointmentViewModel.refreshAppointments(),
             ]);
           },
           child: ListView(
@@ -280,7 +283,7 @@ final class _HomeViewState extends State<HomeView> {
                 reservationCount: reservationCount,
                 waitingCount: waitingCount,
                 onReservationTap: () {
-                  _showPreparingMessage(context);
+                  context.pushNamed('appointmentList');
                 },
                 onWaitingTap: () {
                   _showPreparingMessage(context);
