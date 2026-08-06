@@ -4,9 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
-import '../core/theme/app_colors.dart';
 import '../features/settings/view_model/settings_view_model.dart';
 import '../features/chat/view_model/chat_view_model.dart';
+import '../features/notification/view_model/notification_view_model.dart';
 
 final class AppShell extends StatefulWidget {
   const AppShell({super.key, required this.child});
@@ -17,15 +17,17 @@ final class AppShell extends StatefulWidget {
   State<AppShell> createState() => _AppShellState();
 }
 
-final class _AppShellState extends State<AppShell> {
+final class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   Timer? _chatPollingTimer;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       context.read<ChatViewModel>().loadRooms(force: true);
+      context.read<NotificationViewModel>().loadNotifications(force: true);
       _chatPollingTimer = Timer.periodic(const Duration(seconds: 5), (_) {
         if (mounted) {
           context.read<ChatViewModel>().loadRooms(force: true);
@@ -35,7 +37,15 @@ final class _AppShellState extends State<AppShell> {
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted) {
+      context.read<NotificationViewModel>().loadNotifications(force: true);
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _chatPollingTimer?.cancel();
     super.dispose();
   }
@@ -58,7 +68,8 @@ final class _AppShellState extends State<AppShell> {
     final colorScheme = Theme.of(context).colorScheme;
     final hidesTopBar = path.startsWith('/mypage') ||
         path.startsWith('/settings') ||
-        path.startsWith('/chat');
+        path.startsWith('/chat') ||
+        path.startsWith('/notifications');
 
     return Scaffold(
       appBar: hidesTopBar ? null : _buildTopBar(context),
@@ -141,6 +152,8 @@ final class _AppShellState extends State<AppShell> {
   PreferredSizeWidget _buildTopBar(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final settings = context.watch<SettingsViewModel>();
+    final unreadCount = context.watch<NotificationViewModel>().unreadCount;
+
     return AppBar(
       backgroundColor: colorScheme.surface,
       surfaceTintColor: colorScheme.surface,
@@ -155,20 +168,34 @@ final class _AppShellState extends State<AppShell> {
           children: [
             IconButton(
               tooltip: '알림',
-              onPressed: () => _showPreparingMessage(context, '알림'),
+              onPressed: () => context.push('/notifications'),
               icon: const Icon(Icons.notifications_none),
             ),
-            const Positioned(
-              right: 10,
-              top: 9,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: AppColors.accent,
-                  shape: BoxShape.circle,
+            if (unreadCount > 0)
+              Positioned(
+                right: 3,
+                top: 3,
+                child: IgnorePointer(
+                  child: Container(
+                    constraints: const BoxConstraints(minWidth: 19, minHeight: 19),
+                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: colorScheme.error,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: colorScheme.surface, width: 1.5),
+                    ),
+                    child: Text(
+                      unreadCount > 99 ? '99+' : '$unreadCount',
+                      style: TextStyle(
+                        color: colorScheme.onError,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
                 ),
-                child: SizedBox(width: 8, height: 8),
               ),
-            ),
           ],
         ),
         IconButton(
@@ -182,12 +209,6 @@ final class _AppShellState extends State<AppShell> {
         ),
       ],
     );
-  }
-
-  void _showPreparingMessage(BuildContext context, String feature) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text('$feature 기능은 현재 준비 중입니다.')));
   }
 }
 

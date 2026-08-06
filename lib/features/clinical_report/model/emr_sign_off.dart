@@ -13,6 +13,8 @@ final class EmrSignOff {
     this.transmittedAt,
     this.createdAt,
     this.updatedAt,
+    this.aiSummary = '',
+    this.xaiExplanation = '',
   });
 
   final String id;
@@ -30,6 +32,8 @@ final class EmrSignOff {
   final DateTime? reportGeneratedAt;
   final DateTime? createdAt;
   final DateTime? updatedAt;
+  final String aiSummary;
+  final String xaiExplanation;
 
   factory EmrSignOff.fromJson(Map<String, dynamic> json) {
     return EmrSignOff(
@@ -49,6 +53,8 @@ final class EmrSignOff {
       reportGeneratedAt: _dateTimeValue(json['report_generated_at']),
       createdAt: _dateTimeValue(json['created_at']),
       updatedAt: _dateTimeValue(json['updated_at']),
+      aiSummary: json['ai_summary']?.toString() ?? '',
+      xaiExplanation: json['xai_explanation']?.toString() ?? '',
     );
   }
 

@@ -90,4 +90,10 @@ abstract final class ApiEndpoints {
   static String memoAudio(int memoId) {
     return '/api/memos/$memoId/audio/';
   }
+
+static const String notifications = '/api/notifications/';
+
+static String notificationRead(int notificationId) {
+  return '/api/notifications/$notificationId/read/';
+}
 }

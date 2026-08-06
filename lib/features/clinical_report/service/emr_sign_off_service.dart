@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 import 'package:dio/dio.dart';
 
 import '../../../core/network/api_client.dart';
@@ -6,6 +5,7 @@ import '../../../core/network/api_endpoints.dart';
 import '../model/create_emr_sign_off_request.dart';
 import '../model/emr_sign_off.dart';
 import '../model/update_emr_sign_off_request.dart';
+import 'package:flutter/foundation.dart';
 
 final class EmrSignOffService {
   const EmrSignOffService(this._apiClient);
@@ -144,7 +144,16 @@ final class EmrSignOffService {
       );
 
       return _parseEmrSignOff(response.data);
-    } on DioException catch (error) {
+    } on DioException catch (error, stackTrace) {
+      debugPrint('===== 임상보고서 PDF 생성 요청 실패 =====');
+      debugPrint('요청 메서드: ${error.requestOptions.method}');
+      debugPrint('요청 URL: ${error.requestOptions.uri}');
+      debugPrint('상태 코드: ${error.response?.statusCode}');
+      debugPrint('응답 데이터: ${error.response?.data}');
+      debugPrint('Dio 오류: $error');
+      debugPrintStack(stackTrace: stackTrace);
+      debugPrint('======================================');
+
       throw EmrSignOffServiceException(
         _messageFromDioException(
           error,

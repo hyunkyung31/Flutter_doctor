@@ -699,8 +699,29 @@ final class _ClinicalReportPreview extends StatelessWidget {
           const SizedBox(height: 20),
 
           _ReportSection(
-            title: 'AI 분석 결과',
-            children: [_ReportAiResult(aiResult: signOff.aiResult)],
+            title: 'AI 보조 분석 결과',
+            children: [
+              SelectableText(
+                signOff.aiSummary.trim().isEmpty
+                    ? 'AI 보조 분석 결과가 보고서 응답에 포함되지 않았습니다.'
+                    : signOff.aiSummary,
+                style: theme.textTheme.bodyLarge?.copyWith(height: 1.6),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 20),
+
+          _ReportSection(
+            title: 'AI 분석에 대한 안내',
+            children: [
+              SelectableText(
+                signOff.xaiExplanation.trim().isEmpty
+                    ? 'AI 분석에 대한 안내가 보고서 응답에 포함되지 않았습니다.'
+                    : signOff.xaiExplanation,
+                style: theme.textTheme.bodyLarge?.copyWith(height: 1.6),
+              ),
+            ],
           ),
 
           if (consultation != null) ...[
@@ -838,40 +859,6 @@ final class _ReportRow extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-final class _ReportAiResult extends StatelessWidget {
-  const _ReportAiResult({required this.aiResult});
-
-  final EmrAiResultReference? aiResult;
-
-  @override
-  Widget build(BuildContext context) {
-    final data = aiResult?.data;
-
-    if (data == null || data.isEmpty) {
-      return const Text('상세 AI 분석 결과가 보고서 응답에 포함되지 않았습니다.');
-    }
-
-    final entries = data.entries.where((entry) {
-      return entry.key != 'id' &&
-          entry.key != 'ai_result_id' &&
-          entry.key != 'exam_id';
-    }).toList();
-
-    if (entries.isEmpty) {
-      return const Text('상세 AI 분석 결과가 보고서 응답에 포함되지 않았습니다.');
-    }
-
-    return Column(
-      children: entries.map((entry) {
-        return _ReportRow(
-          label: entry.key,
-          value: entry.value?.toString() ?? '정보 없음',
-        );
-      }).toList(),
     );
   }
 }
