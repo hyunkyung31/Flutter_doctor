@@ -12,6 +12,7 @@ import '../../patient/view_model/patient_list_view_model.dart';
 import '../../calendar/view_model/calendar_view_model.dart';
 import '../../calendar/widgets/schedule_bottom_sheet.dart';
 import '../../consultation/view_model/consultation_view_model.dart';
+import '../../appointment/view_model/appointment_view_model.dart';
 import '../widgets/Doctor_briefing_card.dart';
 import '../widgets/patient_status_card.dart';
 import '../../diagnosis/diagnosis_routes.dart'; // 추가
@@ -46,6 +47,7 @@ final class _HomeViewState extends State<HomeView> {
       }
 
       context.read<ConsultationViewModel>().loadReceivedRequests();
+      context.read<AppointmentViewModel>().loadAppointments();
       context.read<EmrSignOffViewModel>().loadSignOffs();
     });
   }
@@ -243,8 +245,9 @@ final class _HomeViewState extends State<HomeView> {
 
     const originalVideoCount = 0;
 
-    // 예약·대기 환자 역시 실제 데이터 연결 전 임시값.
-    const reservationCount = 0;
+    final appointmentViewModel = context.watch<AppointmentViewModel>();
+    // 예약 목록 기본 탭(신청/확정)과 동일한 집계
+    final reservationCount = appointmentViewModel.activeCount;
     const waitingCount = 0;
 
     final theme = Theme.of(context);
@@ -261,6 +264,7 @@ final class _HomeViewState extends State<HomeView> {
             await Future.wait([
               patientListViewModel.refreshPatients(),
               consultationViewModel.refreshReceivedRequests(),
+              appointmentViewModel.loadAppointments(),
               signOffViewModel.loadSignOffs(),
             ]);
           },
@@ -278,7 +282,7 @@ final class _HomeViewState extends State<HomeView> {
                 reservationCount: reservationCount,
                 waitingCount: waitingCount,
                 onReservationTap: () {
-                  _showPreparingMessage(context);
+                  context.pushNamed('appointments');
                 },
                 onWaitingTap: () {
                   _showPreparingMessage(context);

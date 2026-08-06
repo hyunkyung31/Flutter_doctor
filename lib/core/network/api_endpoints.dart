@@ -91,9 +91,17 @@ abstract final class ApiEndpoints {
     return '/api/memos/$memoId/audio/';
   }
 
-static const String notifications = '/api/notifications/';
+  // 진료 예약 (Django Appointment)
+  static const String appointments = '/api/appointments/';
 
-static String notificationRead(int notificationId) {
-  return '/api/notifications/$notificationId/read/';
-}
+  static String appointmentDetail(String appointmentId) {
+    return '/api/appointments/$appointmentId/';
+  }
+
+  // 알림
+  static const String notifications = '/api/notifications/';
+
+  static String notificationRead(int notificationId) {
+    return '/api/notifications/$notificationId/read/';
+  }
 }

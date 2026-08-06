@@ -27,6 +27,9 @@ import 'features/calendar/view_model/calendar_view_model.dart';
 import 'features/consultation/repository/consultation_repository.dart';
 import 'features/consultation/service/consultation_service.dart';
 import 'features/consultation/view_model/consultation_view_model.dart';
+import 'features/appointment/repository/appointment_repository.dart';
+import 'features/appointment/service/appointment_service.dart';
+import 'features/appointment/view_model/appointment_view_model.dart';
 import 'features/chat/view_model/chat_view_model.dart';
 import 'features/chat/service/chat_service.dart';
 import 'features/chat/repository/chat_repository.dart';
@@ -143,6 +146,20 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider<ConsultationViewModel>(
           create: (context) => ConsultationViewModel(
             consultationRepository: context.read<ConsultationRepository>(),
+          ),
+        ),
+        Provider<AppointmentService>(
+          create: (context) => AppointmentService(context.read<ApiClient>()),
+        ),
+        Provider<AppointmentRepository>(
+          create: (context) => AppointmentRepository(
+            appointmentService: context.read<AppointmentService>(),
+            secureStorage: context.read<SecureStorage>(),
+          ),
+        ),
+        ChangeNotifierProvider<AppointmentViewModel>(
+          create: (context) => AppointmentViewModel(
+            appointmentRepository: context.read<AppointmentRepository>(),
           ),
         ),
         Provider<ChatService>(

@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../features/settings/view_model/settings_view_model.dart';
 import '../features/chat/view_model/chat_view_model.dart';
 import '../features/notification/view_model/notification_view_model.dart';
+import '../features/appointment/view_model/appointment_view_model.dart';
 
 final class AppShell extends StatefulWidget {
   const AppShell({super.key, required this.child});
@@ -28,6 +29,7 @@ final class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
       if (!mounted) return;
       context.read<ChatViewModel>().loadRooms(force: true);
       context.read<NotificationViewModel>().loadNotifications(force: true);
+      context.read<AppointmentViewModel>().loadAppointments();
       _chatPollingTimer = Timer.periodic(const Duration(seconds: 5), (_) {
         if (mounted) {
           context.read<ChatViewModel>().loadRooms(force: true);
@@ -40,6 +42,7 @@ final class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed && mounted) {
       context.read<NotificationViewModel>().loadNotifications(force: true);
+      context.read<AppointmentViewModel>().loadAppointments();
     }
   }
 
