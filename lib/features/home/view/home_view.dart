@@ -246,7 +246,8 @@ final class _HomeViewState extends State<HomeView> {
     const originalVideoCount = 0;
 
     final appointmentViewModel = context.watch<AppointmentViewModel>();
-    final reservationCount = appointmentViewModel.activeTodayCount;
+    // 예약 목록 기본 탭(신청/확정)과 동일한 집계
+    final reservationCount = appointmentViewModel.activeCount;
     const waitingCount = 0;
 
     final theme = Theme.of(context);

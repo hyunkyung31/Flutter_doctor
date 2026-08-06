@@ -21,12 +21,15 @@ final class AppointmentViewModel extends ChangeNotifier {
   bool get isUpdating => _isUpdating;
   String? get errorMessage => _errorMessage;
 
-  /// 오늘 기준 신청/확정 예약 수 (홈 현황 카드)
+  /// 오늘 기준 신청/확정 예약 수
   int get activeTodayCount {
-    final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
     return _appointments.where((item) {
       if (!item.isActive) return false;
-      return DateFormat('yyyy-MM-dd').format(item.scheduledAt) == today;
+      final local = item.scheduledAt.toLocal();
+      final scheduledDay = DateTime(local.year, local.month, local.day);
+      return scheduledDay == today;
     }).length;
   }
 

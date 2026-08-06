@@ -1,4 +1,5 @@
 import 'package:doctor_app/features/appointment/model/appointment.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -26,6 +27,27 @@ void main() {
       expect(item.canConfirm, isTrue);
       expect(item.canCancel, isTrue);
       expect(item.canComplete, isFalse);
+    });
+
+    test('UTC scheduled_at converts to local calendar day', () {
+      final now = DateTime.now();
+      final localAfternoon = DateTime(now.year, now.month, now.day, 15, 0);
+      final item = Appointment.fromJson({
+        'id': 1,
+        'patient_id': 'P1',
+        'patient_name': '테스트',
+        'doctor_id': 'D1',
+        'doctor_name': '의사',
+        'department': '순환기내과',
+        'scheduled_at': localAfternoon.toUtc().toIso8601String(),
+        'status': 'requested',
+        'memo': '',
+        'created_at': now.toUtc().toIso8601String(),
+        'updated_at': now.toUtc().toIso8601String(),
+      });
+
+      expect(DateUtils.dateOnly(item.scheduledAt), DateUtils.dateOnly(now));
+      expect(item.isActive, isTrue);
     });
   });
 }
