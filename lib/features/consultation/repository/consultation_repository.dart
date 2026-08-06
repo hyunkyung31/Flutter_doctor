@@ -5,10 +5,9 @@ import '../service/consultation_service.dart';
 
 final class ConsultationRepository {
   const ConsultationRepository({
-    required ConsultationService consultationService,
-    required SecureStorage secureStorage,
-  })  : _consultationService = consultationService,
-        _secureStorage = secureStorage;
+    required this._consultationService,
+    required this._secureStorage,
+  });
 
   final ConsultationService _consultationService;
   final SecureStorage _secureStorage;
@@ -17,15 +16,11 @@ final class ConsultationRepository {
     final accessToken = await _secureStorage.readAccessToken();
 
     if (accessToken == null || accessToken.isEmpty) {
-      throw const ConsultationRepositoryException(
-        '로그인 정보가 없습니다. 다시 로그인해 주세요.',
-      );
+      throw const ConsultationRepositoryException('로그인 정보가 없습니다. 다시 로그인해 주세요.');
     }
 
     try {
-      return await _consultationService.fetchDoctors(
-        accessToken: accessToken,
-      );
+      return await _consultationService.fetchDoctors(accessToken: accessToken);
     } on ConsultationServiceException catch (error) {
       throw ConsultationRepositoryException(error.message);
     }
@@ -43,9 +38,7 @@ final class ConsultationRepository {
     final accessToken = await _secureStorage.readAccessToken();
 
     if (accessToken == null || accessToken.isEmpty) {
-      throw const ConsultationRepositoryException(
-        '로그인 정보가 없습니다. 다시 로그인해 주세요.',
-      );
+      throw const ConsultationRepositoryException('로그인 정보가 없습니다. 다시 로그인해 주세요.');
     }
 
     try {
@@ -68,9 +61,7 @@ final class ConsultationRepository {
     final accessToken = await _secureStorage.readAccessToken();
 
     if (accessToken == null || accessToken.isEmpty) {
-      throw const ConsultationRepositoryException(
-        '로그인 정보가 없습니다. 다시 로그인해 주세요.',
-      );
+      throw const ConsultationRepositoryException('로그인 정보가 없습니다. 다시 로그인해 주세요.');
     }
 
     try {
@@ -89,9 +80,7 @@ final class ConsultationRepository {
     final accessToken = await _secureStorage.readAccessToken();
 
     if (accessToken == null || accessToken.isEmpty) {
-      throw const ConsultationRepositoryException(
-        '로그인 정보가 없습니다. 다시 로그인해 주세요.',
-      );
+      throw const ConsultationRepositoryException('로그인 정보가 없습니다. 다시 로그인해 주세요.');
     }
 
     try {
@@ -109,9 +98,7 @@ final class ConsultationRepository {
     final accessToken = await _secureStorage.readAccessToken();
 
     if (accessToken == null || accessToken.isEmpty) {
-      throw const ConsultationRepositoryException(
-        '로그인 정보가 없습니다. 다시 로그인해 주세요.',
-      );
+      throw const ConsultationRepositoryException('로그인 정보가 없습니다. 다시 로그인해 주세요.');
     }
 
     try {
@@ -130,9 +117,7 @@ final class ConsultationRepository {
     final accessToken = await _secureStorage.readAccessToken();
 
     if (accessToken == null || accessToken.isEmpty) {
-      throw const ConsultationRepositoryException(
-        '로그인 정보가 없습니다. 다시 로그인해 주세요.',
-      );
+      throw const ConsultationRepositoryException('로그인 정보가 없습니다. 다시 로그인해 주세요.');
     }
 
     try {
