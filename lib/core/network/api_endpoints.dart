@@ -71,4 +71,11 @@ abstract final class ApiEndpoints {
   static String memoAudio(int memoId) {
     return '/api/memos/$memoId/audio/';
   }
+
+  // 진료 예약 (Django Appointment)
+  static const String appointments = '/api/appointments/';
+
+  static String appointmentDetail(String appointmentId) {
+    return '/api/appointments/$appointmentId/';
+  }
 }
