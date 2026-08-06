@@ -14,6 +14,8 @@ import '../model/diagnosis_examination.dart';
 import '../view_model/diagnosis_view_model.dart';
 import '../../ai_result/widgets/ai_result_media_viewer.dart';
 import '../../consultation/model/consultation_form_args.dart';
+import '../../../core/security/screen_protection/screen_protection_notice.dart';
+import 'package:flutter/foundation.dart';
 
 final class DiagnosisView extends StatefulWidget {
   const DiagnosisView({super.key});
@@ -134,6 +136,54 @@ final class _DiagnosisViewState extends State<DiagnosisView> {
     return true;
   }
 
+  Future<bool> _saveDraftAndOfferNavigation(String opinion) async {
+    final saved = await _saveSignOffDraft(opinion);
+
+    if (!mounted || !saved) {
+      return false;
+    }
+
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
+    final shouldOpenList = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          icon: const Icon(Icons.save_outlined),
+          title: const Text('초안 저장 완료'),
+          content: const Text(
+            '의료진 소견 초안이 저장되었습니다.\n'
+            'SIGN OFF 목록에서 계속 검토하시겠습니까?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop(false);
+              },
+              child: const Text('현재 화면 유지'),
+            ),
+            FilledButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop(true);
+              },
+              child: const Text('목록으로 이동'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (!mounted) {
+      return true;
+    }
+
+    if (shouldOpenList == true) {
+      context.go('/clinical-report/sign-offs');
+    }
+
+    return true;
+  }
+
   Future<void> _openConsultationForm(String opinion) async {
     final diagnosisViewModel = context.read<DiagnosisViewModel>();
 
@@ -177,9 +227,9 @@ final class _DiagnosisViewState extends State<DiagnosisView> {
       return;
     }
 
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -213,7 +263,10 @@ final class _DiagnosisViewState extends State<DiagnosisView> {
           padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
           children: [
             const _ScreenHeader(),
-
+            if (kReleaseMode) ...[
+              const SizedBox(height: 10),
+              const ScreenProtectionNotice(),
+            ],
             const SizedBox(height: 24),
 
             _SectionHeader(
@@ -308,20 +361,31 @@ final class _DiagnosisViewState extends State<DiagnosisView> {
 
               const SizedBox(height: 16),
 
-              EmrSignOffDraftCard(
-                key: ValueKey(
-                  '${selectedPatientId ?? ''}-${selectedExamId ?? ''}',
+              if (existingSignOff == null)
+                EmrSignOffDraftCard(
+                  key: ValueKey(
+                    '${selectedPatientId ?? ''}-${selectedExamId ?? ''}',
+                  ),
+                  initialValue: '',
+                  isEnabled:
+                      diagnosisViewModel.selectedPatient != null &&
+                      diagnosisViewModel.selectedExamination != null,
+                  isSubmitting:
+                      signOffViewModel.isLoading ||
+                      signOffViewModel.isSubmitting,
+                  onSaveDraft: _saveDraftAndOfferNavigation,
+                  onRequestConsultation: _openConsultationForm,
+                )
+              else
+                _ExistingSignOffCard(
+                  isFinalized: existingSignOff.finalized,
+                  reportReady: existingSignOff.reportReady,
+                  finalResult: existingSignOff.finalResult,
+                  onOpenList: () {
+                    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                    context.go('/clinical-report/sign-offs');
+                  },
                 ),
-                initialValue: existingSignOff?.finalResult ?? '',
-                isEnabled:
-                    diagnosisViewModel.selectedPatient != null &&
-                    diagnosisViewModel.selectedExamination != null &&
-                    !(existingSignOff?.finalized ?? false),
-                isSubmitting:
-                    signOffViewModel.isLoading || signOffViewModel.isSubmitting,
-                onSaveDraft: _saveSignOffDraft,
-                onRequestConsultation: _openConsultationForm,
-              ),
             ],
             const SizedBox(height: 24),
 
@@ -400,51 +464,53 @@ final class _ScreenHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
       decoration: BoxDecoration(
-        color: colorScheme.primaryContainer,
-        borderRadius: BorderRadius.circular(20),
+        color: const Color(0xFFEAF3FF),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFFBDD7F5)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 48,
-            height: 48,
+            width: 28,
+            height: 28,
+            alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: colorScheme.primary,
-              borderRadius: BorderRadius.circular(14),
+              color: const Color(0xFFDCEAFB),
+              borderRadius: BorderRadius.circular(7),
             ),
-            child: Icon(
+            child: const Icon(
               Icons.monitor_heart_outlined,
-              color: colorScheme.onPrimary,
+              size: 17,
+              color: Color(0xFF366FAE),
             ),
           ),
-
-          const SizedBox(width: 16),
-
+          const SizedBox(width: 9),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   'AI 영상 판독 지원',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: colorScheme.onPrimaryContainer,
-                    fontWeight: FontWeight.w800,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: const Color(0xFF234B91),
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
-
-                const SizedBox(height: 6),
-
+                const SizedBox(height: 3),
                 Text(
-                  '관상동맥 조영 영상의 병변 위치와 정상·협착 분류 결과를 확인합니다.',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: colorScheme.onPrimaryContainer,
-                    height: 1.5,
+                  '관상동맥 조영 영상의 병변 위치와 정상·협착 분류 결과를 \n확인합니다.',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontSize: 11,
+                    color: colorScheme.onSurfaceVariant,
+                    height: 1.3,
                   ),
                 ),
               ],
@@ -551,39 +617,45 @@ final class _PatientSelectionCard extends StatelessWidget {
 
             if (isLoadingPatients) const SizedBox(height: 16),
 
-            DropdownButtonFormField<String>(
-              key: ValueKey(selectedPatientId),
-              initialValue: selectedPatientId,
-              isExpanded: true,
-              decoration: const InputDecoration(
-                labelText: '환자',
-                prefixIcon: Icon(Icons.person_search),
-                border: OutlineInputBorder(),
-              ),
-              hint: const Text('환자를 선택해 주세요.'),
-              items: patients.map((patient) {
-                final displayName = patient.patientName.trim().isEmpty
-                    ? '이름 미등록'
-                    : patient.patientName.trim();
-
-                return DropdownMenuItem<String>(
-                  value: patient.patientId,
-                  child: Text(
-                    '$displayName · ${patient.patientId}',
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                );
-              }).toList(),
-              onChanged:
-                  !isEnabled || isLoadingPatients || isLoadingExaminations
+            InkWell(
+              onTap:
+                  !isEnabled ||
+                      isLoadingPatients ||
+                      isLoadingExaminations ||
+                      patients.isEmpty
                   ? null
-                  : (patientId) async {
-                      final patient = _findPatient(patientId);
+                  : () async {
+                      final patient = await _openPatientSearch(context);
 
                       if (patient != null) {
                         await onSelected(patient);
                       }
                     },
+              borderRadius: BorderRadius.circular(4),
+              child: InputDecorator(
+                isEmpty: selectedPatient == null,
+                decoration: InputDecoration(
+                  prefixIcon: const Icon(Icons.person_search),
+                  suffixIcon: const Icon(Icons.search),
+                  border: const OutlineInputBorder(),
+                  enabled:
+                      isEnabled &&
+                      !isLoadingPatients &&
+                      !isLoadingExaminations &&
+                      patients.isNotEmpty,
+                ),
+                child: Text(
+                  selectedPatient == null
+                      ? '이름 또는 환자 ID로 검색해 주세요.'
+                      : '${_displayName(selectedPatient!)} · $selectedPatientId',
+                  overflow: TextOverflow.ellipsis,
+                  style: selectedPatient == null
+                      ? TextStyle(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        )
+                      : null,
+                ),
+              ),
             ),
 
             if (patientListError != null && patients.isEmpty) ...[
@@ -625,18 +697,155 @@ final class _PatientSelectionCard extends StatelessWidget {
     );
   }
 
-  Patient? _findPatient(String? patientId) {
-    if (patientId == null) {
-      return null;
-    }
+  String _displayName(Patient patient) {
+    final patientName = patient.patientName.trim();
+    return patientName.isEmpty ? '이름 미등록' : patientName;
+  }
 
-    for (final patient in patients) {
-      if (patient.patientId == patientId) {
-        return patient;
-      }
-    }
+  Future<Patient?> _openPatientSearch(BuildContext context) async {
+    final searchController = TextEditingController();
+    var query = '';
 
-    return null;
+    final selected = await showModalBottomSheet<Patient>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final normalizedQuery = query.trim().toLowerCase();
+            final filteredPatients = patients
+                .where((patient) {
+                  if (normalizedQuery.isEmpty) {
+                    return true;
+                  }
+
+                  final name = patient.patientName.trim().toLowerCase();
+                  final id = patient.patientId.trim().toLowerCase();
+
+                  return name.contains(normalizedQuery) ||
+                      id.contains(normalizedQuery);
+                })
+                .toList(growable: false);
+
+            return FractionallySizedBox(
+              heightFactor: 0.78,
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(
+                  20,
+                  16,
+                  20,
+                  MediaQuery.viewInsetsOf(context).bottom + 16,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            '환자 검색',
+                            style: Theme.of(context).textTheme.titleLarge
+                                ?.copyWith(fontWeight: FontWeight.w800),
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () => Navigator.of(sheetContext).pop(),
+                          icon: const Icon(Icons.close),
+                          tooltip: '닫기',
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: searchController,
+                      autofocus: true,
+                      textInputAction: TextInputAction.search,
+                      decoration: InputDecoration(
+                        hintText: '환자 이름 또는 환자 ID 입력',
+                        prefixIcon: const Icon(Icons.search),
+                        suffixIcon: query.isEmpty
+                            ? null
+                            : IconButton(
+                                onPressed: () {
+                                  searchController.clear();
+                                  setModalState(() {
+                                    query = '';
+                                  });
+                                },
+                                icon: const Icon(Icons.clear),
+                                tooltip: '검색어 지우기',
+                              ),
+                        border: const OutlineInputBorder(),
+                      ),
+                      onChanged: (value) {
+                        setModalState(() {
+                          query = value;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      '검색 결과 ${filteredPatients.length}명',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Expanded(
+                      child: filteredPatients.isEmpty
+                          ? const Center(child: Text('검색 조건에 맞는 환자가 없습니다.'))
+                          : ListView.separated(
+                              itemCount: filteredPatients.length,
+                              separatorBuilder: (_, _) =>
+                                  const Divider(height: 1),
+                              itemBuilder: (context, index) {
+                                final patient = filteredPatients[index];
+                                final isCurrent =
+                                    selectedPatient?.patientId ==
+                                    patient.patientId;
+
+                                return ListTile(
+                                  contentPadding: EdgeInsets.zero,
+                                  leading: CircleAvatar(
+                                    child: Text(
+                                      _displayName(patient) == '이름 미등록'
+                                          ? '?'
+                                          : _displayName(
+                                              patient,
+                                            ).substring(0, 1),
+                                    ),
+                                  ),
+                                  title: Text(_displayName(patient)),
+                                  subtitle: Text(
+                                    '환자 ID ${patient.patientId} · '
+                                    '${patient.genderText} · ${patient.age}세',
+                                  ),
+                                  trailing: isCurrent
+                                      ? Icon(
+                                          Icons.check_circle,
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.primary,
+                                        )
+                                      : null,
+                                  onTap: () {
+                                    Navigator.of(sheetContext).pop(patient);
+                                  },
+                                );
+                              },
+                            ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    return selected;
   }
 }
 
@@ -880,8 +1089,14 @@ final class _AnalysisTypeCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
+    final selectedBackground = colorScheme.primary.withAlpha(20);
+    final titleColor = isSelected ? colorScheme.primary : colorScheme.onSurface;
+    final descriptionColor = isSelected
+        ? colorScheme.onSurface
+        : colorScheme.onSurfaceVariant;
+
     return Material(
-      color: isSelected ? colorScheme.primaryContainer : colorScheme.surface,
+      color: isSelected ? selectedBackground : colorScheme.surface,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         onTap: isEnabled ? onSelected : null,
@@ -916,6 +1131,7 @@ final class _AnalysisTypeCard extends StatelessWidget {
                     Text(
                       analysisType.title,
                       style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        color: titleColor,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -925,7 +1141,8 @@ final class _AnalysisTypeCard extends StatelessWidget {
                     Text(
                       analysisType.description,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: colorScheme.onSurfaceVariant,
+                        color: descriptionColor,
+                        height: 1.4,
                       ),
                     ),
                   ],
@@ -1078,10 +1295,6 @@ final class _AnalysisCompletedCard extends StatelessWidget {
               label: '협착 의심 영역',
               value: '${result.boundingBoxData.detectionCount}개',
             ),
-            _ResultRowData(
-              label: 'BBox 결과',
-              value: result.canShowBoundingBox ? '표시 가능' : '표시할 영역 없음',
-            ),
           ],
           notice: '탐지 결과는 협착 의심 영역의 위치를 나타내며 정상·협착 분류 결과와는 별개의 모델 출력입니다.',
         );
@@ -1100,10 +1313,6 @@ final class _AnalysisCompletedCard extends StatelessWidget {
             _ResultRowData(
               label: '분류 신뢰도',
               value: '${confidencePercent.toStringAsFixed(1)}%',
-            ),
-            _ResultRowData(
-              label: 'Grad-CAM',
-              value: result.canShowHeatmap ? '표시 가능' : '결과 없음',
             ),
           ],
           notice: '분류 결과는 영상 전체의 정상·협착 가능성을 나타내며 병변 위치를 직접 표시하지 않습니다.',
@@ -1127,14 +1336,6 @@ final class _AnalysisCompletedCard extends StatelessWidget {
             _ResultRowData(
               label: '협착 의심 영역',
               value: '${result.boundingBoxData.detectionCount}개',
-            ),
-            _ResultRowData(
-              label: 'BBox 결과',
-              value: result.canShowBoundingBox ? '표시 가능' : '표시할 영역 없음',
-            ),
-            _ResultRowData(
-              label: 'Grad-CAM',
-              value: result.canShowHeatmap ? '표시 가능' : '결과 없음',
             ),
           ],
           notice: '탐지와 분류는 서로 다른 모델의 결과이므로 두 결과가 일치하지 않을 수도 있습니다.',
@@ -1366,6 +1567,146 @@ final class _ResultValueRow extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+final class _ExistingSignOffCard extends StatelessWidget {
+  const _ExistingSignOffCard({
+    required this.isFinalized,
+    required this.reportReady,
+    required this.finalResult,
+    required this.onOpenList,
+  });
+
+  final bool isFinalized;
+  final bool reportReady;
+  final String finalResult;
+  final VoidCallback onOpenList;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final normalizedResult = finalResult.trim();
+
+    final String title;
+    final String description;
+    final String buttonText;
+    final IconData icon;
+
+    if (reportReady) {
+      title = '환자용 보고서가 생성되었습니다';
+      description = '이 분석에 대한 SIGN OFF와 환자용 보고서 생성이 완료되었습니다.';
+      buttonText = '보고서 목록에서 확인';
+      icon = Icons.description_outlined;
+    } else if (isFinalized) {
+      title = 'SIGN OFF가 완료된 분석입니다';
+      description = '최종 승인된 의료진 소견은 수정할 수 없습니다.';
+      buttonText = 'SIGN OFF 목록에서 확인';
+      icon = Icons.verified_outlined;
+    } else {
+      title = '저장된 의료진 소견 초안이 있습니다';
+      description =
+          '이 분석에 대한 초안이 이미 저장되어 있습니다. '
+          'SIGN OFF 목록에서 계속 수정하고 검토할 수 있습니다.';
+      buttonText = '저장된 초안 보기';
+      icon = Icons.drafts_outlined;
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: colorScheme.primary.withAlpha(18),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: colorScheme.primary.withAlpha(90)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: colorScheme.onPrimaryContainer),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      description,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                        height: 1.45,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          if (normalizedResult.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: colorScheme.surface,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: colorScheme.outlineVariant),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    isFinalized ? '저장된 최종 소견' : '저장된 초안',
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    normalizedResult,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodyMedium?.copyWith(height: 1.45),
+                  ),
+                ],
+              ),
+            ),
+          ],
+
+          const SizedBox(height: 16),
+
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: onOpenList,
+              icon: const Icon(Icons.arrow_forward),
+              label: Text(buttonText),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

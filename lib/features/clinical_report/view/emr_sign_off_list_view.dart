@@ -7,6 +7,8 @@ import '../model/emr_sign_off_workflow_item.dart';
 import '../model/emr_sign_off_workflow_status.dart';
 import '../view_model/emr_sign_off_view_model.dart';
 
+import '../../patient/view_model/patient_list_view_model.dart';
+
 final class EmrSignOffListView extends StatefulWidget {
   const EmrSignOffListView({super.key});
 
@@ -36,19 +38,44 @@ final class _EmrSignOffListViewState extends State<EmrSignOffListView> {
     await Future.wait([
       context.read<EmrSignOffViewModel>().loadSignOffs(),
       context.read<ConsultationViewModel>().loadAllRequests(),
+      context.read<PatientListViewModel>().loadPatients(),
     ]);
+  }
+
+  String _normalizePatientId(String patientId) {
+    return patientId.trim().toUpperCase().replaceAll(RegExp(r'[^A-Z0-9]'), '');
   }
 
   @override
   Widget build(BuildContext context) {
     final signOffViewModel = context.watch<EmrSignOffViewModel>();
     final consultationViewModel = context.watch<ConsultationViewModel>();
+    final patientListViewModel = context.watch<PatientListViewModel>();
+
+    final patientNameById = {
+      for (final patient in patientListViewModel.patients)
+        _normalizePatientId(patient.patientId): patient.patientName.trim(),
+    };
+
+    debugPrint('환자 이름 Map: $patientNameById');
+
+    for (final signOff in signOffViewModel.signOffs) {
+      final normalizedId = _normalizePatientId(signOff.patientId);
+
+      debugPrint(
+        'SIGN OFF patientId=${signOff.patientId}, '
+        'normalized=$normalizedId, '
+        'matchedName=${patientNameById[normalizedId]}',
+      );
+    }
 
     final items = signOffViewModel.signOffs
         .map(
           (signOff) => EmrSignOffWorkflowItem.fromSignOff(
             signOff: signOff,
             sentConsultations: consultationViewModel.sentRequests,
+            patientName:
+                patientNameById[_normalizePatientId(signOff.patientId)],
           ),
         )
         .toList();
@@ -75,7 +102,9 @@ final class _EmrSignOffListViewState extends State<EmrSignOffListView> {
     final filteredItems = items.where(_matchesSelectedFilter).toList();
 
     final isLoading =
-        signOffViewModel.isLoading || consultationViewModel.isRequestsLoading;
+        signOffViewModel.isLoading ||
+        consultationViewModel.isRequestsLoading ||
+        patientListViewModel.isLoading;
 
     final errorMessage =
         signOffViewModel.errorMessage ?? consultationViewModel.errorMessage;
@@ -149,9 +178,11 @@ final class _EmrSignOffListViewState extends State<EmrSignOffListView> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'AI 분석 소견과 협진 상태를 확인합니다.',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      '최종 소견 작성 후 SIGN OFF를 완료하면\n'
+                      '환자는 환자 앱에서 임상 보고서 PDF를 확인할 수 있습니다.',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        height: 1.45,
                       ),
                     ),
                   ],
@@ -387,23 +418,97 @@ final class _WorkflowStatusChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
 
-    final backgroundColor = switch (status) {
-      EmrSignOffWorkflowStatus.draft => colorScheme.surfaceContainerHighest,
-      EmrSignOffWorkflowStatus.consultationPending =>
-        colorScheme.secondaryContainer,
-      EmrSignOffWorkflowStatus.consultationAnswered =>
-        colorScheme.tertiaryContainer,
-      EmrSignOffWorkflowStatus.finalized => colorScheme.primaryContainer,
-      EmrSignOffWorkflowStatus.reportReady => colorScheme.primaryContainer,
-      EmrSignOffWorkflowStatus.transmitted => colorScheme.primaryContainer,
-    };
+    final visual = _statusVisual(status);
 
-    return Chip(
-      visualDensity: VisualDensity.compact,
-      label: Text(status.label),
-      backgroundColor: backgroundColor,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+      decoration: BoxDecoration(
+        color: visual.backgroundColor,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: visual.borderColor),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(visual.icon, size: 15, color: visual.foregroundColor),
+          const SizedBox(width: 5),
+          Text(
+            status.label,
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: visual.foregroundColor,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
     );
   }
+
+  _WorkflowStatusVisual _statusVisual(EmrSignOffWorkflowStatus status) {
+    switch (status) {
+      case EmrSignOffWorkflowStatus.draft:
+        return const _WorkflowStatusVisual(
+          backgroundColor: Color(0xFFF1F5F9),
+          borderColor: Color(0xFFCBD5E1),
+          foregroundColor: Color(0xFF1F2937),
+          icon: Icons.edit_note_outlined,
+        );
+
+      case EmrSignOffWorkflowStatus.consultationPending:
+        return const _WorkflowStatusVisual(
+          backgroundColor: Color(0xFFE0F2FE),
+          borderColor: Color(0xFF7DD3FC),
+          foregroundColor: Color(0xFF1F2937),
+          icon: Icons.schedule_outlined,
+        );
+
+      case EmrSignOffWorkflowStatus.consultationAnswered:
+        return const _WorkflowStatusVisual(
+          backgroundColor: Color(0xFFF3E8FF),
+          borderColor: Color(0xFFD8B4FE),
+          foregroundColor: Color(0xFF1F2937),
+          icon: Icons.mark_chat_read_outlined,
+        );
+
+      case EmrSignOffWorkflowStatus.finalized:
+        return const _WorkflowStatusVisual(
+          backgroundColor: Color(0xFFDBEAFE),
+          borderColor: Color(0xFF93C5FD),
+          foregroundColor: Color(0xFF1F2937),
+          icon: Icons.verified_outlined,
+        );
+
+      case EmrSignOffWorkflowStatus.reportReady:
+        return const _WorkflowStatusVisual(
+          backgroundColor: Color(0xFFD1FAE5),
+          borderColor: Color(0xFF6EE7B7),
+          foregroundColor: Color(0xFF1F2937),
+          icon: Icons.picture_as_pdf_outlined,
+        );
+
+      case EmrSignOffWorkflowStatus.transmitted:
+        return const _WorkflowStatusVisual(
+          backgroundColor: Color(0xFFCCFBF1),
+          borderColor: Color(0xFF5EEAD4),
+          foregroundColor: Color(0xFF1F2937),
+          icon: Icons.send_outlined,
+        );
+    }
+  }
+}
+
+final class _WorkflowStatusVisual {
+  const _WorkflowStatusVisual({
+    required this.backgroundColor,
+    required this.borderColor,
+    required this.foregroundColor,
+    required this.icon,
+  });
+
+  final Color backgroundColor;
+  final Color borderColor;
+  final Color foregroundColor;
+  final IconData icon;
 }
