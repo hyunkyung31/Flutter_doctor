@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../auth/view_model/auth_view_model.dart';
 import '../../settings/view_model/settings_view_model.dart';
+import '../../../core/widgets/profile/doctor_profile_avatar.dart';
 
 final class MyPageView extends StatefulWidget {
   const MyPageView({super.key});
@@ -24,10 +25,7 @@ final class _MyPageViewState extends State<MyPageView> {
     final doctorName = authViewModel.doctorName?.trim();
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('마이페이지'),
-        centerTitle: true,
-      ),
+      appBar: AppBar(title: const Text('마이페이지'), centerTitle: true),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
         children: [
@@ -87,21 +85,11 @@ final class _MyPageViewState extends State<MyPageView> {
                 value: settingsViewModel.isDarkMode,
                 onChanged: (_) => settingsViewModel.toggleTheme(),
               ),
-              _MenuTile(
-                icon: Icons.notifications_outlined,
-                title: '알림 설정',
-                onTap: () => _showPreparingMessage('알림 설정'),
-              ),
             ],
           ),
           const SizedBox(height: 18),
           _SettingsSection(
             children: [
-              _MenuTile(
-                icon: Icons.lock_outline,
-                title: '비밀번호 변경',
-                onTap: () => _showPreparingMessage('비밀번호 변경'),
-              ),
               _MenuTile(
                 icon: Icons.info_outline,
                 title: '앱 정보',
@@ -109,10 +97,7 @@ final class _MyPageViewState extends State<MyPageView> {
               ),
               ListTile(
                 leading: Icon(Icons.logout, color: colorScheme.error),
-                title: Text(
-                  '로그아웃',
-                  style: TextStyle(color: colorScheme.error),
-                ),
+                title: Text('로그아웃', style: TextStyle(color: colorScheme.error)),
                 onTap: _confirmLogout,
               ),
             ],
@@ -120,14 +105,6 @@ final class _MyPageViewState extends State<MyPageView> {
         ],
       ),
     );
-  }
-
-  void _showPreparingMessage(String feature) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(content: Text('$feature 기능은 현재 준비 중입니다.')),
-      );
   }
 
   void _showAppInfo() {
@@ -174,17 +151,14 @@ final class _MyPageViewState extends State<MyPageView> {
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('로그아웃하지 못했습니다. 다시 시도해 주세요.')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('로그아웃하지 못했습니다. 다시 시도해 주세요.')));
   }
 }
 
 final class _ProfileCard extends StatelessWidget {
-  const _ProfileCard({
-    required this.doctorName,
-    required this.department,
-  });
+  const _ProfileCard({required this.doctorName, required this.department});
 
   final String doctorName;
   final String department;
@@ -199,12 +173,7 @@ final class _ProfileCard extends StatelessWidget {
         padding: const EdgeInsets.all(20),
         child: Row(
           children: [
-            CircleAvatar(
-              radius: 30,
-              backgroundColor: colorScheme.primaryContainer,
-              foregroundColor: colorScheme.onPrimaryContainer,
-              child: const Icon(Icons.person, size: 34),
-            ),
+            const DoctorProfileAvatar(radius: 30, scale: 1.7),
             const SizedBox(width: 16),
             Expanded(
               child: Column(

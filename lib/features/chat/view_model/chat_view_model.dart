@@ -8,8 +8,8 @@ final class ChatViewModel extends ChangeNotifier {
   ChatViewModel({
     required ChatRepository chatRepository,
     required ConsultationRepository consultationRepository,
-  })  : _chatRepository = chatRepository,
-        _consultationRepository = consultationRepository;
+  }) : _chatRepository = chatRepository,
+       _consultationRepository = consultationRepository;
 
   final ChatRepository _chatRepository;
   final ConsultationRepository _consultationRepository;
@@ -40,14 +40,16 @@ final class ChatViewModel extends ChangeNotifier {
     notifyListeners();
     try {
       final fetchedRooms = await _chatRepository.fetchRooms();
-      _rooms = fetchedRooms.map((fetchedRoom) {
-        if (!_roomsWithLoadedMessages.contains(fetchedRoom.id)) {
-          return fetchedRoom;
-        }
-        final currentRoom = roomById(fetchedRoom.id);
-        if (currentRoom == null) return fetchedRoom;
-        return fetchedRoom.copyWith(messages: currentRoom.messages);
-      }).toList(growable: false);
+      _rooms = fetchedRooms
+          .map((fetchedRoom) {
+            if (!_roomsWithLoadedMessages.contains(fetchedRoom.id)) {
+              return fetchedRoom;
+            }
+            final currentRoom = roomById(fetchedRoom.id);
+            if (currentRoom == null) return fetchedRoom;
+            return fetchedRoom.copyWith(messages: currentRoom.messages);
+          })
+          .toList(growable: false);
     } on ChatRepositoryException catch (error) {
       _errorMessage = error.message;
     } finally {
@@ -64,12 +66,14 @@ final class ChatViewModel extends ChangeNotifier {
     try {
       final doctors = await _consultationRepository.fetchDoctors();
       _doctors = doctors
-          .map((doctor) => ChatDoctor(
-                id: doctor.doctorId,
-                name: doctor.doctorName,
-                department: doctor.department,
-                hospital: doctor.hospitalName,
-              ))
+          .map(
+            (doctor) => ChatDoctor(
+              id: doctor.doctorId,
+              name: doctor.doctorName,
+              department: doctor.department,
+              hospital: doctor.hospitalName,
+            ),
+          )
           .where((doctor) => doctor.id.isNotEmpty)
           .toList(growable: false);
     } on ConsultationRepositoryException catch (error) {
@@ -94,9 +98,7 @@ final class ChatViewModel extends ChangeNotifier {
     try {
       final room = await _chatRepository.createRoom(doctor.id);
       if (room.id.trim().isEmpty) {
-        throw const ChatRepositoryException(
-          '채팅방 번호가 응답에 없습니다.',
-        );
+        throw const ChatRepositoryException('채팅방 번호가 응답에 없습니다.');
       }
       _rooms.insert(0, room);
       notifyListeners();
@@ -166,7 +168,8 @@ final class ChatViewModel extends ChangeNotifier {
     try {
       final message = await _chatRepository.sendMessage(roomId, data);
       final room = roomById(roomId);
-      if (room != null) _updateRoom(roomId, messages: [...room.messages, message]);
+      if (room != null)
+        _updateRoom(roomId, messages: [...room.messages, message]);
       return true;
     } on ChatRepositoryException catch (error) {
       _errorMessage = error.message;

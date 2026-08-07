@@ -30,8 +30,7 @@ final class Patient {
   final int? riskFactorsCount;
 
   String get genderText {
-    final normalizedGender =
-        gender.trim().toUpperCase();
+    final normalizedGender = gender.trim().toUpperCase();
 
     switch (normalizedGender) {
       case 'M':
@@ -47,9 +46,7 @@ final class Patient {
         return '여성';
 
       default:
-        return gender.trim().isEmpty
-            ? '미등록'
-            : gender.trim();
+        return gender.trim().isEmpty ? '미등록' : gender.trim();
     }
   }
 
@@ -87,54 +84,30 @@ final class Patient {
     return '$value개';
   }
 
-  factory Patient.fromJson(
-    Map<String, dynamic> json,
-  ) {
+  factory Patient.fromJson(Map<String, dynamic> json) {
     return Patient(
       patientId: _stringValue(
-        json['patient_id'] ??
-            json['patientId'] ??
-            json['id'],
+        json['patient_id'] ?? json['patientId'] ?? json['id'],
       ),
       patientName: _stringValue(
-        json['patient_name'] ??
-            json['patientName'] ??
-            json['name'],
+        json['patient_name'] ?? json['patientName'] ?? json['name'],
       ),
-      gender: _stringValue(
-        json['gender'] ??
-            json['sex'],
-      ),
-      age: _intValue(
-        json['age'],
-      ),
+      gender: _stringValue(json['gender'] ?? json['sex']),
+      age: _intValue(json['age']),
       primaryDoctorId: _nullableStringValue(
-        json['primary_doctor_id'] ??
-            json['primaryDoctorId'],
+        json['primary_doctor_id'] ?? json['primaryDoctorId'],
       ),
       chiefComplaint: _nullableStringValue(
-        json['chief_complaint'] ??
-            json['chiefComplaint'],
+        json['chief_complaint'] ?? json['chiefComplaint'],
       ),
-      ecgResult: _nullableStringValue(
-        json['ecg_result'] ??
-            json['ecgResult'],
-      ),
-      ecgImageUrl: _stringValue(
-        json['ecg_image_url'] ??
-            json['ecgImageUrl'],
-      ),
+      ecgResult: _nullableStringValue(json['ecg_result'] ?? json['ecgResult']),
+      ecgImageUrl: _stringValue(json['ecg_image_url'] ?? json['ecgImageUrl']),
       troponinTLevel: _doubleValue(
-        json['troponin_t_level'] ??
-            json['troponinTLevel'],
+        json['troponin_t_level'] ?? json['troponinTLevel'],
       ),
-      historyScore: _doubleValue(
-        json['history_score'] ??
-            json['historyScore'],
-      ),
+      historyScore: _doubleValue(json['history_score'] ?? json['historyScore']),
       riskFactorsCount: _nullableIntValue(
-        json['risk_factors_count'] ??
-            json['riskFactorsCount'],
+        json['risk_factors_count'] ?? json['riskFactorsCount'],
       ),
     );
   }
@@ -155,9 +128,7 @@ final class Patient {
     };
   }
 
-  static String _stringValue(
-    dynamic value,
-  ) {
+  static String _stringValue(dynamic value) {
     if (value == null) {
       return '';
     }
@@ -165,27 +136,21 @@ final class Patient {
     return value.toString().trim();
   }
 
-  static String? _nullableStringValue(
-    dynamic value,
-  ) {
+  static String? _nullableStringValue(dynamic value) {
     if (value == null) {
       return null;
     }
 
-    final result =
-        value.toString().trim();
+    final result = value.toString().trim();
 
-    if (result.isEmpty ||
-        result.toLowerCase() == 'null') {
+    if (result.isEmpty || result.toLowerCase() == 'null') {
       return null;
     }
 
     return result;
   }
 
-  static int _intValue(
-    dynamic value,
-  ) {
+  static int _intValue(dynamic value) {
     if (value is int) {
       return value;
     }
@@ -194,15 +159,10 @@ final class Patient {
       return value.round();
     }
 
-    return int.tryParse(
-          value?.toString() ?? '',
-        ) ??
-        0;
+    return int.tryParse(value?.toString() ?? '') ?? 0;
   }
 
-  static int? _nullableIntValue(
-    dynamic value,
-  ) {
+  static int? _nullableIntValue(dynamic value) {
     if (value == null) {
       return null;
     }
@@ -215,14 +175,10 @@ final class Patient {
       return value.round();
     }
 
-    return int.tryParse(
-      value.toString(),
-    );
+    return int.tryParse(value.toString());
   }
 
-  static double? _doubleValue(
-    dynamic value,
-  ) {
+  static double? _doubleValue(dynamic value) {
     if (value == null) {
       return null;
     }
@@ -231,8 +187,6 @@ final class Patient {
       return value.toDouble();
     }
 
-    return double.tryParse(
-      value.toString(),
-    );
+    return double.tryParse(value.toString());
   }
 }

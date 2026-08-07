@@ -33,7 +33,6 @@ extension AiAnalysisTypePresentation on AiAnalysisType {
     }
   }
 
-
   bool get supportsBoundingBox {
     return this == AiAnalysisType.detection ||
         this == AiAnalysisType.integrated;

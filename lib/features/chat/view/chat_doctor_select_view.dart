@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../model/chat_models.dart';
 import '../view_model/chat_view_model.dart';
+import '../../../core/widgets/profile/doctor_profile_avatar.dart';
 
 final class ChatDoctorSelectView extends StatefulWidget {
   const ChatDoctorSelectView({super.key});
@@ -45,82 +46,71 @@ final class _ChatDoctorSelectViewState extends State<ChatDoctorSelectView> {
             child: viewModel.isDoctorsLoading && viewModel.doctors.isEmpty
                 ? const Center(child: CircularProgressIndicator())
                 : viewModel.doctorsError != null && viewModel.doctors.isEmpty
-                    ? _DoctorLoadError(
-                        message: viewModel.doctorsError!,
-                        onRetry: () => viewModel.loadDoctors(force: true),
-                      )
-                    : doctors.isEmpty
-                        ? const Center(child: Text('검색 결과가 없습니다.'))
-                        : RefreshIndicator(
-                            onRefresh: () => viewModel.loadDoctors(force: true),
-                            child: ListView.separated(
-                              padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-                              itemCount: doctors.length,
-                              separatorBuilder: (_, __) =>
-                                  const SizedBox(height: 10),
-                              itemBuilder: (context, index) {
-                                final doctor = doctors[index];
-                                return Card(
-                                  margin: EdgeInsets.zero,
-                                  elevation: 0,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: ListTile(
-                                    contentPadding: const EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                      vertical: 8,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                    leading: CircleAvatar(
-                                      child: Text(
-                                        doctor.name.isEmpty
-                                            ? '?'
-                                            : doctor.name.substring(0, 1),
-                                      ),
-                                    ),
-                                    title: Text(
-                                      doctor.name.isEmpty
-                                          ? '이름 미등록 의사'
-                                          : doctor.name,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                    ),
-                                    subtitle: Text(
-                                      '${doctor.department} · ${doctor.hospital}',
-                                    ),
-                                    trailing: const Icon(Icons.chevron_right),
-                                    onTap: () async {
-                                      final room = await viewModel.openRoom(doctor);
-                                      if (!context.mounted) return;
-                                      if (room == null) {
-                                        ScaffoldMessenger.of(context)
-                                          ..hideCurrentSnackBar()
-                                          ..showSnackBar(
-                                            SnackBar(
-                                              content: Text(
-                                                viewModel.errorMessage ??
-                                                    '채팅방을 만들지 못했습니다.',
-                                              ),
-                                            ),
-                                          );
-                                        return;
-                                      }
-                                      context.goNamed(
-                                        'chat-room',
-                                        pathParameters: {
-                                          'roomId': room.id,
-                                        },
-                                      );
-                                    },
-                                  ),
-                                );
-                              },
-                            ),
+                ? _DoctorLoadError(
+                    message: viewModel.doctorsError!,
+                    onRetry: () => viewModel.loadDoctors(force: true),
+                  )
+                : doctors.isEmpty
+                ? const Center(child: Text('검색 결과가 없습니다.'))
+                : RefreshIndicator(
+                    onRefresh: () => viewModel.loadDoctors(force: true),
+                    child: ListView.separated(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                      itemCount: doctors.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 10),
+                      itemBuilder: (context, index) {
+                        final doctor = doctors[index];
+                        return Card(
+                          margin: EdgeInsets.zero,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
                           ),
+                          child: ListTile(
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            leading: const DoctorProfileAvatar(radius: 22),
+                            title: Text(
+                              doctor.name.isEmpty ? '이름 미등록 의사' : doctor.name,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            subtitle: Text(
+                              '${doctor.department} · ${doctor.hospital}',
+                            ),
+                            trailing: const Icon(Icons.chevron_right),
+                            onTap: () async {
+                              final room = await viewModel.openRoom(doctor);
+                              if (!context.mounted) return;
+                              if (room == null) {
+                                ScaffoldMessenger.of(context)
+                                  ..hideCurrentSnackBar()
+                                  ..showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        viewModel.errorMessage ??
+                                            '채팅방을 만들지 못했습니다.',
+                                      ),
+                                    ),
+                                  );
+                                return;
+                              }
+                              context.goNamed(
+                                'chat-room',
+                                pathParameters: {'roomId': room.id},
+                              );
+                            },
+                          ),
+                        );
+                      },
+                    ),
+                  ),
           ),
         ],
       ),

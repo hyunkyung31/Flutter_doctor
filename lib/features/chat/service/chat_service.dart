@@ -9,9 +9,8 @@ final class ChatService {
 
   final ApiClient _apiClient;
 
-  Options _options(String token) => Options(
-        headers: {'Authorization': 'Bearer $token'},
-      );
+  Options _options(String token) =>
+      Options(headers: {'Authorization': 'Bearer $token'});
 
   Future<List<ChatRoom>> fetchRooms(String token) async {
     return _request(() async {
@@ -41,9 +40,9 @@ final class ChatService {
         ApiEndpoints.chatMessages(roomId),
         options: _options(token),
       );
-      return _items(response.data)
-          .map(ChatMessage.fromJson)
-          .toList(growable: false);
+      return _items(
+        response.data,
+      ).map(ChatMessage.fromJson).toList(growable: false);
     }, '메시지를 불러오지 못했습니다.');
   }
 
@@ -115,8 +114,8 @@ final class ChatService {
     final source = data is List
         ? data
         : data is Map
-            ? data['results'] ?? data['data']
-            : null;
+        ? data['results'] ?? data['data']
+        : null;
     if (source is! List) return const [];
     return source
         .whereType<Map>()

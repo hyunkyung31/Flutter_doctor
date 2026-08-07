@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import '../../patient/model/patient.dart';
 import '../model/consultation_doctor.dart';
 import '../view_model/consultation_view_model.dart';
+import '../../patient/widgets/patient_profile_avatar.dart';
+import '../../../core/widgets/profile/doctor_profile_avatar.dart';
 
 final class ConsultationFormView extends StatefulWidget {
   const ConsultationFormView({
@@ -148,15 +150,7 @@ final class _ConsultationFormViewState extends State<ConsultationFormView> {
                   ),
                   child: Row(
                     children: [
-                      CircleAvatar(
-                        backgroundColor: colorScheme.primaryContainer,
-                        foregroundColor: colorScheme.onPrimaryContainer,
-                        child: Text(
-                          patient.patientName.isEmpty
-                              ? '?'
-                              : patient.patientName[0],
-                        ),
-                      ),
+                      const PatientProfileAvatar(radius: 22),
                       const SizedBox(width: 14),
                       Expanded(
                         child: Column(
@@ -303,11 +297,14 @@ final class _ConsultationFormViewState extends State<ConsultationFormView> {
                   DropdownButtonFormField<String>(
                     initialValue: _selectedDoctorId,
                     isExpanded: true,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: '협진 대상 의사',
                       hintText: '의사를 선택하세요.',
-                      prefixIcon: Icon(Icons.person_outline),
-                      border: OutlineInputBorder(),
+                      prefixIcon: const Padding(
+                        padding: EdgeInsets.all(8),
+                        child: DoctorProfileAvatar(radius: 16, scale: 1.9),
+                      ),
+                      border: const OutlineInputBorder(),
                     ),
                     items: doctors.map((doctor) {
                       final hospitalName = doctor.hospitalName.trim();
@@ -319,7 +316,18 @@ final class _ConsultationFormViewState extends State<ConsultationFormView> {
 
                       return DropdownMenuItem<String>(
                         value: doctor.doctorId,
-                        child: Text(label, overflow: TextOverflow.ellipsis),
+                        child: Row(
+                          children: [
+                            const DoctorProfileAvatar(radius: 16, scale: 1.9),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                label,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
                       );
                     }).toList(),
                     onChanged:

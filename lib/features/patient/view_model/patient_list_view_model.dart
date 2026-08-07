@@ -3,11 +3,9 @@ import 'package:flutter/material.dart';
 import '../model/patient.dart';
 import '../repository/patient_repository.dart';
 
-final class PatientListViewModel
-    extends ChangeNotifier {
-  PatientListViewModel({
-    required PatientRepository patientRepository,
-  }) : _patientRepository = patientRepository;
+final class PatientListViewModel extends ChangeNotifier {
+  PatientListViewModel({required PatientRepository patientRepository})
+    : _patientRepository = patientRepository;
 
   final PatientRepository _patientRepository;
 
@@ -41,8 +39,7 @@ final class PatientListViewModel
     notifyListeners();
 
     try {
-      final patients =
-          await _patientRepository.getPatients();
+      final patients = await _patientRepository.getPatients();
 
       _patients
         ..clear()
@@ -59,8 +56,7 @@ final class PatientListViewModel
     _errorMessage = null;
 
     try {
-      final patients =
-          await _patientRepository.getPatients();
+      final patients = await _patientRepository.getPatients();
 
       _patients
         ..clear()
@@ -73,10 +69,7 @@ final class PatientListViewModel
   }
 
   void addRecentPatient(Patient patient) {
-    _recentPatients.removeWhere(
-      (item) =>
-          item.patientId == patient.patientId,
-    );
+    _recentPatients.removeWhere((item) => item.patientId == patient.patientId);
 
     _recentPatients.insert(0, patient);
 
@@ -95,14 +88,8 @@ final class PatientListViewModel
   String _cleanErrorMessage(Object error) {
     return error
         .toString()
-        .replaceFirst(
-          'PatientRepositoryException: ',
-          '',
-        )
-        .replaceFirst(
-          'Exception: ',
-          '',
-        )
+        .replaceFirst('PatientRepositoryException: ', '')
+        .replaceFirst('Exception: ', '')
         .trim();
   }
 }

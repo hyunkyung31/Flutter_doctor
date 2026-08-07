@@ -16,11 +16,7 @@ final class ConsultationService {
     try {
       final response = await _apiClient.dio.get<dynamic>(
         ApiEndpoints.doctors,
-        options: Options(
-          headers: {
-            'Authorization': 'Bearer $accessToken',
-          },
-        ),
+        options: Options(headers: {'Authorization': 'Bearer $accessToken'}),
       );
 
       final data = response.data;
@@ -30,12 +26,9 @@ final class ConsultationService {
       if (data is List<dynamic>) {
         doctorList = data;
       } else if (data is Map<String, dynamic>) {
-        final results =
-            data['results'] ?? data['doctors'] ?? data['data'];
+        final results = data['results'] ?? data['doctors'] ?? data['data'];
 
-        doctorList = results is List<dynamic>
-            ? results
-            : <dynamic>[];
+        doctorList = results is List<dynamic> ? results : <dynamic>[];
       } else {
         doctorList = <dynamic>[];
       }
@@ -46,15 +39,10 @@ final class ConsultationService {
           .toList();
     } on DioException catch (error) {
       throw ConsultationServiceException(
-        _extractErrorMessage(
-          error,
-          defaultMessage: '의사 목록을 불러오지 못했습니다.',
-        ),
+        _extractErrorMessage(error, defaultMessage: '의사 목록을 불러오지 못했습니다.'),
       );
     } catch (_) {
-      throw const ConsultationServiceException(
-        '의사 목록을 불러오지 못했습니다.',
-      );
+      throw const ConsultationServiceException('의사 목록을 불러오지 못했습니다.');
     }
   }
 
@@ -103,15 +91,10 @@ final class ConsultationService {
       );
     } on DioException catch (error) {
       throw ConsultationServiceException(
-        _extractErrorMessage(
-          error,
-          defaultMessage: '협진 요청 전송에 실패했습니다.',
-        ),
+        _extractErrorMessage(error, defaultMessage: '협진 요청 전송에 실패했습니다.'),
       );
     } catch (_) {
-      throw const ConsultationServiceException(
-        '협진 요청 전송에 실패했습니다.',
-      );
+      throw const ConsultationServiceException('협진 요청 전송에 실패했습니다.');
     }
   }
 
@@ -122,9 +105,7 @@ final class ConsultationService {
       final response = await _apiClient.dio.get<dynamic>(
         ApiEndpoints.consultations,
         queryParameters: const {'receiver': 'me'},
-        options: Options(
-          headers: {'Authorization': 'Bearer $accessToken'},
-        ),
+        options: Options(headers: {'Authorization': 'Bearer $accessToken'}),
       );
 
       final data = response.data;
@@ -141,22 +122,16 @@ final class ConsultationService {
       return items
           .whereType<Map>()
           .map(
-            (item) => ConsultationRequest.fromJson(
-              Map<String, dynamic>.from(item),
-            ),
+            (item) =>
+                ConsultationRequest.fromJson(Map<String, dynamic>.from(item)),
           )
           .toList(growable: false);
     } on DioException catch (error) {
       throw ConsultationServiceException(
-        _extractErrorMessage(
-          error,
-          defaultMessage: '받은 협진 요청을 불러오지 못했습니다.',
-        ),
+        _extractErrorMessage(error, defaultMessage: '받은 협진 요청을 불러오지 못했습니다.'),
       );
     } catch (_) {
-      throw const ConsultationServiceException(
-        '받은 협진 요청을 불러오지 못했습니다.',
-      );
+      throw const ConsultationServiceException('받은 협진 요청을 불러오지 못했습니다.');
     }
   }
 
@@ -167,39 +142,31 @@ final class ConsultationService {
       final response = await _apiClient.dio.get<dynamic>(
         ApiEndpoints.consultations,
         queryParameters: const {'sender': 'me'},
-        options: Options(
-          headers: {'Authorization': 'Bearer $accessToken'},
-        ),
+        options: Options(headers: {'Authorization': 'Bearer $accessToken'}),
       );
 
       final data = response.data;
       final dynamic items = data is List
           ? data
           : data is Map
-              ? data['results'] ?? data['consultations'] ?? data['data']
-              : null;
+          ? data['results'] ?? data['consultations'] ?? data['data']
+          : null;
 
       if (items is! List) return const <ConsultationRequest>[];
 
       return items
           .whereType<Map>()
           .map(
-            (item) => ConsultationRequest.fromJson(
-              Map<String, dynamic>.from(item),
-            ),
+            (item) =>
+                ConsultationRequest.fromJson(Map<String, dynamic>.from(item)),
           )
           .toList(growable: false);
     } on DioException catch (error) {
       throw ConsultationServiceException(
-        _extractErrorMessage(
-          error,
-          defaultMessage: '보낸 협진 요청을 불러오지 못했습니다.',
-        ),
+        _extractErrorMessage(error, defaultMessage: '보낸 협진 요청을 불러오지 못했습니다.'),
       );
     } catch (_) {
-      throw const ConsultationServiceException(
-        '보낸 협진 요청을 불러오지 못했습니다.',
-      );
+      throw const ConsultationServiceException('보낸 협진 요청을 불러오지 못했습니다.');
     }
   }
 
@@ -221,9 +188,7 @@ final class ConsultationService {
       );
 
       if (response.data is! Map) {
-        throw const ConsultationServiceException(
-          '협진 상태 응답 형식이 올바르지 않습니다.',
-        );
+        throw const ConsultationServiceException('협진 상태 응답 형식이 올바르지 않습니다.');
       }
 
       return ConsultationRequest.fromJson(
@@ -231,17 +196,12 @@ final class ConsultationService {
       );
     } on DioException catch (error) {
       throw ConsultationServiceException(
-        _extractErrorMessage(
-          error,
-          defaultMessage: '협진 상태를 변경하지 못했습니다.',
-        ),
+        _extractErrorMessage(error, defaultMessage: '협진 상태를 변경하지 못했습니다.'),
       );
     } on ConsultationServiceException {
       rethrow;
     } catch (_) {
-      throw const ConsultationServiceException(
-        '협진 상태를 변경하지 못했습니다.',
-      );
+      throw const ConsultationServiceException('협진 상태를 변경하지 못했습니다.');
     }
   }
 
@@ -286,9 +246,7 @@ final class ConsultationService {
     try {
       final response = await _apiClient.dio.patch<dynamic>(
         ApiEndpoints.consultationComplete(consultationId),
-        data: {
-          'response_memo': responseMemo.trim(),
-        },
+        data: {'response_memo': responseMemo.trim()},
         options: Options(
           headers: {
             'Authorization': 'Bearer $accessToken',
@@ -298,9 +256,7 @@ final class ConsultationService {
       );
 
       if (response.data is! Map) {
-        throw const ConsultationServiceException(
-          '소견 전송 응답 형식이 올바르지 않습니다.',
-        );
+        throw const ConsultationServiceException('소견 전송 응답 형식이 올바르지 않습니다.');
       }
 
       return ConsultationRequest.fromJson(
@@ -308,17 +264,12 @@ final class ConsultationService {
       );
     } on DioException catch (error) {
       throw ConsultationServiceException(
-        _extractErrorMessage(
-          error,
-          defaultMessage: '소견을 전송하지 못했습니다.',
-        ),
+        _extractErrorMessage(error, defaultMessage: '소견을 전송하지 못했습니다.'),
       );
     } on ConsultationServiceException {
       rethrow;
     } catch (_) {
-      throw const ConsultationServiceException(
-        '소견을 전송하지 못했습니다.',
-      );
+      throw const ConsultationServiceException('소견을 전송하지 못했습니다.');
     }
   }
 }

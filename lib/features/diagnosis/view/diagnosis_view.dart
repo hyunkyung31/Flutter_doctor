@@ -16,6 +16,7 @@ import '../../ai_result/widgets/ai_result_media_viewer.dart';
 import '../../consultation/model/consultation_form_args.dart';
 import '../../../core/security/screen_protection/screen_protection_notice.dart';
 import 'package:flutter/foundation.dart';
+import '../../patient/widgets/patient_profile_avatar.dart';
 
 final class DiagnosisView extends StatefulWidget {
   const DiagnosisView({super.key});
@@ -541,15 +542,7 @@ final class _SectionHeader extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        CircleAvatar(
-          radius: 14,
-          backgroundColor: colorScheme.primary,
-          foregroundColor: colorScheme.onPrimary,
-          child: Text(
-            '$step',
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
-          ),
-        ),
+        const PatientProfileAvatar(radius: 24),
 
         const SizedBox(width: 10),
 

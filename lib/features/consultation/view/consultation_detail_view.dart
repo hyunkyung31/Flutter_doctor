@@ -10,16 +10,12 @@ import '../model/consultation_request.dart';
 import '../view_model/consultation_view_model.dart';
 
 final class ConsultationDetailView extends StatefulWidget {
-  const ConsultationDetailView({
-    super.key,
-    required this.request,
-  });
+  const ConsultationDetailView({super.key, required this.request});
 
   final ConsultationRequest request;
 
   @override
-  State<ConsultationDetailView> createState() =>
-      _ConsultationDetailViewState();
+  State<ConsultationDetailView> createState() => _ConsultationDetailViewState();
 }
 
 final class _ConsultationDetailViewState extends State<ConsultationDetailView> {
@@ -39,24 +35,20 @@ final class _ConsultationDetailViewState extends State<ConsultationDetailView> {
   Widget build(BuildContext context) {
     final patientViewModel = context.watch<PatientDetailViewModel>();
     final consultationViewModel = context.watch<ConsultationViewModel>();
-    final request = consultationViewModel.requestById(
-          widget.request.consultationId,
-        ) ??
+    final request =
+        consultationViewModel.requestById(widget.request.consultationId) ??
         widget.request;
     final currentDoctorId = context.watch<AuthViewModel>().doctorId?.trim();
-    final canRespond = currentDoctorId != null &&
+    final canRespond =
+        currentDoctorId != null &&
         currentDoctorId.isNotEmpty &&
         currentDoctorId == request.receiverId.trim();
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('협진 요청 상세'),
-        centerTitle: true,
-      ),
+      appBar: AppBar(title: const Text('협진 요청 상세'), centerTitle: true),
       body: RefreshIndicator(
-        onRefresh: () => patientViewModel.refreshPatientDetail(
-          widget.request.patientId,
-        ),
+        onRefresh: () =>
+            patientViewModel.refreshPatientDetail(widget.request.patientId),
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
@@ -69,9 +61,9 @@ final class _ConsultationDetailViewState extends State<ConsultationDetailView> {
             const SizedBox(height: 24),
             Text(
               '환자 상세 정보',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
             _PatientSection(
@@ -79,10 +71,7 @@ final class _ConsultationDetailViewState extends State<ConsultationDetailView> {
               viewModel: patientViewModel,
             ),
             const SizedBox(height: 24),
-            _StatusActions(
-              request: request,
-              canRespond: canRespond,
-            ),
+            _StatusActions(request: request, canRespond: canRespond),
           ],
         ),
       ),
@@ -140,10 +129,7 @@ final class _OpinionRecordCard extends StatelessWidget {
 }
 
 final class _StatusActions extends StatefulWidget {
-  const _StatusActions({
-    required this.request,
-    required this.canRespond,
-  });
+  const _StatusActions({required this.request, required this.canRespond});
 
   final ConsultationRequest request;
   final bool canRespond;
@@ -213,11 +199,7 @@ final class _StatusActionsState extends State<_StatusActions> {
                 status == 'completed' ? Icons.task_alt : Icons.cancel_outlined,
               ),
               const SizedBox(width: 10),
-              Text(
-                status == 'completed'
-                    ? '완료된 협진입니다.'
-                    : '거절된 협진입니다.',
-              ),
+              Text(status == 'completed' ? '완료된 협진입니다.' : '거절된 협진입니다.'),
             ],
           ),
         ),
@@ -250,9 +232,9 @@ final class _OpinionComposerState extends State<_OpinionComposer> {
     final opinion = _controller.text.trim();
 
     if (opinion.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('의료진 소견을 입력해 주세요.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('의료진 소견을 입력해 주세요.')));
       return;
     }
 
@@ -266,18 +248,14 @@ final class _OpinionComposerState extends State<_OpinionComposer> {
 
     if (!success) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            viewModel.errorMessage ?? '소견을 전송하지 못했습니다.',
-          ),
-        ),
+        SnackBar(content: Text(viewModel.errorMessage ?? '소견을 전송하지 못했습니다.')),
       );
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('소견을 전송했습니다.')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('소견을 전송했습니다.')));
   }
 
   @override
@@ -299,10 +277,7 @@ final class _OpinionComposerState extends State<_OpinionComposer> {
               ],
             ),
             const SizedBox(height: 18),
-            const Text(
-              '의료진 소견',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
+            const Text('의료진 소견', style: TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 10),
             TextField(
               controller: _controller,
@@ -347,10 +322,7 @@ final class _ConsultationSection extends StatelessWidget {
               value: request.senderName.isEmpty ? '정보 없음' : request.senderName,
             ),
             _DetailRow(label: '상태', value: _statusLabel(request.status)),
-            _DetailRow(
-              label: '긴급도',
-              value: _priorityLabel(request.priority),
-            ),
+            _DetailRow(label: '긴급도', value: _priorityLabel(request.priority)),
             _DetailRow(
               label: '요청 일시',
               value: request.createdAt == null
@@ -452,10 +424,7 @@ final class _ConsultationSection extends StatelessWidget {
 }
 
 final class _PatientSection extends StatelessWidget {
-  const _PatientSection({
-    required this.request,
-    required this.viewModel,
-  });
+  const _PatientSection({required this.request, required this.viewModel});
 
   final ConsultationRequest request;
   final PatientDetailViewModel viewModel;
@@ -553,10 +522,7 @@ final class _PatientCard extends StatelessWidget {
             ),
             _DetailRow(label: 'Troponin T', value: patient.troponinTText),
             _DetailRow(label: 'History 점수', value: patient.historyScoreText),
-            _DetailRow(
-              label: '위험인자',
-              value: patient.riskFactorsCountText,
-            ),
+            _DetailRow(label: '위험인자', value: patient.riskFactorsCountText),
             const SizedBox(height: 12),
             _ImageMedia(
               title: '심전도 이미지',
@@ -908,10 +874,7 @@ final class _VideoMediaState extends State<_VideoMedia> {
   }
 }
 
-String? _findMediaUrl(
-  Map<String, dynamic> record,
-  List<String> candidateKeys,
-) {
+String? _findMediaUrl(Map<String, dynamic> record, List<String> candidateKeys) {
   for (final key in candidateKeys) {
     final value = record[key]?.toString().trim() ?? '';
     if (value.isNotEmpty && value.toLowerCase() != 'null') {

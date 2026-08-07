@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../patient/model/patient.dart';
 import '../../patient/view_model/patient_list_view_model.dart';
+import '../../patient/widgets/patient_profile_avatar.dart';
 
 enum _PatientTypeFilter { all, outpatient, inpatient }
 
@@ -725,15 +726,7 @@ final class _ConsultationRequestViewState
                             horizontal: 16,
                             vertical: 8,
                           ),
-                          leading: CircleAvatar(
-                            backgroundColor: colorScheme.primaryContainer,
-                            foregroundColor: colorScheme.onPrimaryContainer,
-                            child: Text(
-                              patient.patientName.isNotEmpty
-                                  ? patient.patientName[0]
-                                  : '?',
-                            ),
-                          ),
+                          leading: const PatientProfileAvatar(radius: 22),
                           title: Text(
                             patient.patientName.isEmpty
                                 ? '이름 미등록'
