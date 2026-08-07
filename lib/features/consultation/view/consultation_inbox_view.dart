@@ -34,13 +34,8 @@ final class _ConsultationInboxViewState extends State<ConsultationInboxView> {
         : viewModel.sentRequests;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('협진 내역'),
-        centerTitle: true,
-      ),
-      body: SafeArea(
-        child: _buildBody(context, viewModel, requests),
-      ),
+      appBar: AppBar(title: const Text('협진 내역'), centerTitle: true),
+      body: SafeArea(child: _buildBody(context, viewModel, requests)),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.pushNamed('consultationRequest'),
         icon: const Icon(Icons.add),
@@ -67,10 +62,7 @@ final class _ConsultationInboxViewState extends State<ConsultationInboxView> {
             children: [
               const Icon(Icons.error_outline, size: 56),
               const SizedBox(height: 12),
-              Text(
-                viewModel.errorMessage!,
-                textAlign: TextAlign.center,
-              ),
+              Text(viewModel.errorMessage!, textAlign: TextAlign.center),
               const SizedBox(height: 16),
               FilledButton.icon(
                 onPressed: viewModel.loadAllRequests,
@@ -153,10 +145,7 @@ final class _ConsultationInboxViewState extends State<ConsultationInboxView> {
                       const SizedBox(height: 100),
                       const Icon(Icons.inbox_outlined, size: 72),
                       const SizedBox(height: 16),
-                      Text(
-                        _emptyMessage(),
-                        textAlign: TextAlign.center,
-                      ),
+                      Text(_emptyMessage(), textAlign: TextAlign.center),
                     ],
                   )
                 : ListView.separated(
@@ -195,10 +184,7 @@ final class _ConsultationInboxViewState extends State<ConsultationInboxView> {
                           return;
                         }
 
-                        context.pushNamed(
-                          'consultationDetail',
-                          extra: request,
-                        );
+                        context.pushNamed('consultationDetail', extra: request);
                       },
                     ),
                   ),
@@ -239,10 +225,7 @@ enum _ConsultationFilter { all, active, completed }
 enum _ConsultationBox { received, sent }
 
 final class _ConsultationRequestCard extends StatelessWidget {
-  const _ConsultationRequestCard({
-    required this.request,
-    required this.onTap,
-  });
+  const _ConsultationRequestCard({required this.request, required this.onTap});
 
   final ConsultationRequest request;
   final VoidCallback onTap;

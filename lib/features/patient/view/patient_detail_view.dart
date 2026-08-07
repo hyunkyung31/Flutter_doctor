@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import '../../diagnosis/diagnosis_routes.dart'; // 추가
 import '../../diagnosis/model/diagnosis_entry_args.dart'; // 추가
 import '../../../core/security/screen_protection/screen_protection_notice.dart';
+import '../widgets/patient_profile_avatar.dart';
 
 final class PatientDetailView extends StatefulWidget {
   const PatientDetailView({super.key, required this.patientId});
@@ -291,11 +292,6 @@ final class _PatientProfileCard extends StatelessWidget {
     final displayName = patientName.trim().isEmpty
         ? '이름 미등록'
         : patientName.trim();
-
-    final firstLetter = displayName == '이름 미등록'
-        ? '?'
-        : displayName.substring(0, 1);
-
     return Card(
       margin: EdgeInsets.zero,
       child: Padding(
@@ -304,18 +300,7 @@ final class _PatientProfileCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                CircleAvatar(
-                  radius: 34,
-                  backgroundColor: colorScheme.primaryContainer,
-                  foregroundColor: colorScheme.onPrimaryContainer,
-                  child: Text(
-                    firstLetter,
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
+                const PatientProfileAvatar(radius: 34),
 
                 const SizedBox(width: 16),
 

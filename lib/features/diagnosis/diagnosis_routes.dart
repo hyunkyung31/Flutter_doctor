@@ -21,64 +21,41 @@ final List<RouteBase> diagnosisRoutes = [
   GoRoute(
     path: DiagnosisRoute.path,
     name: DiagnosisRoute.name,
-    builder: (
-      context,
-      state,
-    ) {
+    builder: (context, state) {
       // 홈 진입은 기본 인자를 사용, 환자 상세 진입은 state.extra로 전달된 patientId와 examId를 사용
-      final entryArgs =
-          _resolveEntryArgs(state);
+      final entryArgs = _resolveEntryArgs(state);
 
       // 분석 상태는 환자와 검사마다 달라지므로 화면 진입마다 새로 생성
-      return ChangeNotifierProvider<
-          DiagnosisViewModel>(
-        create: (context) =>
-            DiagnosisViewModel(
-          context.read<
-              DiagnosisRepository>(),
-          context.read<
-              PatientRepository>(),
-          secureStorage:
-              context.read<SecureStorage>(),
+      return ChangeNotifierProvider<DiagnosisViewModel>(
+        create: (context) => DiagnosisViewModel(
+          context.read<DiagnosisRepository>(),
+          context.read<PatientRepository>(),
+          secureStorage: context.read<SecureStorage>(),
           entryArgs: entryArgs,
         ),
         child: const SensitiveAccessGate(
-          localizedReason:
-              '환자 의료영상과 AI 분석 결과를 확인하려면 본인 인증이 필요합니다.',
-          child: ScreenCaptureGuard(
-            child:DiagnosisView(),
-          ),
+          localizedReason: '환자 의료영상과 AI 분석 결과를 확인하려면 본인 인증이 필요합니다.',
+          child: ScreenCaptureGuard(child: DiagnosisView()),
         ),
       );
-
     },
   ),
 ];
 
 // 앱 내부 이동에서는 state.extra를 우선 사용, 직접 경로 접근을 고려해 Query Parameter도 보조적으로 처리한다.
-DiagnosisEntryArgs _resolveEntryArgs(
-  GoRouterState state,
-) {
+DiagnosisEntryArgs _resolveEntryArgs(GoRouterState state) {
   final extra = state.extra;
 
   if (extra is DiagnosisEntryArgs) {
     return extra;
   }
 
-  final patientId =
-      state.uri.queryParameters[
-          'patientId'];
+  final patientId = state.uri.queryParameters['patientId'];
 
-  final examIdText =
-      state.uri.queryParameters[
-          'examId'];
+  final examIdText = state.uri.queryParameters['examId'];
 
   return DiagnosisEntryArgs(
     patientId: patientId,
-    examId: examIdText == null
-        ? null
-        : int.tryParse(
-            examIdText.trim(),
-          ),
+    examId: examIdText == null ? null : int.tryParse(examIdText.trim()),
   );
 }

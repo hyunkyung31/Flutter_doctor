@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
-import '../../auth/view_model/auth_view_model.dart';
 import '../model/patient.dart';
 import '../view_model/patient_list_view_model.dart';
+import '../widgets/patient_profile_avatar.dart';
 
 enum _PatientTypeFilter { all, outpatient, inpatient }
 
@@ -63,18 +63,6 @@ final class _PatientListViewState extends State<PatientListView> {
   void dispose() {
     _searchController.dispose();
     super.dispose();
-  }
-
-  Future<void> _logout() async {
-    final isSuccess = await context.read<AuthViewModel>().logout();
-
-    if (!mounted) {
-      return;
-    }
-
-    if (isSuccess) {
-      context.go('/login');
-    }
   }
 
   void _onSearchChanged(String value) {
@@ -609,7 +597,6 @@ final class _PatientListViewState extends State<PatientListView> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-
     final colorScheme = theme.colorScheme;
 
     return Scaffold(
@@ -629,13 +616,6 @@ final class _PatientListViewState extends State<PatientListView> {
           '환자 목록',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        actions: [
-          IconButton(
-            onPressed: _logout,
-            tooltip: '로그아웃',
-            icon: const Icon(Icons.logout),
-          ),
-        ],
       ),
       body: Consumer<PatientListViewModel>(
         builder: (context, viewModel, child) {
@@ -838,11 +818,9 @@ final class _FilterSectionTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
     return Row(
       children: [
-        Icon(icon, size: 20, color: colorScheme.primary),
+        Icon(icon, size: 20, color: Theme.of(context).colorScheme.primary),
         const SizedBox(width: 8),
         Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
       ],
@@ -940,8 +918,6 @@ final class _PatientCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
     return Card(
       margin: EdgeInsets.zero,
       clipBehavior: Clip.antiAlias,
@@ -951,15 +927,7 @@ final class _PatientCard extends StatelessWidget {
           horizontal: 18,
           vertical: 12,
         ),
-        leading: CircleAvatar(
-          backgroundColor: colorScheme.primaryContainer,
-          foregroundColor: colorScheme.onPrimaryContainer,
-          child: Text(
-            patient.patientName.isNotEmpty
-                ? patient.patientName.substring(0, 1)
-                : '?',
-          ),
-        ),
+        leading: const PatientProfileAvatar(radius: 22),
         title: Text(
           patient.patientName.isEmpty ? '이름 미등록' : patient.patientName,
           style: const TextStyle(fontWeight: FontWeight.bold),

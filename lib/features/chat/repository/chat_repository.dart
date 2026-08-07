@@ -3,9 +3,11 @@ import '../model/chat_models.dart';
 import '../service/chat_service.dart';
 
 final class ChatRepository {
-  const ChatRepository({required ChatService service, required SecureStorage storage})
-      : _service = service,
-        _storage = storage;
+  const ChatRepository({
+    required ChatService service,
+    required SecureStorage storage,
+  }) : _service = service,
+       _storage = storage;
 
   final ChatService _service;
   final SecureStorage _storage;
@@ -18,7 +20,8 @@ final class ChatRepository {
     return token;
   }
 
-  Future<List<ChatRoom>> fetchRooms() => _call((token) => _service.fetchRooms(token));
+  Future<List<ChatRoom>> fetchRooms() =>
+      _call((token) => _service.fetchRooms(token));
   Future<ChatRoom> createRoom(String doctorId) =>
       _call((token) => _service.createRoom(token, doctorId));
   Future<List<ChatMessage>> fetchMessages(String roomId) =>

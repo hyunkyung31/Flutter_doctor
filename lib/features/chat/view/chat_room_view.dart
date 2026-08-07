@@ -33,14 +33,11 @@ final class _ChatRoomViewState extends State<ChatRoomView> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       context.read<ChatViewModel>().loadMessages(widget.roomId);
-      _messagePollingTimer = Timer.periodic(
-        const Duration(seconds: 3),
-        (_) {
-          if (mounted) {
-            context.read<ChatViewModel>().loadMessages(widget.roomId);
-          }
-        },
-      );
+      _messagePollingTimer = Timer.periodic(const Duration(seconds: 3), (_) {
+        if (mounted) {
+          context.read<ChatViewModel>().loadMessages(widget.roomId);
+        }
+      });
     });
   }
 
@@ -76,7 +73,8 @@ final class _ChatRoomViewState extends State<ChatRoomView> {
       body: Column(
         children: [
           Expanded(
-            child: viewModel.isRoomLoading(widget.roomId) && room.messages.isEmpty
+            child:
+                viewModel.isRoomLoading(widget.roomId) && room.messages.isEmpty
                 ? const Center(child: CircularProgressIndicator())
                 : room.messages.isEmpty
                 ? const Center(child: Text('메시지를 보내 대화를 시작하세요.'))
@@ -86,9 +84,7 @@ final class _ChatRoomViewState extends State<ChatRoomView> {
                     itemCount: room.messages.length,
                     itemBuilder: (context, index) {
                       final message = room.messages.reversed.elementAt(index);
-                      return _MessageBubble(
-                        message: message,
-                      );
+                      return _MessageBubble(message: message);
                     },
                   ),
           ),
@@ -132,21 +128,22 @@ final class _ChatRoomViewState extends State<ChatRoomView> {
                     onPressed: viewModel.isSending(widget.roomId)
                         ? null
                         : () async {
-                      final success = await viewModel.sendText(
-                        widget.roomId,
-                        controller.text,
-                      );
-                      if (success) controller.clear();
-                      if (!success && context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              viewModel.errorMessage ?? '메시지를 전송하지 못했습니다.',
-                            ),
-                          ),
-                        );
-                      }
-                    },
+                            final success = await viewModel.sendText(
+                              widget.roomId,
+                              controller.text,
+                            );
+                            if (success) controller.clear();
+                            if (!success && context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    viewModel.errorMessage ??
+                                        '메시지를 전송하지 못했습니다.',
+                                  ),
+                                ),
+                              );
+                            }
+                          },
                     icon: const Icon(Icons.send),
                   ),
                 ],
@@ -169,11 +166,24 @@ final class _ChatRoomViewState extends State<ChatRoomView> {
         child: Wrap(
           children: [
             const ListTile(
-              title: Text('자료 공유', style: TextStyle(fontWeight: FontWeight.bold)),
+              title: Text(
+                '자료 공유',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
             ),
             _shareTile(context, Icons.person, '환자 공유', ChatMessageType.patient),
-            _shareTile(context, Icons.monitor_heart, '혈관조영 영상', ChatMessageType.examination),
-            _shareTile(context, Icons.auto_awesome, 'AI 분석 결과', ChatMessageType.aiResult),
+            _shareTile(
+              context,
+              Icons.monitor_heart,
+              '혈관조영 영상',
+              ChatMessageType.examination,
+            ),
+            _shareTile(
+              context,
+              Icons.auto_awesome,
+              'AI 분석 결과',
+              ChatMessageType.aiResult,
+            ),
           ],
         ),
       ),
@@ -223,9 +233,9 @@ final class _ChatRoomViewState extends State<ChatRoomView> {
     ChatMessageType type,
   ) async {
     try {
-      final detail = await context
-          .read<PatientRepository>()
-          .getPatientDetail(patient.patientId);
+      final detail = await context.read<PatientRepository>().getPatientDetail(
+        patient.patientId,
+      );
       if (!context.mounted) return null;
       final items = type == ChatMessageType.aiResult
           ? detail.aiResults
@@ -294,9 +304,9 @@ final class _ChatRoomViewState extends State<ChatRoomView> {
       );
     } catch (error) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(error.toString())),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(error.toString())));
       }
       return null;
     }
@@ -324,7 +334,8 @@ final class _MessageBubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final currentDoctorId = context.watch<AuthViewModel>().doctorId;
-    final mine = currentDoctorId != null &&
+    final mine =
+        currentDoctorId != null &&
         message.senderId.trim() == currentDoctorId.trim();
     final colors = Theme.of(context).colorScheme;
     return Align(
@@ -355,10 +366,7 @@ final class _MessageBubble extends StatelessWidget {
                   ),
                   child: message.type == ChatMessageType.text
                       ? Text(message.content)
-                      : _SharedCard(
-                          message: message,
-                          isMine: mine,
-                        ),
+                      : _SharedCard(message: message, isMine: mine),
                 ),
               ),
             ),
@@ -371,10 +379,7 @@ final class _MessageBubble extends StatelessWidget {
 }
 
 final class _SharedCard extends StatelessWidget {
-  const _SharedCard({
-    required this.message,
-    required this.isMine,
-  });
+  const _SharedCard({required this.message, required this.isMine});
 
   final ChatMessage message;
   final bool isMine;
@@ -392,10 +397,7 @@ final class _SharedCard extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(
-          title,
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
+        Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
         const SizedBox(height: 6),
         if (message.patientName != null)
           Text('${message.patientName} · ${message.patientId}'),
@@ -419,9 +421,7 @@ final class _SharedCard extends StatelessWidget {
     if (patientId == null || patientId.isEmpty) {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
-        ..showSnackBar(
-          const SnackBar(content: Text('공유된 환자 정보를 찾을 수 없습니다.')),
-        );
+        ..showSnackBar(const SnackBar(content: Text('공유된 환자 정보를 찾을 수 없습니다.')));
       return;
     }
 
@@ -463,7 +463,10 @@ final class _SharedDataSheet extends StatelessWidget {
       child: Column(
         children: [
           ListTile(
-            title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+            title: Text(
+              title,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
             subtitle: Text('${message.patientName} · ${message.patientId}'),
             trailing: IconButton(
               tooltip: '닫기',
@@ -476,19 +479,18 @@ final class _SharedDataSheet extends StatelessWidget {
             child: viewModel.isLoading && detail == null
                 ? const Center(child: CircularProgressIndicator())
                 : viewModel.errorMessage != null && detail == null
-                    ? _SharedDataError(
-                        message: viewModel.errorMessage!,
-                        onRetry: () => viewModel.loadPatientDetail(
-                          message.patientId ?? '',
-                        ),
-                      )
-                    : detail == null
-                        ? const Center(child: Text('표시할 자료가 없습니다.'))
-                        : _SharedDataBody(
-                            messageType: message.type,
-                            detail: detail,
-                            viewModel: viewModel,
-                          ),
+                ? _SharedDataError(
+                    message: viewModel.errorMessage!,
+                    onRetry: () =>
+                        viewModel.loadPatientDetail(message.patientId ?? ''),
+                  )
+                : detail == null
+                ? const Center(child: Text('표시할 자료가 없습니다.'))
+                : _SharedDataBody(
+                    messageType: message.type,
+                    detail: detail,
+                    viewModel: viewModel,
+                  ),
           ),
         ],
       ),
@@ -511,35 +513,32 @@ final class _SharedDataBody extends StatelessWidget {
   Widget build(BuildContext context) {
     return switch (messageType) {
       ChatMessageType.patient => _PatientDataView(
-          patient: detail.patient,
-          viewModel: viewModel,
-        ),
+        patient: detail.patient,
+        viewModel: viewModel,
+      ),
       ChatMessageType.examination => _MapDataList(
-          items: detail.examinations,
-          emptyMessage: '검사·촬영 자료가 없습니다.',
-          resolveMediaUrl: viewModel.resolveMediaUrl,
-          mediaHeaders: viewModel.mediaHeaders,
-        ),
+        items: detail.examinations,
+        emptyMessage: '검사·촬영 자료가 없습니다.',
+        resolveMediaUrl: viewModel.resolveMediaUrl,
+        mediaHeaders: viewModel.mediaHeaders,
+      ),
       ChatMessageType.aiResult => _MapDataList(
-          items: detail.aiResults,
-          emptyMessage: 'AI 분석 결과가 없습니다.',
-          resolveMediaUrl: viewModel.resolveMediaUrl,
-          mediaHeaders: viewModel.mediaHeaders,
-        ),
+        items: detail.aiResults,
+        emptyMessage: 'AI 분석 결과가 없습니다.',
+        resolveMediaUrl: viewModel.resolveMediaUrl,
+        mediaHeaders: viewModel.mediaHeaders,
+      ),
       ChatMessageType.consultation => _PatientDataView(
-          patient: detail.patient,
-          viewModel: viewModel,
-        ),
+        patient: detail.patient,
+        viewModel: viewModel,
+      ),
       ChatMessageType.text => const Center(child: Text('표시할 자료가 없습니다.')),
     };
   }
 }
 
 final class _PatientDataView extends StatelessWidget {
-  const _PatientDataView({
-    required this.patient,
-    required this.viewModel,
-  });
+  const _PatientDataView({required this.patient, required this.viewModel});
 
   final Patient patient;
   final PatientDetailViewModel viewModel;
@@ -559,9 +558,9 @@ final class _PatientDataView extends StatelessWidget {
         const SizedBox(height: 12),
         Text(
           '심전도 이미지',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
         if (patient.ecgImageUrl.trim().isEmpty)
@@ -579,9 +578,7 @@ final class _PatientDataView extends StatelessWidget {
               ),
               errorWidget: (_, __, ___) => const SizedBox(
                 height: 180,
-                child: Center(
-                  child: Text('심전도 이미지를 불러올 수 없습니다.'),
-                ),
+                child: Center(child: Text('심전도 이미지를 불러올 수 없습니다.')),
               ),
             ),
           ),
@@ -606,7 +603,10 @@ final class _InfoRow extends StatelessWidget {
           children: [
             SizedBox(
               width: 100,
-              child: Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
+              child: Text(
+                label,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
             ),
             Expanded(child: Text(value)),
           ],
@@ -648,8 +648,8 @@ final class _MapDataList extends StatelessWidget {
                 Text(
                   '자료 ${index + 1}',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 ...item.entries
@@ -657,7 +657,9 @@ final class _MapDataList extends StatelessWidget {
                     .map(
                       (entry) => Padding(
                         padding: const EdgeInsets.only(bottom: 5),
-                        child: Text('${_fieldLabel(entry.key)}: ${entry.value}'),
+                        child: Text(
+                          '${_fieldLabel(entry.key)}: ${entry.value}',
+                        ),
                       ),
                     ),
                 ...imageUrls.map(
@@ -692,7 +694,9 @@ final class _MapDataList extends StatelessWidget {
   List<String> _imageUrls(Map<String, dynamic> item) {
     return item.entries
         .where((entry) => _isMediaField(entry.key))
-        .expand((entry) => entry.value is List ? entry.value as List : [entry.value])
+        .expand(
+          (entry) => entry.value is List ? entry.value as List : [entry.value],
+        )
         .map((value) => value?.toString().trim() ?? '')
         .where((value) => value.isNotEmpty)
         .toList();
@@ -781,37 +785,34 @@ final class _PatientPickerSheetState extends State<_PatientPickerSheet> {
             Expanded(
               child: viewModel.isLoading && viewModel.patients.isEmpty
                   ? const Center(child: CircularProgressIndicator())
-                  : viewModel.errorMessage != null &&
-                          viewModel.patients.isEmpty
-                      ? _PatientLoadError(
-                          message: viewModel.errorMessage!,
-                          onRetry: viewModel.loadPatients,
-                        )
-                      : patients.isEmpty
-                          ? const Center(child: Text('선택할 환자가 없습니다.'))
-                          : RefreshIndicator(
-                              onRefresh: viewModel.refreshPatients,
-                              child: ListView.separated(
-                                itemCount: patients.length,
-                                separatorBuilder: (_, __) =>
-                                    const Divider(height: 1),
-                                itemBuilder: (context, index) {
-                                  final patient = patients[index];
-                                  return ListTile(
-                                    leading: const CircleAvatar(
-                                      child: Icon(Icons.person),
-                                    ),
-                                    title: Text(patient.patientName),
-                                    subtitle: Text(
-                                      '${patient.patientId} · ${patient.genderText} · ${patient.age}세',
-                                    ),
-                                    trailing: const Icon(Icons.chevron_right),
-                                    onTap: () =>
-                                        Navigator.pop(context, patient),
-                                  );
-                                },
-                              ),
+                  : viewModel.errorMessage != null && viewModel.patients.isEmpty
+                  ? _PatientLoadError(
+                      message: viewModel.errorMessage!,
+                      onRetry: viewModel.loadPatients,
+                    )
+                  : patients.isEmpty
+                  ? const Center(child: Text('선택할 환자가 없습니다.'))
+                  : RefreshIndicator(
+                      onRefresh: viewModel.refreshPatients,
+                      child: ListView.separated(
+                        itemCount: patients.length,
+                        separatorBuilder: (_, __) => const Divider(height: 1),
+                        itemBuilder: (context, index) {
+                          final patient = patients[index];
+                          return ListTile(
+                            leading: const CircleAvatar(
+                              child: Icon(Icons.person),
                             ),
+                            title: Text(patient.patientName),
+                            subtitle: Text(
+                              '${patient.patientId} · ${patient.genderText} · ${patient.age}세',
+                            ),
+                            trailing: const Icon(Icons.chevron_right),
+                            onTap: () => Navigator.pop(context, patient),
+                          );
+                        },
+                      ),
+                    ),
             ),
           ],
         ),
@@ -865,9 +866,9 @@ final class _Time extends StatelessWidget {
               Text(
                 '1',
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: Theme.of(context).colorScheme.primary,
-                      fontWeight: FontWeight.w700,
-                    ),
+                  color: Theme.of(context).colorScheme.primary,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             Text(
               '$hour:$minute',

@@ -58,13 +58,16 @@ final class ChatMessage {
 
   factory ChatMessage.fromJson(Map<String, dynamic> json) {
     final patient = json['patient'];
-    final patientMap = patient is Map ? Map<String, dynamic>.from(patient) : null;
+    final patientMap = patient is Map
+        ? Map<String, dynamic>.from(patient)
+        : null;
     return ChatMessage(
       id: (json['id'] ?? '').toString(),
       senderId: (json['sender_id'] ?? '').toString(),
       receiverId: (json['receiver_id'] ?? '').toString(),
       content: (json['content'] ?? '').toString(),
-      sentAt: DateTime.tryParse((json['created_at'] ?? '').toString()) ??
+      sentAt:
+          DateTime.tryParse((json['created_at'] ?? '').toString()) ??
           DateTime.now(),
       type: _messageType(json['message_type']),
       patientId: _nullableString(json['patient_id']),

@@ -90,6 +90,7 @@ flutter:
     - assets/
     - assets/images/
     - assets/images/privacy/
+    - assets/images/profile/
     - assets/icons/
 
 flutter_launcher_icons:
